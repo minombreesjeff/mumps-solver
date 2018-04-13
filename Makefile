@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+#  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 #
 topdir = .
 libdir = $(topdir)/lib

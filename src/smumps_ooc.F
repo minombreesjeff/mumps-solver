@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -427,6 +427,7 @@ C
       IERR=0
       IO_C=.TRUE.
 #if ! defined(OLD_READ)
+      OOC_STATE_NODE(STEP_OOC(INODE))=NOT_USED
       CALL MUMPS_677(ADDR_INT1,ADDR_INT2,
      $     OOC_VADDR(STEP_OOC(INODE),OOC_FCT_TYPE))
       CALL MUMPS_LOW_LEVEL_DIRECT_READ(DEST,
@@ -441,6 +442,7 @@ C
          RETURN
       ENDIF
 #else
+      OOC_STATE_NODE(STEP_OOC(INODE))=NOT_USED
       CALL MUMPS_677(ADDR_INT1,ADDR_INT2,
      $     OOC_VADDR(STEP_OOC(INODE),OOC_FCT_TYPE))
       CALL MUMPS_LOW_LEVEL_READ_OOC_C(LOW_LEVEL_STRAT_IO,
@@ -560,7 +562,7 @@ C
       TYPE(SMUMPS_STRUC), TARGET :: id
       INTEGER IERR
       INTEGER I,J,I1,K
-      CHARACTER*1 TMP_NAME(150)
+      CHARACTER*1 TMP_NAME(350)
       IERR=0
       K=1
       IF(associated(id%OOC_FILE_NAMES).AND.
@@ -1575,7 +1577,6 @@ C
             CALL MUMPS_ABORT()
          ENDIF
       ENDIF
-      OOC_STATE_NODE(STEP_OOC(INODE))=NOT_USED
       IF(LRLUS_SOLVE(ZONE).LT.0)THEN
          WRITE(*,*)MYID_OOC,': Internal error (9) in OOC ',
      &                      ' LRLUS_SOLVE must be (3) > 0'
@@ -2761,7 +2762,7 @@ C
       TYPE(SMUMPS_STRUC), TARGET :: id
       INTEGER, intent(out) :: IERR
       INTEGER I,DIM,J,TMP,SIZE,K,I1
-      CHARACTER*1 TMP_NAME(150)
+      CHARACTER*1 TMP_NAME(350)
       EXTERNAL MUMPS_OOC_GET_NB_FILES_C, MUMPS_OOC_GET_FILE_NAME_C
       IERR=0
       SIZE=0
@@ -2819,7 +2820,7 @@ C
       USE SMUMPS_STRUC_DEF
       IMPLICIT NONE
       TYPE(SMUMPS_STRUC), TARGET :: id
-      CHARACTER*1 TMP_NAME(150)
+      CHARACTER*1 TMP_NAME(350)
       INTEGER I,I1,TMP,J,K,L,DIM,IERR
       INTEGER, DIMENSION(:),ALLOCATABLE :: NB_FILES
       INTEGER K211

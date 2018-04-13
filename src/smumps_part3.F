@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -52,7 +52,7 @@ C
      *  PTRIST, PTLUST_S, PTRFAC,
      *  PTRAST, STEP, PIMASTER, PAMASTER, NSTK, COMP,
      *  IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL, LEAF,
-     *  ICNTL, KEEP,KEEP8,
+     *  NBFIN, ICNTL, KEEP,KEEP8,
      *  root, OPASSW, OPELIW,
      *  ITLOC, FILS, PTRARW, PTRAIW, INTARR, DBLARR, ND, FRERE,
      *  LPTRAR, NELT, FRTPTR, FRTELT, 
@@ -598,7 +598,7 @@ C
      *  PTRIST, PTLUST_S, PTRFAC,
      *  PTRAST, STEP, PIMASTER, PAMASTER, NSTK, COMP,
      *  IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL, LEAF,
-     *  ICNTL, KEEP,KEEP8, root,
+     *  NBFIN, ICNTL, KEEP,KEEP8, root,
      *  OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW, INTARR, DBLARR,
      *  ND, FRERE, LPTRAR, NELT, FRTPTR, FRTELT, 
      *
@@ -3352,15 +3352,6 @@ C
      *                    MP, LDIAG, INFO(1), INFO(2))
          IF (INFO(1).LT.0) RETURN
       ENDIF
-      IF (KEEP(24)==0) THEN
-       CALL SMUMPS_353(N, IKEEP(1,1), FILS, FRERE,
-     *      NFSIZ, IKEEP(1,3), IKEEP(1,2),
-     *      PTRAR, ICNTL, INFO, KEEP,KEEP8)
-      ELSE
-      CALL SMUMPS_348(N, IDUM, IKEEP(1,1), FILS, FRERE,
-     *      NFSIZ, IKEEP(1,3), IKEEP(1,2),
-     *      ICNTL, INFO, KEEP,KEEP8)
-      ENDIF
       IF (LDIAG.GT.2 .AND. MP.GT.0) THEN
        K = min0(10,N)
        IF (LDIAG.EQ.4) K = N
@@ -4461,7 +4452,7 @@ C
      *         PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *         PIMASTER, PAMASTER, NSTK_S, COMP,
      *         IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL,
-     *         LEAF, ICNTL, KEEP,KEEP8, root,
+     *         LEAF, NBFIN, ICNTL, KEEP,KEEP8, root,
      *         OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW,
      *         INTARR, DBLARR, ND, FRERE_STEPS,
      *         NELT+1, NELT, FRT_PTR, FRT_ELT,
@@ -5175,7 +5166,7 @@ C
      *      PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *      PIMASTER, PAMASTER, NSTK_S, COMP,
      *      IFLAG, IERROR, MYID, COMM, NBPROCFILS, 
-     *      IPOOL, LPOOL, LEAF, ICNTL, KEEP,KEEP8, root,
+     *      IPOOL, LPOOL, LEAF, NBFIN, ICNTL, KEEP,KEEP8, root,
      *      OPASSW, OPELIW,
      *      ITLOC, FILS, PTRARW, PTRAIW, INTARR, DBLARR,
      *      ND, FRERE_STEPS, NELT+1, NELT, 
@@ -5244,7 +5235,7 @@ C
      *        PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *        PIMASTER, PAMASTER, NSTK_S, COMP,
      *        IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL, LEAF,
-     *        ICNTL, KEEP,KEEP8, root,
+     *        NBFIN, ICNTL, KEEP,KEEP8, root,
      *        OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW,
      *        INTARR, DBLARR, ND, FRERE_STEPS,
      *        NELT+1, NELT, FRT_PTR, FRT_ELT, 

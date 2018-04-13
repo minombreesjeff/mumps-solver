@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -101,40 +101,6 @@ C
       ENDDO
       RETURN
       END SUBROUTINE DMUMPS_651
-      SUBROUTINE DMUMPS_181( N, NBROOT, NBLEAF, POOL, 
-     &          LPOOL, PERM, FILS, FRERE, NSTK )
-      IMPLICIT NONE
-      INTEGER N, NBROOT, NBLEAF, LPOOL
-      INTEGER POOL( LPOOL ), PERM( N ), FILS( N ),
-     *        FRERE( N ), NSTK( N )
-      INTEGER IPERM, INODE, IN
-      IPERM = 1
-      DO WHILE ( NBLEAF .NE. 0 )
-        INODE = POOL( NBLEAF )
-        NBLEAF = NBLEAF - 1
-        IN = INODE
-        DO WHILE ( IN .GT. 0 )
-          PERM ( IN ) = IPERM
-          IPERM = IPERM + 1
-          IN = FILS( IN )
-        END DO
-        IN = FRERE( INODE )
-        DO WHILE( IN .GT. 0 )
-          IN = FRERE( IN )
-        END DO
-        IF ( IN .eq. 0 ) THEN
-          NBROOT = NBROOT - 1
-        ELSE
-          IN = - IN
-          NSTK( IN ) = NSTK( IN ) - 1
-          IF ( NSTK( IN ) .eq. 0 ) THEN
-            NBLEAF = NBLEAF + 1
-            POOL( NBLEAF ) = IN
-          END IF
-        END IF
-      END DO
-      RETURN
-      END SUBROUTINE DMUMPS_181
       SUBROUTINE DMUMPS_652( A, LA, LDA, POSELT,
      *           IPTRLU, NPIV,
      *           NBCOL_STACK, NBROW_STACK,
@@ -267,7 +233,8 @@ C
       INTEGER LPN_LIST
       INTEGER PIVNUL_LIST(LPN_LIST)
       DOUBLE PRECISION DKEEP(30)
-      INTEGER INOPV, IFINB, NFRONT, NPIV, LAELL, NBTLKJ,IBEG_BLOCK
+      INTEGER INOPV, IFINB, NFRONT, NPIV, LAELL, NBOLKJ,
+     &        NBTLKJ,IBEG_BLOCK
       INTEGER NASS, NEL1, LDA, IFLAG_OOC
       DOUBLE PRECISION UUTEMP
       INCLUDE 'mumps_headers.h'
@@ -303,10 +270,11 @@ C
       LDA    = NFRONT
       NASS   = iabs(IW(IOLDPS+2+KEEP(IXSZ)))
       IF (NASS .GT. KEEP(3)) THEN
-        NBTLKJ = min( KEEP(6), NASS )
+        NBOLKJ = min( KEEP(6), NASS )
       ELSE
-        NBTLKJ = min( KEEP(5), NASS )
+        NBOLKJ = min( KEEP(5), NASS )
       ENDIF
+      NBTLKJ = NBOLKJ
       IF (KEEP(201).EQ.1) THEN 
           IDUMMY    = -8765
           LAFAC     = IW(IOLDPS+XXR)
@@ -360,7 +328,7 @@ C
       IF (INOPV.EQ.2) THEN
          CALL DMUMPS_234(IBEG_BLOCK,
      *            NFRONT,NASS,N,INODE,IW,LIW,A,LA,
-     *            LDA, IOLDPS,POSELT,NBTLKJ,KEEP(4),
+     *            LDA, IOLDPS,POSELT, NBOLKJ, NBTLKJ,KEEP(4),
      *            POSTPONE_COL_UPDATE,
      *            KEEP,KEEP8)
          GOTO 50
@@ -402,7 +370,7 @@ C
         ENDIF
        CALL DMUMPS_234(IBEG_BLOCK,
      *            NFRONT,NASS,N,INODE,IW,LIW,A,LA,
-     *            LDA, IOLDPS,POSELT,NBTLKJ,KEEP(4),
+     *            LDA, IOLDPS,POSELT, NBOLKJ, NBTLKJ,KEEP(4),
      *            POSTPONE_COL_UPDATE,
      *            KEEP,KEEP8)
        IF (IFINB.EQ.-1) THEN 
@@ -876,14 +844,14 @@ C
       SUBROUTINE DMUMPS_234(IBEG_BLOCK,
      *    NFRONT,NASS,N,INODE,IW,LIW,A,LA,
      *    LDA,
-     *    IOLDPS,POSELT,LKJIB,LKJIT,
+     *    IOLDPS,POSELT,LKJIB_ORIG,LKJIB,LKJIT,
      *    POSTPONE_COL_UPDATE,
      *    KEEP,KEEP8 )
       IMPLICIT NONE
       INTEGER NFRONT, NASS,N,LA,LIW, IBEG_BLOCK
       DOUBLE PRECISION    A(LA)
       INTEGER IW(LIW) 
-      INTEGER LKJIB, INODE, KEEP(500)
+      INTEGER LKJIB_ORIG, LKJIB, INODE, KEEP(500)
       INTEGER*8 KEEP8(150)
       INTEGER POSELT, LDA
       INTEGER IOLDPS, NPIV, JROW2, NPBEG
@@ -909,7 +877,7 @@ C
       IF ( LKJIW .NE. LKJIB ) THEN
         NONEL         = JROW2 - NPIV + 1
         IF ((NASS-NPIV).GE.LKJIT) THEN
-          LKJIB       = LKJIB + NONEL
+          LKJIB       = LKJIB_ORIG + NONEL
           IW(IOLDPS+3+KEEP(IXSZ))= min0(NPIV+LKJIB,NASS)
           LKJIB       = min0(LKJIB, NASS - NPIV)
         ELSE
@@ -1662,6 +1630,7 @@ C
               IF (LP > 0 ) WRITE(LP,*) MYID,
      *": FAILURE, SEND BUFFER TOO SMALL DURING
      * DMUMPS_274"
+             WRITE(LP,*) "NPIV=", NPIV, "NROW1=",NROW1
              IFLAG = -17
              IERROR = 5 * KEEP(34) + NPIV * NROW1 * KEEP(35)
              GOTO 700
@@ -1867,7 +1836,7 @@ C
       INTEGER LPN_LIST
       INTEGER PIVNUL_LIST(LPN_LIST)
       DOUBLE PRECISION DKEEP(30)
-      INTEGER INOPV, IFINB, NFRONT, NPIV, IBEGKJI, NBTLKJ
+      INTEGER INOPV, IFINB, NFRONT, NPIV, IBEGKJI, NBOLKJ, NBTLKJ
       INTEGER NASS, IEND, IOLDPS, POSELT, LDAFS,allocok, IBEG_BLOCK
       LOGICAL LASTBL 
       LOGICAL RESET_TO_ONE, TO_UPDATE
@@ -1915,10 +1884,11 @@ C
       NASS   = iabs(IW(IOLDPS+2+KEEP(IXSZ)))
       LDAFS  = NASS
       IF (NASS .GT. KEEP(3)) THEN
-        NBTLKJ = min( KEEP(6), NASS )
+        NBOLKJ = min( KEEP(6), NASS )
       ELSE
-        NBTLKJ = min( KEEP(5), NASS )
+        NBOLKJ = min( KEEP(5), NASS )
       ENDIF
+      NBTLKJ = NBOLKJ
       IW(IOLDPS+3+KEEP(IXSZ)) = min0(NASS,NBTLKJ)
       IF (KEEP(201).EQ.1) THEN 
         IDUMMY    = -9876
@@ -1996,7 +1966,7 @@ C
          CALL DMUMPS_235(IBEG_BLOCK,
      *            NASS,N,INODE,IW,LIW,A,LA,
      *            LDAFS, 
-     *            IOLDPS,POSELT,NBTLKJ,KEEP(4),KEEP,KEEP8)
+     *            IOLDPS,POSELT,NBOLKJ, NBTLKJ,KEEP(4),KEEP,KEEP8)
          GOTO 50
       ENDIF
       NPVW = NPVW + PIVSIZ
@@ -2055,7 +2025,7 @@ C
       CALL DMUMPS_235(IBEG_BLOCK,
      *            NASS,N,INODE,IW,LIW,A,LA,
      *            LDAFS, 
-     *            IOLDPS,POSELT,NBTLKJ,KEEP(4),KEEP,KEEP8)
+     *            IOLDPS,POSELT,NBOLKJ,NBTLKJ,KEEP(4),KEEP,KEEP8)
       IF (KEEP(201).EQ.1) THEN
          IF (RESET_TO_ONE.AND.K109_ON_ENTRY.LT.KEEP(109)) THEN
           IDEB =  IOLDPS+KEEP(IXSZ)+IW(IOLDPS+5+KEEP(IXSZ))+6
@@ -2436,12 +2406,12 @@ C
      *                 IW, LIW, A, LA,
      *                 LDAFS,
      *                 IOLDPS, POSELT,
-     *                 LKJIB, LKJIT, KEEP,KEEP8 )
+     *                 LKJIB_ORIG, LKJIB, LKJIT, KEEP,KEEP8 )
       IMPLICIT NONE
       INTEGER NASS,N,LA,LIW
       DOUBLE PRECISION    A(LA)
       INTEGER IW(LIW) 
-      INTEGER LKJIB, INODE, KEEP(500)
+      INTEGER LKJIB_ORIG, LKJIB, INODE, KEEP(500)
       INTEGER*8 KEEP8(150)
       INTEGER POSELT, LDAFS, IBEG_BLOCK
       INTEGER IOLDPS, NPIV, JROW2, NPBEG
@@ -2465,7 +2435,7 @@ C
       IF ( LKJIW .NE. LKJIB ) THEN
         NONEL         = JROW2 - NPIV + 1
         IF ((NASS-NPIV).GE.LKJIT) THEN
-          LKJIB       = LKJIB + 2 * NONEL
+          LKJIB       = LKJIB_ORIG + NONEL
           IW(IOLDPS+3+KEEP(IXSZ))= min0(NPIV+LKJIB,NASS)
           LKJIB       = min0(LKJIB, NASS - NPIV)
         ELSE

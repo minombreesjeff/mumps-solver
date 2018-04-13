@@ -3,6 +3,21 @@
 = ChangeLog =
 -------------
 
+Changes from 4.8.3 to 4.8.4
+* Absolute threshold criterion for null pivot detection added to CNTL(3)
+* Problems related to messages "Increase small buffer size ..." solved.
+* New option for ICNTL(8) to scale matrices. Default scaling cheaper to
+  compute 
+* Problem of filename clash with unsymmetric matrices on Windows
+  platforms solved 
+* Allow for longer filenames for temporary OOC files
+* Strategy to update blocksize during factorization of frontal
+  matrices modified to avoid too large messages during pipelined
+  factorization (that could lead to a -17 error code)
+* Messages corresponding to delayed pivots can now be sent
+  in several packets. This avoids some other cases of error -17
+* One rare case of deadlock solved
+* Corrected values and sign of INFO(8) and INFO(20)
 
 Changes from 4.8.2 to 4.8.3
 * Fix compilation issues on Windows platforms
@@ -292,6 +307,7 @@ Changes from 4.0.4 to 4.1.4
 -------------------
 
 
+Release 4.8.4            : December 2008
 Release 4.8.3            : September 2008
 Release 4.8.2            : September 2008
 Release 4.8.1            : August 2008

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -312,7 +312,7 @@ C
           ENDIF
        ENDIF
        IF (NBROWS_PACKET + NBROWS_ALREADY_SENT.NE.LCONT .AND.
-     *   SIZE_PACK  .LT. SIZE(BUF_CB%CONTENT) * SIZEofINT / 4
+     *   SIZE_PACK  .LT. SIZE_RBUF_BYTES / 4
      *  .AND. 
      *   .NOT. RECV_BUF_SMALLER_THAN_SEND)
      *   THEN
@@ -765,12 +765,14 @@ C
      *                  BUF_CB%CONTENT( IREQ ), IERR )
         RETURN
         END SUBROUTINE DMUMPS_68
-        SUBROUTINE DMUMPS_70( IPERE, ISON, NROW,
-     *  IROW, NCOL, ICOL, VAL, LDA, NELIM, TYPE_SON,
-     *  NSLAVES, SLAVES, DEST, COMM, IERR, 
-     * 
-     *  SLAVEF, KEEP,KEEP8, INIV2, TAB_POS_IN_PERE )
+        SUBROUTINE DMUMPS_70( NBROWS_ALREADY_SENT,
+     &  IPERE, ISON, NROW,
+     &  IROW, NCOL, ICOL, VAL, LDA, NELIM, TYPE_SON,
+     &  NSLAVES, SLAVES, DEST, COMM, IERR, 
+     & 
+     &  SLAVEF, KEEP,KEEP8, INIV2, TAB_POS_IN_PERE )
         IMPLICIT NONE
+        INTEGER NBROWS_ALREADY_SENT
         INTEGER LDA, NELIM, TYPE_SON
         INTEGER IPERE, ISON, NROW, NCOL, NSLAVES
         INTEGER IROW( NROW )
@@ -779,11 +781,14 @@ C
         DOUBLE PRECISION VAL(LDA, *)
         INTEGER IPOS, IREQ, DEST, COMM, IERR
         INTEGER SLAVEF, KEEP(500), INIV2
-      INTEGER*8 KEEP8(150)
+        INTEGER*8 KEEP8(150)
         INTEGER TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
         INCLUDE 'mpif.h'
         INCLUDE 'mumps_tags.h'
-        INTEGER SIZE1, SIZE2, SIZE3, SIZE, POSITION, I
+        INTEGER SIZE1, SIZE2, SIZE3, SIZE_PACK, POSITION, I
+        INTEGER NBROWS_PACKET, NCOL_SEND
+        INTEGER SIZE_AV
+        LOGICAL RECV_BUF_SMALLER_THAN_SEND
         INTEGER IONE
         INTEGER DEST2(1)
         PARAMETER ( IONE=1 )
@@ -793,92 +798,149 @@ C
           WRITE(*,*) 'Error in TRY_SEND_MAITRE2:',NELIM, NROW
           CALL MUMPS_ABORT()
         END IF
-        CALL MPI_PACK_SIZE( NROW+NCOL+5+NSLAVES, MPI_INTEGER,
+        IF (NBROWS_ALREADY_SENT .EQ. 0) THEN
+          CALL MPI_PACK_SIZE( NROW+NCOL+7+NSLAVES, MPI_INTEGER,
      *                      COMM, SIZE1, IERR )
-        IF ( ( KEEP(48).NE. 0 ).AND.(TYPE_SON .eq. 2 )) THEN
+          IF ( ( KEEP(48).NE. 0 ).AND.(TYPE_SON .eq. 2 )) THEN
           CALL MPI_PACK_SIZE( NSLAVES+1, MPI_INTEGER,
-     *                        COMM, SIZE3, IERR )
+     *                          COMM, SIZE3, IERR )
+          ELSE
+            SIZE3 = 0
+          ENDIF
+          SIZE1=SIZE1+SIZE3
         ELSE
-          SIZE3 = 0
+          CALL MPI_PACK_SIZE(7, MPI_INTEGER,COMM,SIZE1,IERR)
         ENDIF
         IF ( KEEP(50).ne.0  .AND. TYPE_SON .eq. 2 ) THEN
-          CALL MPI_PACK_SIZE( NROW * NROW, MPI_DOUBLE_PRECISION,
-     *                        COMM, SIZE2, IERR )
+          NCOL_SEND = NROW
         ELSE
-          CALL MPI_PACK_SIZE( NROW * NCOL, MPI_DOUBLE_PRECISION,
-     *                        COMM, SIZE2, IERR )
-        END IF
-        SIZE = SIZE1 + SIZE3 + SIZE2
-        CALL DMUMPS_4( BUF_CB, IPOS, IREQ, SIZE, IERR, 
+          NCOL_SEND = NCOL
+        ENDIF
+        CALL DMUMPS_79( BUF_CB, SIZE_AV )
+        IF (SIZE_AV .LT. SIZE_RBUF_BYTES) THEN
+          RECV_BUF_SMALLER_THAN_SEND = .FALSE.
+        ELSE
+          RECV_BUF_SMALLER_THAN_SEND = .TRUE.
+        ENDIF
+        SIZE_AV = min(SIZE_AV, SIZE_RBUF_BYTES)
+        IF (NROW .GT. 0 ) THEN 
+         NBROWS_PACKET = (SIZE_AV - SIZE1) / NCOL_SEND / SIZEofREAL
+         NBROWS_PACKET = min(NBROWS_PACKET, NROW - NBROWS_ALREADY_SENT)
+         NBROWS_PACKET = max(NBROWS_PACKET, 0)
+        ELSE
+          NBROWS_PACKET =0
+        ENDIF
+        IF (NBROWS_PACKET .EQ. 0 .AND. NROW .NE. 0) THEN
+          IF (RECV_BUF_SMALLER_THAN_SEND) THEN
+              IERR=-3
+              GOTO 100
+          ELSE
+              IERR=-1
+              GOTO 100
+          ENDIF
+        ENDIF
+ 10     CONTINUE
+        CALL MPI_PACK_SIZE( NBROWS_PACKET * NCOL_SEND,
+     &           MPI_DOUBLE_PRECISION,
+     &           COMM, SIZE2, IERR )
+        SIZE_PACK = SIZE1 + SIZE2
+        IF (SIZE_PACK .GT. SIZE_AV) THEN
+          NBROWS_PACKET = NBROWS_PACKET - 1
+          IF ( NBROWS_PACKET .GT. 0 ) THEN
+            GOTO 10
+          ELSE
+            IF (RECV_BUF_SMALLER_THAN_SEND) THEN
+                IERR = -3
+                GOTO 100
+            ELSE
+                IERR = -1
+                GOTO 100
+            ENDIF
+          ENDIF
+        ENDIF
+       IF (NBROWS_PACKET + NBROWS_ALREADY_SENT.NE.NROW .AND.
+     *   SIZE_PACK - SIZE1  .LT. ( SIZE_RBUF_BYTES - SIZE1 ) / 2
+     *  .AND. 
+     *   .NOT. RECV_BUF_SMALLER_THAN_SEND)
+     *   THEN
+           IERR = -1
+           GOTO 100
+       ENDIF
+        CALL DMUMPS_4( BUF_CB, IPOS, IREQ, SIZE_PACK, IERR, 
      &                 IONE , DEST2
      &               )
         IF ( IERR .LT. 0 ) THEN
-           RETURN
+          GOTO 100
         ENDIF
-        IF (NELIM.NE.0) THEN
-          IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2
-             RETURN
-          ENDIF
+        IF (SIZE_PACK .GT. SIZE_RBUF_BYTES) THEN
+          IERR=-3
+             GOTO 100
         ENDIF
         POSITION = 0
         CALL MPI_PACK( IPERE, 1, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
         CALL MPI_PACK( ISON,  1, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
         CALL MPI_PACK( NSLAVES, 1, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
         CALL MPI_PACK( NROW, 1, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
         CALL MPI_PACK( NCOL, 1, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
-        IF (NSLAVES.GT.0) THEN
-         CALL MPI_PACK( SLAVES, NSLAVES, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+        CALL MPI_PACK( NBROWS_ALREADY_SENT, 1, MPI_INTEGER,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
-        ENDIF
-        CALL MPI_PACK( IROW, NROW, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
+        CALL MPI_PACK( NBROWS_PACKET, 1, MPI_INTEGER,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
      *                 POSITION, COMM, IERR )
-        CALL MPI_PACK( ICOL, NCOL, MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
-     *                 POSITION, COMM, IERR )
-        IF ( ( KEEP(48).NE. 0 ).AND.(TYPE_SON .eq. 2 ) ) THEN
-         CALL MPI_PACK( TAB_POS_IN_PERE(1,INIV2), NSLAVES+1, 
-     *                 MPI_INTEGER,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
-     *                 POSITION, COMM, IERR )
-        ENDIF
-        IF (NROW.GE.1) THEN
-          IF ( KEEP(50).ne.0  .AND. TYPE_SON .eq. 2 ) THEN
-            DO I=1,NROW
-              CALL MPI_PACK( VAL(1,I), NROW, 
-     *                 MPI_DOUBLE_PRECISION,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
-     *                 POSITION, COMM, IERR )
-            ENDDO
-          ELSE
-            DO I=1,NROW
-              CALL MPI_PACK( VAL(1,I), NCOL, 
-     *                 MPI_DOUBLE_PRECISION,
-     *                 BUF_CB%CONTENT( IPOS ), SIZE,
-     *                 POSITION, COMM, IERR )
-            ENDDO
+        IF (NBROWS_ALREADY_SENT .EQ. 0) THEN
+          IF (NSLAVES.GT.0) THEN
+            CALL MPI_PACK( SLAVES, NSLAVES, MPI_INTEGER,
+     *                BUF_CB%CONTENT( IPOS ), SIZE_PACK,
+     *                POSITION, COMM, IERR )
           ENDIF
+          CALL MPI_PACK( IROW, NROW, MPI_INTEGER,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
+     *                 POSITION, COMM, IERR )
+          CALL MPI_PACK( ICOL, NCOL, MPI_INTEGER,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
+     *                 POSITION, COMM, IERR )
+          IF ( ( KEEP(48).NE. 0 ).AND.(TYPE_SON .eq. 2 ) ) THEN
+            CALL MPI_PACK( TAB_POS_IN_PERE(1,INIV2), NSLAVES+1, 
+     *                 MPI_INTEGER,
+     *                 BUF_CB%CONTENT( IPOS ), SIZE_PACK,
+     *                 POSITION, COMM, IERR )
+          ENDIF
+        ENDIF
+        IF (NBROWS_PACKET.GE.1) THEN
+          DO I=NBROWS_ALREADY_SENT+1,
+     &                   NBROWS_ALREADY_SENT+NBROWS_PACKET
+            CALL MPI_PACK( VAL(1,I), NCOL_SEND, 
+     &               MPI_DOUBLE_PRECISION,
+     &               BUF_CB%CONTENT( IPOS ), SIZE_PACK,
+     &               POSITION, COMM, IERR )
+          ENDDO
         ENDIF
         CALL MPI_ISEND( BUF_CB%CONTENT( IPOS ), POSITION, MPI_PACKED,
      *                  DEST, MAITRE2, COMM,
      *                  BUF_CB%CONTENT( IREQ ), IERR )
-        IF ( SIZE .LT. POSITION ) THEN
-          write(*,*) 'Try_send_maitre2, SIZE,POSITION=',SIZE,POSITION
-          Stop
+        IF ( SIZE_PACK .LT. POSITION ) THEN
+          write(*,*) 'Try_send_maitre2, SIZE,POSITION=',
+     &                SIZE_PACK,POSITION
+          CALL MUMPS_ABORT()
         END IF
-        IF ( SIZE .NE. POSITION ) CALL DMUMPS_1( BUF_CB, POSITION )
+        IF ( SIZE_PACK .NE. POSITION )
+     &    CALL DMUMPS_1( BUF_CB, POSITION )
+        NBROWS_ALREADY_SENT = NBROWS_ALREADY_SENT + NBROWS_PACKET
+        IF ( NBROWS_ALREADY_SENT .NE. NROW ) THEN
+          IERR = -1
+        ENDIF
+ 100    CONTINUE
         RETURN
         END SUBROUTINE DMUMPS_70
         SUBROUTINE DMUMPS_67(NBROWS_ALREADY_SENT,
@@ -1076,8 +1138,7 @@ C
         SIZE_PACK = SIZE1 + SIZE2 + SIZE3
 #if ! defined(DBG_SMB3)
         IF (NBROWS_PACKET + NBROWS_ALREADY_SENT.NE.NBROW .AND.
-     *    SIZE_PACK  .LT. SIZE(BUF_CB%CONTENT) * SIZEofINT/
-     *    4 .AND.
+     *    SIZE_PACK  .LT. SIZE_RBUF_BYTES / 4 .AND.
      *    .NOT. RECV_BUF_SMALLER_THAN_SEND)
      *    THEN
             IERR = -1
@@ -1760,8 +1821,8 @@ C
           ENDIF
 #if ! defined(DBG_SMB3)
           IF (N_PACKET + N_ALREADY_SENT .NE. NSUBSET_TOT .AND.
-     &      SIZE_PACK .LT. SIZE(BUF_CB%CONTENT) *
-     &      SIZEofINT/4 .AND. .NOT. RECV_BUF_SMALLER_THAN_SEND)
+     &      SIZE_PACK .LT. SIZE_RBUF_BYTES / 4
+     &      .AND. .NOT. RECV_BUF_SMALLER_THAN_SEND)
      &      THEN
             IERR = -1
             GOTO 100
@@ -1990,8 +2051,8 @@ C
      &                 IONE, DEST2
      &               )
         IF ( IERR .LT. 0 ) THEN
-          WRITE(*,*) 'Increase small buffer size. Trying again.'
-          GOTO 10
+          WRITE(*,*) 'Internal error 1 with small buffers '
+          CALL MUMPS_ABORT()
         END IF
         IF ( IERR .LT. 0 ) THEN
            RETURN
@@ -2021,7 +2082,7 @@ C
      &                 IONE, DEST2
      &               )
         IF ( IERR .LT. 0 ) THEN
-           WRITE(*,*)  'Increase small buf. size'
+          WRITE(*,*) 'Internal error 2 with small buffers '
            CALL MUMPS_ABORT()
         END IF
         IF ( IERR .LT. 0 ) THEN

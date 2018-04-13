@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+ *  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -115,7 +115,7 @@ typedef struct __mumps_file_struct{
 #else
   FILE* file;
 #endif
-  char name[350]; /* Should be large enough to hold tmpdir, prefix, suffix */
+  char name[351]; /* Should be large enough to hold tmpdir, prefix, suffix */
 }mumps_file_struct;
 typedef struct __mumps_file_type{
 #if ! defined (MUMPS_WIN32)

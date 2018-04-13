@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -229,7 +229,8 @@ C
       INTEGER LPN_LIST
       INTEGER PIVNUL_LIST(LPN_LIST)
       DOUBLE PRECISION DKEEP(30)
-      INTEGER INOPV, IFINB, NFRONT, NPIV, IBEGKJI, NBTLKJ,IBEG_BLOCK
+      INTEGER INOPV, IFINB, NFRONT, NPIV, IBEGKJI, NBOLKJ,
+     &        NBTLKJ, IBEG_BLOCK
       INTEGER NASS, NEL1, IEND, IOLDPS, POSELT, dummy, allocok
       LOGICAL LASTBL 
       DOUBLE PRECISION UUTEMP
@@ -267,10 +268,11 @@ C
       NFRONT = IW(IOLDPS+KEEP(IXSZ))
       NASS   = iabs(IW(IOLDPS+2+KEEP(IXSZ)))
       IF (NASS .GT. KEEP(3)) THEN
-        NBTLKJ = min( KEEP(6), NASS )
+        NBOLKJ = min( KEEP(6), NASS )
       ELSE
-        NBTLKJ = min( KEEP(5),NASS )
+        NBOLKJ = min( KEEP(5),NASS )
       ENDIF
+      NBTLKJ = NBOLKJ
       ALLOCATE( IPIV( NASS ), stat = allocok )
       IF ( allocok .GT. 0 ) THEN
         WRITE(*,*) MYID,' : FACTO_NIV2 :failed to allocate ',NASS,
@@ -340,7 +342,7 @@ C
       IF (INOPV.EQ.1) GO TO 500
       IF (INOPV.EQ.2) THEN
          CALL ZMUMPS_233(IBEG_BLOCK,NFRONT,NASS,N,INODE,IW,LIW,A,LA,
-     *            IOLDPS,POSELT,NBTLKJ,KEEP(4),KEEP(IXSZ))
+     *            IOLDPS,POSELT,NBOLKJ,NBTLKJ,KEEP(4),KEEP(IXSZ))
          GOTO 50
       ENDIF
       NPVW = NPVW + 1
@@ -649,8 +651,10 @@ C
      *        TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
       INTEGER POSITION, IFATH, ISON, NROW, NCOL, NELIM, 
      *        NSLAVES
-      INTEGER NOREAL, NOINT, INIV2
+      INTEGER NOREAL, NOINT, INIV2, NCOL_EFF
       DOUBLE PRECISION FLOP1
+      INTEGER NBROWS_ALREADY_SENT, NBROWS_PACKET
+      INTEGER NOREAL_PACKET
       LOGICAL PERETYPE2
       INCLUDE 'mumps_headers.h'
       INTEGER  MUMPS_330
@@ -671,65 +675,78 @@ C
       CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
      *          NCOL , 1, MPI_INTEGER
      *        , COMM, IERR)
-      NOINT = 6 + NROW + NCOL + NSLAVES + KEEP(IXSZ)
+      CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
+     &          NBROWS_ALREADY_SENT, 1,
+     &          MPI_INTEGER, COMM, IERR)
+      CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
+     &          NBROWS_PACKET, 1,
+     &          MPI_INTEGER, COMM, IERR)
       IF ( NSLAVES .NE. 0 .and. KEEP(50).ne.0 ) THEN
-        NOREAL = NROW * NROW
+        NCOL_EFF = NROW
       ELSE
-        NOREAL = NROW * NCOL
+        NCOL_EFF = NCOL
       ENDIF
-      CALL ZMUMPS_22(.FALSE.,0,.FALSE.,.FALSE.,
+      NOREAL_PACKET = NBROWS_PACKET * NCOL_EFF
+      IF (NBROWS_ALREADY_SENT .EQ. 0) THEN
+        NOINT = 6 + NROW + NCOL + NSLAVES + KEEP(IXSZ)
+        NOREAL= NROW * NCOL_EFF
+        CALL ZMUMPS_22(.FALSE.,0,.FALSE.,.FALSE.,
      *   MYID,N,KEEP,KEEP8,IW,LIW,A,LA,
      *   LRLU, IPTRLU,IWPOS,IWPOSCB,
      *   PTRIST,PTRAST,STEP, PIMASTER, PAMASTER, ITLOC,
      *   NOINT, NOREAL, ISON, S_NOTFREE, .TRUE.,
      *   COMP, LRLUS, IFLAG, IERROR
      $     )
-      IF ( IFLAG .LT. 0 ) THEN
-        RETURN
-      ENDIF
-      PIMASTER(STEP( ISON )) = IWPOSCB + 1
-      PAMASTER(STEP( ISON )) = IPTRLU  + 1
-      IW( IWPOSCB + 1 + KEEP(IXSZ) ) = NCOL
-      NELIM = NROW
-      IW( IWPOSCB + 2 + KEEP(IXSZ) ) = NELIM
-      IW( IWPOSCB + 3 + KEEP(IXSZ) ) = NROW
-      IF ( NSLAVES .NE. 0 .and. KEEP(50).ne.0 ) THEN
-        IW( IWPOSCB + 4 + KEEP(IXSZ) ) = NROW - NCOL
-        IF ( NROW - NCOL .GE. 0 ) THEN
-          WRITE(*,*) 'Error in PROCESS_MAITRE2:',NROW,NCOL
-          CALL MUMPS_ABORT()
+        IF ( IFLAG .LT. 0 ) THEN
+          RETURN
+        ENDIF
+        PIMASTER(STEP( ISON )) = IWPOSCB + 1
+        PAMASTER(STEP( ISON )) = IPTRLU  + 1
+        IW( IWPOSCB + 1 + KEEP(IXSZ) ) = NCOL
+        NELIM = NROW
+        IW( IWPOSCB + 2 + KEEP(IXSZ) ) = NELIM
+        IW( IWPOSCB + 3 + KEEP(IXSZ) ) = NROW
+        IF ( NSLAVES .NE. 0 .and. KEEP(50).ne.0 ) THEN
+          IW( IWPOSCB + 4 + KEEP(IXSZ) ) = NROW - NCOL
+          IF ( NROW - NCOL .GE. 0 ) THEN
+            WRITE(*,*) 'Error in PROCESS_MAITRE2:',NROW,NCOL
+            CALL MUMPS_ABORT()
+          END IF
+        ELSE
+          IW( IWPOSCB + 4 + KEEP(IXSZ) ) = 0
         END IF
-      ELSE
-        IW( IWPOSCB + 4 + KEEP(IXSZ) ) = 0
-      END IF
-      IW( IWPOSCB + 5 + KEEP(IXSZ) ) = 1
-      IW( IWPOSCB + 6 + KEEP(IXSZ) ) = NSLAVES
-      IF (NSLAVES.GT.0) THEN
-       CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+        IW( IWPOSCB + 5 + KEEP(IXSZ) ) = 1
+        IW( IWPOSCB + 6 + KEEP(IXSZ) ) = NSLAVES
+        IF (NSLAVES.GT.0) THEN
+         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *                 IW( IWPOSCB + 7 + KEEP(IXSZ) ),
      *                 NSLAVES, MPI_INTEGER, COMM, IERR )
-      ENDIF
-      CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
+        ENDIF
+        CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
      *        IW(IWPOSCB + 7 + KEEP(IXSZ) + NSLAVES),
      *        NROW, MPI_INTEGER, COMM, IERR)
-      CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
+        CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
      *        IW(IWPOSCB + 7 + KEEP(IXSZ) + NROW + NSLAVES),
      *        NCOL, MPI_INTEGER, COMM, IERR)
-       IF ( ( KEEP(48).NE. 0 ).AND.(NSLAVES .GT. 0 )) THEN
+        IF ( ( KEEP(48).NE. 0 ).AND.(NSLAVES .GT. 0 )) THEN
           INIV2 = ISTEP_TO_INIV2 ( STEP(ISON) )
           CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
      *        TAB_POS_IN_PERE(1,INIV2),
      *        NSLAVES+1, MPI_INTEGER, COMM, IERR)
           TAB_POS_IN_PERE(SLAVEF+2,INIV2) = NSLAVES
-       ENDIF
-      IF (NOREAL.GT.0) THEN
-        CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION, A(IPTRLU + 1),
-     *        NOREAL, MPI_DOUBLE_COMPLEX, COMM, IERR)
+        ENDIF
       ENDIF
-      PERETYPE2 = ( MUMPS_330(STEP(IFATH),PROCNODE_STEPS,
+      IF (NOREAL_PACKET.GT.0) THEN
+        CALL MPI_UNPACK(BUFR, LBUFR_BYTES, POSITION,
+     *        A(PAMASTER(STEP(ISON)) +
+     *          NBROWS_ALREADY_SENT * NCOL_EFF),
+     *        NOREAL_PACKET, MPI_DOUBLE_COMPLEX, COMM, IERR)
+      ENDIF
+      IF ( NBROWS_ALREADY_SENT + NBROWS_PACKET .EQ. NROW ) THEN
+        PERETYPE2 = ( MUMPS_330(STEP(IFATH),PROCNODE_STEPS,
      *              SLAVEF) .EQ. 2 )
-      NSTK_S( STEP(IFATH ))       = NSTK_S( STEP(IFATH) ) - 1
-      IF ( NSTK_S( STEP(IFATH)) .EQ. 0 ) THEN
+        NSTK_S( STEP(IFATH ))       = NSTK_S( STEP(IFATH) ) - 1
+        IF ( NSTK_S( STEP(IFATH)) .EQ. 0 ) THEN
           CALL ZMUMPS_507(N, IPOOL, LPOOL, PROCNODE_STEPS,
      *         SLAVEF, KEEP(28), KEEP(76), KEEP(80), KEEP(47),
      *         STEP, IFATH )
@@ -746,7 +763,8 @@ C
      *                            FLOP1,IW, LIW, KEEP(IXSZ) )
           IF (IFATH.NE.KEEP(20))
      *    CALL ZMUMPS_190(1, .FALSE., FLOP1, KEEP,KEEP8)
-      END IF
+        END IF
+      ENDIF
       RETURN
       END SUBROUTINE ZMUMPS_268
       SUBROUTINE ZMUMPS_242(DATA, LDATA, MPITYPE, ROOT, COMMW, TAG,
@@ -804,6 +822,7 @@ C
       INTEGER ICNTL(40), KEEP(500), SYM, PAR, NPROCS
       INTEGER INFO(40), INFOG(40)
       INTEGER*8 KEEP8(150)
+C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
       KEEP(1:500) = 0
       KEEP8(1:150)= 0_8
       INFO(1:40)  = 0
@@ -824,7 +843,7 @@ C
         CNTL(1)   = 0.0D0
       END IF
       CNTL(2) = sqrt(epsilon(0.0D0))
-      CNTL(3) = -1.0D0
+      CNTL(3) = 0.0D0
       CNTL(4) = -1.0D0
       CNTL(5) = 0.0D0
       CNTL(6) = -1.0D0
@@ -1035,9 +1054,12 @@ C
       ELSE
         KEEP(227)= max(1,32)
       ENDIF
-      KEEP(231)= 1
-      KEEP(232)=10
-      KEEP(233)=10
+      KEEP(231) = 1
+      KEEP(232) = 3
+      KEEP(233) = 0
+      KEEP(239) = 1
+      KEEP(240) = 10
+      KEEP(241) = 0
       DKEEP(4) = -1.0D0
       DKEEP(5) = -1.0D0
       IF(NPROCS.LE.8)THEN
@@ -1614,16 +1636,7 @@ C
      *        MP, LDIAG,INFO(1),INFO(2))
          IF (INFO(1).LT.0) RETURN
       ENDIF
-      IF ( KEEP(24) == 0 ) THEN
-         CALL ZMUMPS_202(N, NZ, IKEEP(1,1), FILS, FRERE,
-     *        NFSIZ, IKEEP(1,3), IKEEP(1,2),
-     *        IRN, ICN, PTRAR(1,3), PTRAR(1,4), PTRAR,
-     *        ICNTL, INFO, KEEP,KEEP8)
-      ELSE
-         CALL ZMUMPS_348(N, NZ, IKEEP(1,1), FILS, FRERE,
-     *        NFSIZ, IKEEP(1,3), IKEEP(1,2), 
-     *        ICNTL, INFO, KEEP,KEEP8)
-      ENDIF
+C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
       IF (LDIAG.GT.2 .AND. MP.GT.0) THEN
          K = min0(10,N)
          IF (LDIAG.EQ.4) K = N
@@ -2650,195 +2663,86 @@ C
       END DO
       RETURN
       END SUBROUTINE ZMUMPS_201
-      SUBROUTINE ZMUMPS_348( N, NZ, PERM, FILS, FRERE, ND,
-     * NSTK, NA, ICNTL, INFO, KEEP,KEEP8)
+      SUBROUTINE ZMUMPS_348( N, FILS, FRERE,
+     * NSTK, NA )
       IMPLICIT NONE
-      INTEGER N,NZ
-      INTEGER INFO(40), KEEP(500)
-      INTEGER*8 KEEP8(150)
-      INTEGER ICNTL(40),NBLEAF
-      INTEGER FILS(N), FRERE(N), PERM(N), ND(N)
-      INTEGER NSTK(N), NA(N) 
-      INTEGER NBROOT,ILEAF,I,IN,ISON
+      INTEGER, INTENT(IN)    :: N
+      INTEGER, INTENT(IN)    :: FILS(N), FRERE(N)
+      INTEGER, INTENT(INOUT) ::  NSTK(N), NA(N) 
+      INTEGER NBROOT, NBLEAF, ILEAF, I, IN, ISON
       NA   = 0
       NSTK = 0
       NBROOT  = 0
       ILEAF   = 1
       DO 11 I=1,N
-      IF (FRERE(I).EQ. N+1) CYCLE
-      IF (FRERE(I).EQ.0) NBROOT = NBROOT + 1
-      IN = I
- 12   IN = FILS(IN)
-      IF (IN.GT.0) GO TO 12
-      IF (IN.EQ.0) THEN 
-        NA(ILEAF) = I
-        ILEAF     = ILEAF + 1
-        CYCLE
-      ENDIF
-      ISON = -IN
- 13   NSTK(I) = NSTK(I) + 1
-      ISON = FRERE(ISON)
-      IF (ISON.GT.0) GO TO 13
+         IF (FRERE(I).EQ. N+1) CYCLE
+         IF (FRERE(I).EQ.0) NBROOT = NBROOT + 1
+         IN = I
+ 12      IN = FILS(IN)
+         IF (IN.GT.0) GO TO 12
+         IF (IN.EQ.0) THEN 
+            NA(ILEAF) = I
+            ILEAF     = ILEAF + 1
+            CYCLE
+         ENDIF
+         ISON = -IN
+ 13      NSTK(I) = NSTK(I) + 1
+         ISON = FRERE(ISON)
+         IF (ISON.GT.0) GO TO 13
  11   CONTINUE
       NBLEAF = ILEAF-1
       IF (N.GT.1) THEN
-       IF (NBLEAF.GT.N-2) THEN
-        IF (NBLEAF.EQ.N-1) THEN
-         NA(N-1) = -NA(N-1)-1
-         NA(N)   = NBROOT
-        ELSE
-         NA(N) = -NA(N)-1
-        ENDIF
-       ELSE
-        NA(N-1) = NBLEAF
-        NA(N)   = NBROOT
-       ENDIF
+         IF (NBLEAF.GT.N-2) THEN
+            IF (NBLEAF.EQ.N-1) THEN
+               NA(N-1) = -NA(N-1)-1
+               NA(N)   = NBROOT
+            ELSE
+               NA(N) = -NA(N)-1
+            ENDIF
+         ELSE
+            NA(N-1) = NBLEAF
+            NA(N)   = NBROOT
+         ENDIF
       ENDIF
       RETURN
       END SUBROUTINE ZMUMPS_348
-      SUBROUTINE ZMUMPS_202( N, NZ, PERM, FILS, FRERE, ND,
-     * NSTK, NA, IRN, ICN,
-     * PTRAIW, PTRARW, IW4, ICNTL, INFO, KEEP,KEEP8)
+      SUBROUTINE ZMUMPS_202( N, NZ, PERM, IRN, ICN, PTRAR, KEEP )
       IMPLICIT NONE
-      INTEGER N,NZ
-      INTEGER INFO(40), KEEP(500)
-      INTEGER*8 KEEP8(150)
-      INTEGER ICNTL(40),NBLEAF
-      INTEGER FILS(N), FRERE(N), PERM(N), ND(N)
-      INTEGER NSTK(N), NA(N) 
-      INTEGER PTRAIW(N), PTRARW(N), IW4(N,2)
-      INTEGER IRN(NZ), ICN(NZ)
-      INTEGER NBROOT,ILEAF,I,IN,ISON
-      INTEGER IOLD,K,JOLD,INEW,JNEW,ISHIFT
-      NA   = 0
-      NSTK = 0
-      NBROOT  = 0
-      ILEAF   = 1
-      DO 11 I=1,N
-      IF (FRERE(I).EQ. N+1) CYCLE
-      IF (FRERE(I).EQ.0) NBROOT = NBROOT + 1
-      IN = I
- 12   IN = FILS(IN)
-      IF (IN.GT.0) GO TO 12
-      IF (IN.EQ.0) THEN 
-        NA(ILEAF) = I
-        ILEAF     = ILEAF + 1
-        CYCLE
-      ENDIF
-      ISON = -IN
- 13   NSTK(I) = NSTK(I) + 1
-      ISON = FRERE(ISON)
-      IF (ISON.GT.0) GO TO 13
- 11   CONTINUE
-      NBLEAF = ILEAF-1
-      IW4(1:N,1) = NA(1:N)
-      IF (N.GT.1) THEN
-       IF (NBLEAF.GT.N-2) THEN
-        IF (NBLEAF.EQ.N-1) THEN
-         NA(N-1) = -NA(N-1)-1
-         NA(N)   = NBROOT
-        ELSE
-         NA(N) = -NA(N)-1
-        ENDIF
-       ELSE
-        NA(N-1) = NBLEAF
-        NA(N)   = NBROOT
-       ENDIF
-      ENDIF
-        IW4(1:N,2) = NSTK(1:N)
-        CALL ZMUMPS_181( N, NBROOT, NBLEAF, IW4(1,1), N,
-     &        PERM, FILS, FRERE, IW4(1,2) )
-      IF (KEEP(55).NE.0) RETURN
+      INTEGER, INTENT(IN)      :: N, NZ
+      INTEGER, INTENT(IN)      :: KEEP(500)
+      INTEGER, TARGET          :: PTRAR(N,2)
+      INTEGER, INTENT(IN)      :: IRN(NZ), ICN(NZ), PERM(N)
+      INTEGER I
+      INTEGER IOLD, K, JOLD, INEW, JNEW, ISHIFT
       DO 50 IOLD=1,N
-        IW4(IOLD,1) = 0
-        IW4(IOLD,2) = 0
-   50 CONTINUE
+         PTRAR(IOLD,1) = 0
+         PTRAR(IOLD,2) = 0
+ 50   CONTINUE
       DO 70 K=1,NZ
-        IOLD = IRN(K)
-        JOLD = ICN(K)
-        IF ( (IOLD.GT.N).OR.(JOLD.GT.N).OR.(IOLD.LT.1)
-     *                 .OR.(JOLD.LT.1) ) GOTO 70
-        IF (IOLD.NE.JOLD) THEN
-         INEW = PERM(IOLD)
-         JNEW = PERM(JOLD)
-         IF ( KEEP( 50 ) .EQ. 0 ) THEN
-           IF (INEW.LT.JNEW) THEN
-             IW4(IOLD,2) = IW4(IOLD,2) + 1
-           ELSE
-             IW4(JOLD,1) = IW4(JOLD,1) + 1
-           ENDIF
-         ELSE
-           IF ( INEW .LT. JNEW ) THEN
-             IW4( IOLD, 1 ) = IW4( IOLD, 1 ) + 1
-           ELSE 
-             IW4( JOLD, 1 ) = IW4( JOLD, 1 ) + 1
-           END IF
+         IOLD = IRN(K)
+         JOLD = ICN(K)
+         IF ( (IOLD.GT.N).OR.(JOLD.GT.N).OR.(IOLD.LT.1)
+     *        .OR.(JOLD.LT.1) ) GOTO 70
+         IF (IOLD.NE.JOLD) THEN
+            INEW = PERM(IOLD)
+            JNEW = PERM(JOLD)
+            IF ( KEEP( 50 ) .EQ. 0 ) THEN
+               IF (INEW.LT.JNEW) THEN
+                  PTRAR(IOLD,2) = PTRAR(IOLD,2) + 1
+               ELSE
+                  PTRAR(JOLD,1) = PTRAR(JOLD,1) + 1
+               ENDIF
+            ELSE
+               IF ( INEW .LT. JNEW ) THEN
+                  PTRAR( IOLD, 1 ) = PTRAR( IOLD, 1 ) + 1
+               ELSE 
+                  PTRAR( JOLD, 1 ) = PTRAR( JOLD, 1 ) + 1
+               END IF
+            ENDIF
          ENDIF
-        ENDIF
-   70 CONTINUE
-      PTRARW(1) = 1
-      PTRAIW(1) = 1
-      IF (N.GT.1) THEN
-      DO 90 I=1,N-1
-       ISHIFT = IW4(I,1) + IW4(I,2)
-       PTRARW(I+1) = PTRARW(I) + ISHIFT + 1
-       PTRAIW(I+1) = PTRAIW(I) + ISHIFT + 3
-  90  CONTINUE
-      ENDIF
+ 70   CONTINUE
       RETURN
       END SUBROUTINE ZMUMPS_202
-      SUBROUTINE ZMUMPS_353 
-     * ( N, PERM, FILS, FRERE, ND,
-     * NSTK, NA, IW4, ICNTL, INFO, KEEP,KEEP8)
-      IMPLICIT NONE
-      INTEGER N
-      INTEGER INFO(40), KEEP(500)
-      INTEGER*8 KEEP8(150)
-      INTEGER ICNTL(40),NBLEAF
-      INTEGER FILS(N), FRERE(N), PERM(N), ND(N)
-      INTEGER NSTK(N), NA(N) 
-      INTEGER IW4(N,2)
-      INTEGER NBROOT,ILEAF,I,IN,ISON
-      NA   = 0
-      NSTK = 0
-      NBROOT  = 0
-      ILEAF   = 1
-      DO 11 I=1,N
-      IF (FRERE(I).EQ. N+1) CYCLE
-      IF (FRERE(I).EQ.0) NBROOT = NBROOT + 1
-      IN = I
- 12   IN = FILS(IN)
-      IF (IN.GT.0) GO TO 12
-      IF (IN.EQ.0) THEN 
-        NA(ILEAF) = I
-        ILEAF     = ILEAF + 1
-        CYCLE
-      ENDIF
-      ISON = -IN
- 13   NSTK(I) = NSTK(I) + 1
-      ISON = FRERE(ISON)
-      IF (ISON.GT.0) GO TO 13
- 11   CONTINUE
-      NBLEAF = ILEAF-1
-      IW4(1:N,1) = NA(1:N)
-      IF (N.GT.1) THEN
-       IF (NBLEAF.GT.N-2) THEN
-        IF (NBLEAF.EQ.N-1) THEN
-         NA(N-1) = -NA(N-1)-1
-         NA(N)   = NBROOT
-        ELSE
-         NA(N) = -NA(N)-1
-        ENDIF
-       ELSE
-        NA(N-1) = NBLEAF
-        NA(N)   = NBROOT
-       ENDIF
-      ENDIF
-        IW4(1:N,2) = NSTK(1:N)
-        CALL ZMUMPS_181( N, NBROOT, NBLEAF, IW4(1,1), N,
-     &        PERM, FILS, FRERE, IW4(1,2) )
-      RETURN
-      END SUBROUTINE ZMUMPS_353
       SUBROUTINE ZMUMPS_203( N, NZ, MTRANS, PERM,
      &     id, ICNTL, INFO)
       USE ZMUMPS_STRUC_DEF
@@ -4756,6 +4660,65 @@ C
       NZ = WR_POS-1
       RETURN
       END SUBROUTINE ZMUMPS_562
+      SUBROUTINE ZMUMPS_181( N, POOL, NSTK,
+     &          PERM, FILS, FRERE, WORK )
+      IMPLICIT NONE
+      INTEGER, INTENT(IN)  ::  N
+      INTEGER, INTENT(IN)  ::  FILS( N ), FRERE( N )
+      INTEGER, INTENT(IN), TARGET :: POOL(N), NSTK(N)
+      INTEGER, INTENT(OUT), TARGET :: WORK(N,2)
+      INTEGER, INTENT(OUT) ::  PERM( N )
+      INTEGER  :: IPERM, INODE, IN, I
+      INTEGER  :: INBLEAF, INBROOT
+      INTEGER, POINTER  :: IPOOL(:), INSTK(:)
+      IPOOL => WORK(1:N,1)
+      INSTK => WORK(1:N,2)
+      DO I=1, N
+         IPOOL(I) = POOL(I)
+         INSTK(I) = NSTK(I)
+      END DO
+      IF (N.GT.1) THEN
+         IF(POOL(N-1) .LT. 0) THEN
+            INBLEAF = N-1
+            INBROOT = IPOOL(N)
+            IPOOL(N-1) = -IPOOL(N-1)-1
+         ELSE IF ((POOL(N-1) .GT. 0) .AND.
+     $           (POOL(N) .LT. 0)) THEN
+            INBLEAF = N
+            INBROOT = N
+            IPOOL(N) = -IPOOL(N)-1
+         ELSE
+            INBLEAF = POOL(N-1)
+            INBROOT = POOL(N)
+         END IF
+      END IF
+      IPERM = 1
+      DO WHILE ( INBLEAF .NE. 0 )
+        INODE = IPOOL( INBLEAF )
+        INBLEAF = INBLEAF - 1
+        IN = INODE
+        DO WHILE ( IN .GT. 0 )
+          PERM ( IN ) = IPERM
+          IPERM = IPERM + 1
+          IN = FILS( IN )
+        END DO
+        IN = FRERE( INODE )
+        DO WHILE( IN .GT. 0 )
+          IN = FRERE( IN )
+        END DO
+        IF ( IN .eq. 0 ) THEN
+          INBROOT = INBROOT - 1
+        ELSE
+          IN = - IN
+          INSTK( IN ) = INSTK( IN ) - 1
+          IF ( INSTK( IN ) .eq. 0 ) THEN
+            INBLEAF = INBLEAF + 1
+            IPOOL( INBLEAF ) = IN
+          END IF
+        END IF
+      END DO
+      RETURN
+      END SUBROUTINE ZMUMPS_181
       SUBROUTINE ZMUMPS_448(ICNTL,CNTL)
       IMPLICIT NONE
       INTEGER NICNTL, NCNTL

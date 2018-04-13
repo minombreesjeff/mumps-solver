@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+ *  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -80,7 +80,7 @@ int mumps_io_nb_file_type;
 int mumps_set_file(int type,int file_number_arg){
   /* Defines the pattern for the file name. The last 6 'X' will be replaced
      so as to name were unique */
-  char name[150];
+  char name[351];
 #if ! defined(_WIN32)
   int fd;
   char buf[64]; /* for error message */
@@ -123,7 +123,7 @@ int mumps_set_file(int type,int file_number_arg){
     close(fd); 
   }
 #else
-  sprintf(name,"%s_%d",mumps_ooc_file_prefix,((mumps_files+type)->mumps_io_current_file_number)+1);
+  sprintf(name,"%s_%d_%d",mumps_ooc_file_prefix,((mumps_files+type)->mumps_io_current_file_number)+1,type);
 #endif
 /*   *(mumps_io_pfile_pointer_array+mumps_io_current_file_number)=fopen(name,"w+"); */
 /*   *(mumps_io_pfile_name+mumps_io_current_file_number)=(char *)malloc((strlen(name)+1)*sizeof(char)); */

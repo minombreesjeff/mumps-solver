@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -355,7 +355,7 @@ C
           ICNTL20 = 0
         ENDIF
         IF (ICNTL21.ne.0.and.ICNTL21.ne.1) ICNTL21=0
-        LSCAL = (((KEEP(52) .GT. 0) .AND. (KEEP(52) .LE. 7)) .OR. (
+        LSCAL = (((KEEP(52) .GT. 0) .AND. (KEEP(52) .LE. 8)) .OR. (
      *    KEEP(52) .EQ. -1) .OR. KEEP(52) .EQ. -2)
         ERANAL = ((ICNTL(11) .GT. 0) .OR. (ICNTL(10) .GT. 0))
         IF ( (KEEP(55).eq.0) .AND. KEEP(54).eq.0 .AND. 
@@ -716,7 +716,8 @@ C
             ENDIF
          ENDIF
       ENDIF
-      DO BEG_RHS=1, NRHS, NBRHS
+       BEG_RHS=1
+       DO WHILE (BEG_RHS.LE.NRHS)
         NBRHS_EFF    = min(NRHS-BEG_RHS+1, NBRHS)
         IF ( ( (KEEP(111).EQ.0.AND.ICNTL20.eq.0)
      *        .or. ICNTL21.eq.0 )
@@ -941,6 +942,8 @@ C
            NB_BYTES = NB_BYTES + int(NZ_THIS_BLOCK,8)*(K34_8+K35_8)
            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
              ALLOCATE(id%IRHS_PTR(NBRHS_EFF+1))
+           NB_BYTES = NB_BYTES + int(size(id%IRHS_PTR),8)*K34_8
+           NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
            IRHS_PTR_BEG=1
          ENDIF
          CALL MPI_BCAST(IRHS_SPARSE_COPY,
@@ -1738,6 +1741,7 @@ C
           ENDDO
         END IF
       END IF
+      BEG_RHS = BEG_RHS + NBRHS
       ENDDO
       id%INFO(26) = int(NB_BYTES_MAX / 1000000_8, 4)
       CALL MUMPS_243( id%MYID, id%COMM,

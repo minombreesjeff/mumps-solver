@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1677,12 +1677,12 @@ C
         END SUBROUTINE SMUMPS_232
       SUBROUTINE SMUMPS_233(IBEG_BLOCK,
      *    NFRONT,NASS,N,INODE,IW,LIW,A,LA,
-     *    IOLDPS,POSELT,LKJIB,LKJIT,XSIZE )
+     *    IOLDPS,POSELT,LKJIB_ORIG,LKJIB,LKJIT,XSIZE )
       IMPLICIT NONE
       INTEGER NFRONT, NASS,N,LA,LIW
       REAL    A(LA)
       INTEGER IW(LIW) 
-      INTEGER LKJIB, INODE, IBEG_BLOCK
+      INTEGER LKJIB_ORIG,LKJIB, INODE, IBEG_BLOCK
       INTEGER POSELT
       INTEGER IOLDPS, NPIV, JROW2, NPBEG
       INTEGER NONEL, LKJIW, NEL1, NEL11
@@ -1698,7 +1698,7 @@ C
         HF     = 6 + IW(IOLDPS+5+XSIZE) +XSIZE
         NONEL         = JROW2 - NPIV + 1
         IF ((NASS-NPIV).GE.LKJIT) THEN
-         LKJIB       = LKJIB + NONEL
+         LKJIB       = LKJIB_ORIG + NONEL
          IW(IOLDPS+3+XSIZE)= min0(NPIV+LKJIB,NASS)
         ELSE
           IW(IOLDPS+3+XSIZE) = NASS
@@ -1707,32 +1707,16 @@ C
         NEL1   = NASS - JROW2
         LKJIW  = NPIV - NPBEG + 1
         NEL11  = NFRONT - NPIV
-        IF ((NEL1.EQ.0).OR.(LKJIW.EQ.0)) GO TO 500
-        LPOS2  = POSELT + JROW2*NFRONT + NPBEG - 1
-         POSLOCAL = POSELT + (NPBEG-1)*NFRONT + NPBEG - 1
-         CALL STRSM('L','L','N','N',LKJIW,NEL1,ONE,
+        IF ((NEL1.NE.0).AND.(LKJIW.NE.0)) THEN
+          LPOS2  = POSELT + JROW2*NFRONT + NPBEG - 1
+          POSLOCAL = POSELT + (NPBEG-1)*NFRONT + NPBEG - 1
+          CALL STRSM('L','L','N','N',LKJIW,NEL1,ONE,
      *               A(POSLOCAL),NFRONT,
      *               A(LPOS2),NFRONT)
-        LPOS   = LPOS2 + LKJIW
-        LPOS1  = POSLOCAL + LKJIW
-        CALL SGEMM('N','N',NEL11,NEL1,LKJIW,ALPHA,A(LPOS1),
+          LPOS   = LPOS2 + LKJIW
+          LPOS1  = POSLOCAL + LKJIW
+          CALL SGEMM('N','N',NEL11,NEL1,LKJIW,ALPHA,A(LPOS1),
      *          NFRONT,A(LPOS2),NFRONT,ONE,A(LPOS),NFRONT)
-  500   LBP = JROW2 - NPIV
-         LBPT  = LBP + LBP
-        IF  ((NEL1.GE.LBPT).AND.(NEL1.GE.LKJIB)) THEN
-         I1 = IOLDPS + HF + NPIV
-         K1 = IOLDPS + HF + NASS - LBP
-         DO 10 II=1,LBP
-          ISWOP  = IW(I1)
-          IW(I1) = IW(K1)
-          IW(K1) = ISWOP
-          I1     = I1 +1
-          K1     = K1 + 1
-  10     CONTINUE
-         IPOS = POSELT + NPIV*NFRONT
-         KPOS = POSELT + (NASS-LBP)*NFRONT
-         LBP1 = LBP * NFRONT
-         CALL SSWAP(LBP1,A(IPOS),1,A(KPOS),1)
         ENDIF
         RETURN
         END SUBROUTINE SMUMPS_233
@@ -2479,27 +2463,31 @@ C
       INTEGER I, IERROR
       REAL ONEERRROW, ONEERRCOL, ONEERRL, ONEERRG
       REAL INFERRROW, INFERRCOL, INFERRL, INFERRG
+      INTEGER OORANGEIND
       INFERRG = -RONE
       ONEERRG = -RONE
+      OORANGEIND = 0
       MAXMN = M
       IF(MAXMN < N) MAXMN = N
       IF(OP == 1) THEN
          IF(NUMPROCS > 1) THEN
             CALL SMUMPS_654(MYID, NUMPROCS, COMM,
      &           IRN_loc, JCN_loc, NZ_loc,
-     &           RPARTVEC, M,
+     &           RPARTVEC, M, N,
      &           IWRK, IWRKSZ)
             CALL SMUMPS_654(MYID, NUMPROCS, COMM,
      &           JCN_loc, IRN_loc,  NZ_loc,
-     &           CPARTVEC, N,
+     &           CPARTVEC, N, M,
      &           IWRK, IWRKSZ)         
             CALL SMUMPS_672(MYID, NUMPROCS, M, RPARTVEC,
-     &           NZ_loc, IRN_loc,IRSNDRCVNUM,IRSNDRCVVOL,
+     &           NZ_loc, IRN_loc, N, JCN_loc,
+     &           IRSNDRCVNUM,IRSNDRCVVOL,
      &           ORSNDRCVNUM,ORSNDRCVVOL,
      &           IWRK,IWRKSZ, 
      &           RSNDRCVSZ(1), RSNDRCVSZ(1+NUMPROCS), COMM)
             CALL SMUMPS_672(MYID, NUMPROCS, N, CPARTVEC,
-     &           NZ_loc, JCN_loc,ICSNDRCVNUM,ICSNDRCVVOL,
+     &           NZ_loc, JCN_loc, M, IRN_loc, 
+     &           ICSNDRCVNUM,ICSNDRCVVOL,
      &           OCSNDRCVNUM,OCSNDRCVVOL,
      &           IWRK,IWRKSZ, 
      &           CSNDRCVSZ(1), CSNDRCVSZ(1+NUMPROCS), COMM)         
@@ -2581,7 +2569,7 @@ C
              ISTATUS = REQUESTS + NUMPROCS
              TMPWORK = ISTATUS + MPI_STATUS_SIZE *  NUMPROCS
              CALL SMUMPS_674(MYID, NUMPROCS, M, RPARTVEC,
-     &            NZ_loc, IRN_loc,
+     &            NZ_loc, IRN_loc,N, JCN_loc,
      &            IRSNDRCVNUM, IRSNDRCVVOL, 
      &            IWRK(IRNGHBPRCS),IWRK(IRSNDRCVIA),IWRK(IRSNDRCVJA),
      &            ORSNDRCVNUM, ORSNDRCVVOL, 
@@ -2591,7 +2579,7 @@ C
      &            IWRK(ISTATUS), IWRK(REQUESTS),
      &            TAG_COMM_ROW, COMM)
              CALL SMUMPS_674(MYID, NUMPROCS, N, CPARTVEC,
-     &            NZ_loc, JCN_loc,
+     &            NZ_loc, JCN_loc, M, IRN_loc,
      &            ICSNDRCVNUM, ICSNDRCVVOL, 
      &            IWRK(ICNGHBPRCS),
      &            IWRK(ICSNDRCVIA),
@@ -2629,7 +2617,8 @@ C
              IF(ICSNDRCVVOL == 0) ISRCPTR = ISRCPTR - 1
              IF(OCSNDRCVVOL == 0) OSRCPTR = OSRCPTR - 1
           ENDIF
-          DO ITER=1,NB1+NB2+NB3
+          ITER = 1
+          DO WHILE (ITER.LE.NB1+NB2+NB3)
              IF(NUMPROCS > 1) THEN
                 CALL SMUMPS_650(WRKRC(ITDRPTR),M,
      &               IWRK(IMYRPTR),INUMMYR)
@@ -2639,12 +2628,28 @@ C
                 CALL SMUMPS_670(WRKRC(ITDRPTR),M, RZERO)
                 CALL SMUMPS_670(WRKRC(ITDCPTR),N, RZERO)
              ENDIF
-             IF(ITER.LE.NB1) THEN
-                DO NZIND=1,NZ_loc
-                   IR = IRN_loc(NZIND)
-                   IC = JCN_loc(NZIND)
-                   IF((IR.GE.1).AND.(IR.LE.M).AND.
-     &                  (IC.GE.1).AND.(IC.LE.N)) THEN
+             IF((ITER.LE.NB1).OR.(ITER > NB1+NB2)) THEN
+                IF((ITER.EQ.1).OR.(OORANGEIND.EQ.1)) THEN
+                   DO NZIND=1,NZ_loc
+                      IR = IRN_loc(NZIND)
+                      IC = JCN_loc(NZIND)
+                      IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &                     (IC.GE.1).AND.(IC.LE.N)) THEN
+                         ELM = abs(A_loc(NZIND))*ROWSCA(IR)*COLSCA(IC)
+                         IF(WRKRC(ITDRPTR-1+IR)<ELM) THEN
+                            WRKRC(ITDRPTR-1+IR)= ELM
+                         ENDIF
+                         IF(WRKRC(ITDCPTR-1+IC)<ELM) THEN
+                            WRKRC(ITDCPTR-1+IC)= ELM
+                         ENDIF
+                      ELSE
+                         OORANGEIND = 1
+                      ENDIF
+                   ENDDO
+                ELSEIF(OORANGEIND.EQ.0) THEN
+                   DO NZIND=1,NZ_loc
+                      IR = IRN_loc(NZIND)
+                      IC = JCN_loc(NZIND)
                       ELM = abs(A_loc(NZIND))*ROWSCA(IR)*COLSCA(IC)
                       IF(WRKRC(ITDRPTR-1+IR)<ELM) THEN
                          WRKRC(ITDRPTR-1+IR)= ELM
@@ -2652,8 +2657,8 @@ C
                       IF(WRKRC(ITDCPTR-1+IC)<ELM) THEN
                          WRKRC(ITDCPTR-1+IC)= ELM
                       ENDIF
-                   ENDIF
-                ENDDO
+                   ENDDO
+                ENDIF
                 IF(NUMPROCS > 1) THEN
                    CALL SMUMPS_657(MYID, NUMPROCS,
      &                  WRKRC(ITDCPTR), N, TAG_ITERS+ITER, 
@@ -2675,19 +2680,88 @@ C
      &                  WRKRC( OSRRPTR),
      &                  IWRK(ISTATUS),IWRK(REQUESTS),
      &                  COMM)
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 (ITER.EQ.NB1).OR.
+     &                 ((ITER.EQ.NB1+NB2+NB3).AND.
+     &                 (NB1+NB3.GT.0))) THEN
+                     INFERRROW = SMUMPS_ERRSCALOC(ROWSCA, 
+     &                    WRKRC(ITDRPTR), M,
+     &                    IWRK(IMYRPTR),INUMMYR)
+                     INFERRCOL = SMUMPS_ERRSCALOC(COLSCA,  
+     &                    WRKRC(ITDCPTR), N,
+     &                    IWRK(IMYCPTR),INUMMYC)
+                     INFERRL = INFERRCOL
+                     IF(INFERRROW > INFERRL ) THEN
+                        INFERRL = INFERRROW                   
+                     ENDIF
+                     CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
+     &                    1, MPI_REAL,
+     &                    MPI_MAX, COMM, IERROR)   
+                     IF(INFERRG.LE.EPS) THEN
+                        CALL SMUMPS_665(COLSCA,  WRKRC(ITDCPTR), 
+     &                       N,
+     &                       IWRK(IMYCPTR),INUMMYC)
+                        CALL SMUMPS_665(ROWSCA,  WRKRC(ITDRPTR), 
+     &                       M,
+     &                       IWRK(IMYRPTR),INUMMYR)         
+                        IF(ITER .LE. NB1) THEN
+                           ITER = NB1+1
+                           CYCLE
+                        ELSE
+                           EXIT
+                        ENDIF
+                     ENDIF
+                  ENDIF                  
+               ELSE
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 (ITER.EQ.NB1).OR.
+     &                 ((ITER.EQ.NB1+NB2+NB3).AND.
+     &                 (NB1+NB3.GT.0))) THEN
+                     INFERRROW = SMUMPS_ERRSCA1(ROWSCA, 
+     &                    WRKRC(ITDRPTR), M)
+                     INFERRCOL = SMUMPS_ERRSCA1(COLSCA,  
+     &                    WRKRC(ITDCPTR), N)
+                     INFERRL = INFERRCOL
+                     IF(INFERRROW > INFERRL) THEN
+                        INFERRL = INFERRROW                    
+                     ENDIF                     
+                     INFERRG = INFERRL
+                     IF(INFERRG.LE.EPS) THEN
+                        CALL SMUMPS_666(COLSCA,  WRKRC(ITDCPTR), N)
+                        CALL SMUMPS_666(ROWSCA,  WRKRC(ITDRPTR), M)
+                        IF(ITER .LE. NB1) THEN
+                           ITER = NB1+1
+                           CYCLE
+                        ELSE
+                           EXIT
+                        ENDIF
+                     ENDIF 
+                  ENDIF
                ENDIF
-            ELSEIF(ITER.LE.NB1+NB2) THEN
-               DO NZIND=1,NZ_loc
-                  IR = IRN_loc(NZIND)
-                  IC = JCN_loc(NZIND)
-                  IF((IR.GE.1).AND.(IR.LE.M).AND.
-     &                 (IC.GE.1).AND.(IC.LE.N)) THEN
+            ELSE
+               IF((ITER .EQ.1).OR.(OORANGEIND.EQ.1))THEN
+                  DO NZIND=1,NZ_loc
+                     IR = IRN_loc(NZIND)
+                     IC = JCN_loc(NZIND)
+                     IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &                    (IC.GE.1).AND.(IC.LE.N)) THEN
+                        ELM = abs(A_loc(NZIND))*ROWSCA(IR)*COLSCA(IC)
+                        WRKRC(ITDRPTR-1+IR) = WRKRC(ITDRPTR-1+IR) + ELM
+                        WRKRC(ITDCPTR-1+IC) = WRKRC(ITDCPTR-1+IC) + ELM
+                     ELSE
+                        OORANGEIND = 1
+                     ENDIF
+                  ENDDO
+               ELSEIF(OORANGEIND.EQ.0) THEN
+                  DO NZIND=1,NZ_loc
+                     IR = IRN_loc(NZIND)
+                     IC = JCN_loc(NZIND)
                      ELM = abs(A_loc(NZIND))*ROWSCA(IR)*COLSCA(IC)
                      WRKRC(ITDRPTR-1+IR) = WRKRC(ITDRPTR-1+IR) + ELM
                      WRKRC(ITDCPTR-1+IC) = WRKRC(ITDCPTR-1+IC) + ELM
-                  ENDIF
-               ENDDO
-               IF(NUMPROCS > 1) THEN
+                  ENDDO
+               ENDIF
+               IF(NUMPROCS > 1) THEN                 
                   CALL SMUMPS_656(MYID, NUMPROCS,
      &                 WRKRC(ITDCPTR), N, TAG_ITERS+ITER, 
      &                 ICSNDRCVNUM, IWRK(ICNGHBPRCS),
@@ -2708,130 +2782,65 @@ C
      &                 WRKRC( OSRRPTR),
      &                 IWRK(ISTATUS), IWRK(REQUESTS),
      &                 COMM)
-               ENDIF
-            ELSE
-               DO NZIND=1,NZ_loc
-                  IR = IRN_loc(NZIND)
-                  IC = JCN_loc(NZIND)
-                  IF((IR.GE.1).AND.(IR.LE.M).AND.
-     &                 (IC.GE.1).AND.(IC.LE.N)) THEN
-                     ELM = abs(A_loc(NZIND))*ROWSCA(IR)*COLSCA(IC)
-                     IF(WRKRC(ITDRPTR-1+IR) < ELM) THEN
-                        WRKRC(ITDRPTR-1+IR)= ELM
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 ((ITER.EQ.NB1+NB2).AND.
+     &                 (NB2.GT.0))) THEN
+                     ONEERRROW = SMUMPS_ERRSCALOC(ROWSCA, 
+     &                    WRKRC(ITDRPTR), M,
+     &                    IWRK(IMYRPTR),INUMMYR)
+                     ONEERRCOL = SMUMPS_ERRSCALOC(COLSCA,  
+     &                    WRKRC(ITDCPTR), N,
+     &                    IWRK(IMYCPTR),INUMMYC)
+                     ONEERRL = ONEERRCOL
+                     IF(ONEERRROW > ONEERRL ) THEN
+                        ONEERRL = ONEERRROW                   
                      ENDIF
-                     IF(WRKRC(ITDCPTR-1+IC) < ELM) THEN
-                        WRKRC(ITDCPTR-1+IC)= ELM
+                     CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
+     &                    1, MPI_REAL,
+     &                    MPI_MAX, COMM, IERROR)   
+                     IF(ONEERRG.LE.EPS) THEN
+                        CALL SMUMPS_665(COLSCA,  WRKRC(ITDCPTR), 
+     &                       N,
+     &                       IWRK(IMYCPTR),INUMMYC)
+                        CALL SMUMPS_665(ROWSCA,  WRKRC(ITDRPTR), 
+     &                       M,
+     &                       IWRK(IMYRPTR),INUMMYR)          
+                        ITER = NB1+NB2+1
+                        CYCLE
                      ENDIF
-                  ENDIF
-               ENDDO
-               IF(NUMPROCS > 1) THEN
-                  CALL SMUMPS_657(MYID, NUMPROCS,
-     &                 WRKRC(ITDCPTR), N, TAG_ITERS+ITER, 
-     &                 ICSNDRCVNUM, IWRK(ICNGHBPRCS),
-     &                 ICSNDRCVVOL, IWRK(ICSNDRCVIA), IWRK(ICSNDRCVJA), 
-     &                 WRKRC(ISRCPTR),
-     &                 OCSNDRCVNUM, IWRK(OCNGHBPRCS),
-     &                 OCSNDRCVVOL, IWRK(OCSNDRCVIA), IWRK(OCSNDRCVJA),
-     &                 WRKRC( OSRCPTR),
-     &                 IWRK(ISTATUS), IWRK(REQUESTS),
-     &                 COMM)
-                  CALL SMUMPS_657(MYID, NUMPROCS,
-     &                 WRKRC(ITDRPTR), M, TAG_ITERS+2+ITER, 
-     &                 IRSNDRCVNUM, IWRK(IRNGHBPRCS),
-     &                 IRSNDRCVVOL, IWRK(IRSNDRCVIA), IWRK(IRSNDRCVJA), 
-     &                 WRKRC(ISRRPTR),
-     &                 ORSNDRCVNUM, IWRK(ORNGHBPRCS),
-     &                 ORSNDRCVVOL, IWRK(ORSNDRCVIA), IWRK(ORSNDRCVJA),
-     &                 WRKRC( OSRRPTR),
-     &                 IWRK(ISTATUS), IWRK(REQUESTS),
-     &                 COMM)                 
-               ENDIF
+                  ENDIF                            
+               ELSE
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 ((ITER.EQ.NB1+NB2).AND.
+     &                 (NB2.GT.0))) THEN
+                     ONEERRROW = SMUMPS_ERRSCA1(ROWSCA, 
+     &                    WRKRC(ITDRPTR), M)
+                     ONEERRCOL = SMUMPS_ERRSCA1(COLSCA,  
+     &                    WRKRC(ITDCPTR), N)
+                     ONEERRL = ONEERRCOL
+                     IF(ONEERRROW > ONEERRL) THEN
+                        ONEERRL = ONEERRROW                    
+                     ENDIF                     
+                     ONEERRG = ONEERRL
+                     IF(ONEERRG.LE.EPS) THEN
+                        CALL SMUMPS_666(COLSCA,  WRKRC(ITDCPTR), N)
+                        CALL SMUMPS_666(ROWSCA,  WRKRC(ITDRPTR), M)
+                        ITER = NB1+NB2+1                        
+                        CYCLE
+                     ENDIF
+                  ENDIF                  
+               ENDIF 
             ENDIF
-            IF(NUMPROCS > 1) THEN
+            IF(NUMPROCS > 1) THEN               
                CALL SMUMPS_665(COLSCA,  WRKRC(ITDCPTR), N,
      &              IWRK(IMYCPTR),INUMMYC)
                CALL SMUMPS_665(ROWSCA,  WRKRC(ITDRPTR), M,
-     &              IWRK(IMYRPTR),INUMMYR)
-               IF((NB1 > 0.AND.ITER==NB1).OR.
-     &              (NB3 > 0.AND.ITER == NB1+NB2+NB3)) THEN
-                  INFERRROW = SMUMPS_ERRSCALOC(ROWSCA, 
-     &                 WRKRC(ITDRPTR), M,
-     &                 IWRK(IMYRPTR),INUMMYR)
-                  INFERRCOL = SMUMPS_ERRSCALOC(COLSCA,  
-     &                 WRKRC(ITDCPTR), N,
-     &                 IWRK(IMYCPTR),INUMMYC)
-                  IF(INFERRROW > INFERRCOL) THEN
-                     INFERRL = INFERRROW
-                  ELSE
-                     INFERRL = INFERRCOL
-                  ENDIF
-                  CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)                  
-               ENDIF
-               IF(NB2 > 0.AND.ITER == NB1+NB2) THEN
-                  ONEERRROW = SMUMPS_ERRSCALOC(ROWSCA, 
-     &                 WRKRC(ITDRPTR), M,
-     &                 IWRK(IMYRPTR),INUMMYR)
-                  ONEERRCOL = SMUMPS_ERRSCALOC(COLSCA,  
-     &                 WRKRC(ITDCPTR), N,
-     &                 IWRK(IMYCPTR),INUMMYC)
-                  IF(ONEERRROW > ONEERRCOL) THEN
-                     ONEERRL = ONEERRROW
-                  ELSE
-                     ONEERRL = ONEERRCOL
-                  ENDIF
-                  CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)
-               ENDIF
-               IF(EPS .GT. RZERO) THEN
-                  NUMCNVRG = SMUMPS_CHKCONVGLO(WRKRC(ITDRPTR), M, 
-     &                 IWRK(IMYRPTR),INUMMYR,
-     &                 WRKRC(ITDCPTR), N, 
-     &                 IWRK(IMYCPTR),INUMMYC,
-     &                 EPS, COMM)
-               ENDIF
+     &              IWRK(IMYRPTR),INUMMYR)               
             ELSE
                CALL SMUMPS_666(COLSCA,  WRKRC(ITDCPTR), N)
                CALL SMUMPS_666(ROWSCA,  WRKRC(ITDRPTR), M)
-               IF((NB1 > 0.AND.ITER==NB1).OR.
-     &              (NB3 > 0.AND.ITER == NB1+NB2+NB3)) THEN
-                  INFERRROW = SMUMPS_ERRSCA1(ROWSCA, 
-     &                 WRKRC(ITDRPTR), M)
-                  INFERRCOL = SMUMPS_ERRSCA1(COLSCA,  
-     &                 WRKRC(ITDCPTR), N)
-                  IF(INFERRROW > INFERRCOL) THEN
-                     INFERRL = INFERRROW
-                  ELSE
-                     INFERRL = INFERRCOL
-                  ENDIF
-                  CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)                  
-               ENDIF
-               IF(NB2 > 0.AND.ITER == NB1+NB2) THEN
-                  ONEERRROW = SMUMPS_ERRSCA1(ROWSCA, 
-     &                 WRKRC(ITDRPTR), M)
-                  ONEERRCOL = SMUMPS_ERRSCA1(COLSCA,  
-     &                 WRKRC(ITDCPTR), N)                  
-                  IF(ONEERRROW > ONEERRCOL) THEN
-                     ONEERRL = ONEERRROW
-                  ELSE
-                     ONEERRL = ONEERRCOL
-                  ENDIF
-                  CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)
-               ENDIF
-               IF(EPS .GT. RZERO) THEN
-                  NUMCNVRG =  SMUMPS_CHK1CONV(WRKRC(ITDCPTR),N,EPS) +
-     &                 SMUMPS_CHK1CONV(WRKRC(ITDRPTR),M,EPS)
-               ENDIF
-            ENDIF               
-            IF(EPS .GT. RZERO) THEN
-               IF(NUMCNVRG == 2 * NUMPROCS) EXIT
             ENDIF
+            ITER = ITER + 1
          ENDDO
          ONENORMERR = ONEERRG 
          INFNORMERR = INFERRG 
@@ -2923,6 +2932,8 @@ C
       INTEGER I, IERROR
       REAL ONEERRL, ONEERRG
       REAL INFERRL, INFERRG
+      INTEGER OORANGEIND
+      OORANGEIND = 0
       INFERRG = -RONE
       ONEERRG = -RONE
       MAXMN = N
@@ -3012,19 +3023,36 @@ C
              IF(IRSNDRCVVOL == 0) ISRRPTR = ISRRPTR - 1
              IF(ORSNDRCVVOL == 0) OSRRPTR = OSRRPTR - 1
           ENDIF
-          DO ITER=1,NB1+NB2+NB3
+          ITER = 1
+          DO WHILE(ITER.LE.NB1+NB2+NB3)
              IF(NUMPROCS > 1) THEN
                 CALL SMUMPS_650(WRKRC(ITDRPTR),N,
      &               IWRK(IMYRPTR),INUMMYR)
              ELSE
                 CALL SMUMPS_670(WRKRC(ITDRPTR),N, RZERO)
              ENDIF
-             IF(ITER.LE.NB1) THEN
-                DO NZIND=1,NZ_loc
-                   IR = IRN_loc(NZIND)
-                   IC = JCN_loc(NZIND)
-                   IF((IR.GE.1).AND.(IR.LE.N).AND.
-     &                  (IC.GE.1).AND.(IC.LE.N)) THEN
+             IF((ITER.LE.NB1).OR.(ITER > NB1+NB2)) THEN
+                IF((ITER.EQ.1).OR.(OORANGEIND.EQ.1)) THEN
+                   DO NZIND=1,NZ_loc
+                      IR = IRN_loc(NZIND)
+                      IC = JCN_loc(NZIND)
+                      IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &                     (IC.GE.1).AND.(IC.LE.N)) THEN
+                         ELM = abs(A_loc(NZIND))*SCA(IR)*SCA(IC)
+                         IF(WRKRC(ITDRPTR-1+IR)<ELM) THEN
+                            WRKRC(ITDRPTR-1+IR)= ELM
+                         ENDIF
+                         IF(WRKRC(ITDRPTR-1+IC)<ELM) THEN
+                            WRKRC(ITDRPTR-1+IC)= ELM
+                         ENDIF
+                      ELSE
+                         OORANGEIND = 1
+                      ENDIF
+                   ENDDO
+                ELSEIF(OORANGEIND.EQ.0) THEN
+                   DO NZIND=1,NZ_loc
+                      IR = IRN_loc(NZIND)
+                      IC = JCN_loc(NZIND)
                       ELM = abs(A_loc(NZIND))*SCA(IR)*SCA(IC)
                       IF(WRKRC(ITDRPTR-1+IR)<ELM) THEN
                          WRKRC(ITDRPTR-1+IR)= ELM
@@ -3032,8 +3060,8 @@ C
                       IF(WRKRC(ITDRPTR-1+IC)<ELM) THEN
                          WRKRC(ITDRPTR-1+IC)= ELM
                       ENDIF
-                   ENDIF
-                ENDDO
+                   ENDDO
+                ENDIF                      
                 IF(NUMPROCS > 1) THEN
                   CALL SMUMPS_657(MYID, NUMPROCS,
      &                  WRKRC(ITDRPTR), N, TAG_ITERS+2+ITER, 
@@ -3045,18 +3073,74 @@ C
      &                  WRKRC( OSRRPTR),
      &                  IWRK(ISTATUS),IWRK(REQUESTS),
      &                  COMM)
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 (ITER.EQ.NB1).OR.
+     &                 ((ITER.EQ.NB1+NB2+NB3).AND.
+     &                 (NB1+NB3.GT.0))) THEN
+                     INFERRL = SMUMPS_ERRSCALOC(SCA,  
+     &                    WRKRC(ITDRPTR), N,
+     &                    IWRK(IMYRPTR),INUMMYR)                  
+                     CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
+     &                    1, MPI_REAL,
+     &                    MPI_MAX, COMM, IERROR)   
+                     IF(INFERRG.LE.EPS) THEN
+                        CALL SMUMPS_665(SCA,  WRKRC(ITDRPTR), N,
+     &                       IWRK(IMYRPTR),INUMMYR)
+                        IF(ITER .LE. NB1) THEN
+                           ITER = NB1+1
+                           CYCLE
+                        ELSE
+                           EXIT
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               ELSE
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 (ITER.EQ.NB1).OR.
+     &                 ((ITER.EQ.NB1+NB2+NB3).AND.
+     &                 (NB1+NB3.GT.0))) THEN
+                     INFERRL = SMUMPS_ERRSCA1(SCA, 
+     &                    WRKRC(ITDRPTR), N)
+                     INFERRG = INFERRL
+                     IF(INFERRG.LE.EPS) THEN
+                        CALL SMUMPS_666(SCA,  WRKRC(ITDRPTR), N)          
+                        IF(ITER .LE. NB1) THEN
+                           ITER = NB1+1
+                           CYCLE
+                        ELSE
+                           EXIT
+                        ENDIF
+                     ENDIF 
+                  ENDIF
                ENDIF
-            ELSEIF(ITER.LE.NB1+NB2) THEN
-               DO NZIND=1,NZ_loc
-                  IR = IRN_loc(NZIND)
-                  IC = JCN_loc(NZIND)
-                  IF((IR.GE.1).AND.(IR.LE.N).AND.
-     &                 (IC.GE.1).AND.(IC.LE.N)) THEN
+            ELSE
+               IF((ITER.EQ.1).OR.(OORANGEIND.EQ.1))THEN
+                  DO NZIND=1,NZ_loc
+                     IR = IRN_loc(NZIND)
+                     IC = JCN_loc(NZIND)
+                     IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &                    (IC.GE.1).AND.(IC.LE.N)) THEN
+                        ELM = abs(A_loc(NZIND))*SCA(IR)*SCA(IC)
+                        WRKRC(ITDRPTR-1+IR) = WRKRC(ITDRPTR-1+IR) + ELM
+                        IF(IR.NE.IC) THEN
+                           WRKRC(ITDRPTR-1+IC) = 
+     &                          WRKRC(ITDRPTR-1+IC) + ELM
+                        ENDIF
+                     ELSE
+                        OORANGEIND = 1
+                     ENDIF
+                  ENDDO
+               ELSEIF(OORANGEIND.EQ.0)THEN
+                  DO NZIND=1,NZ_loc
+                     IR = IRN_loc(NZIND)
+                     IC = JCN_loc(NZIND)
                      ELM = abs(A_loc(NZIND))*SCA(IR)*SCA(IC)
                      WRKRC(ITDRPTR-1+IR) = WRKRC(ITDRPTR-1+IR) + ELM
-                     WRKRC(ITDRPTR-1+IC) = WRKRC(ITDRPTR-1+IC) + ELM
-                  ENDIF
-               ENDDO
+                     IF(IR.NE.IC) THEN
+                        WRKRC(ITDRPTR-1+IC) = WRKRC(ITDRPTR-1+IC) + ELM
+                     ENDIF
+                  ENDDO
+               ENDIF
                IF(NUMPROCS > 1) THEN
                   CALL SMUMPS_656(MYID, NUMPROCS,
      &                 WRKRC(ITDRPTR), N, TAG_ITERS+2+ITER, 
@@ -3068,84 +3152,44 @@ C
      &                 WRKRC( OSRRPTR),
      &                 IWRK(ISTATUS), IWRK(REQUESTS),
      &                 COMM)
-               ENDIF
-            ELSE
-               DO NZIND=1,NZ_loc
-                  IR = IRN_loc(NZIND)
-                  IC = JCN_loc(NZIND)
-                  IF((IR.GE.1).AND.(IR.LE.N).AND.
-     &                 (IC.GE.1).AND.(IC.LE.N)) THEN
-                     ELM = abs(A_loc(NZIND))*SCA(IR)*SCA(IC)
-                     IF(WRKRC(ITDRPTR-1+IR) < ELM) THEN
-                        WRKRC(ITDRPTR-1+IR)= ELM
-                     ENDIF
-                     IF(WRKRC(ITDRPTR-1+IC) < ELM) THEN
-                        WRKRC(ITDRPTR-1+IC)= ELM
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 ((ITER.EQ.NB1+NB2).AND.
+     &                 (NB2.GT.0))) THEN
+                     ONEERRL = SMUMPS_ERRSCALOC(SCA,  
+     &                    WRKRC(ITDRPTR), N,
+     &                    IWRK(IMYRPTR),INUMMYR) 
+                     CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
+     &                    1, MPI_REAL,
+     &                    MPI_MAX, COMM, IERROR)
+                     IF(ONEERRG.LE.EPS) THEN
+                        CALL SMUMPS_665(SCA,  WRKRC(ITDRPTR), N,
+     &                       IWRK(IMYRPTR),INUMMYR)
+                        ITER = NB1+NB2+1
+                        CYCLE
                      ENDIF
                   ENDIF
-               ENDDO
-               IF(NUMPROCS > 1) THEN
-                  CALL SMUMPS_657(MYID, NUMPROCS,
-     &                 WRKRC(ITDRPTR), N, TAG_ITERS+2+ITER, 
-     &                 IRSNDRCVNUM, IWRK(IRNGHBPRCS),
-     &                 IRSNDRCVVOL, IWRK(IRSNDRCVIA), IWRK(IRSNDRCVJA), 
-     &                 WRKRC(ISRRPTR),
-     &                 ORSNDRCVNUM, IWRK(ORNGHBPRCS),
-     &                 ORSNDRCVVOL, IWRK(ORSNDRCVIA), IWRK(ORSNDRCVJA),
-     &                 WRKRC( OSRRPTR),
-     &                 IWRK(ISTATUS), IWRK(REQUESTS),
-     &                 COMM)
+               ELSE
+                  IF((EPS .GT. RZERO) .OR. 
+     &                 ((ITER.EQ.NB1+NB2).AND.
+     &                 (NB2.GT.0))) THEN
+                     ONEERRL = SMUMPS_ERRSCA1(SCA, 
+     &                    WRKRC(ITDRPTR), N)
+                     ONEERRG = ONEERRL
+                     IF(ONEERRG.LE.EPS) THEN
+                        CALL SMUMPS_666(SCA,  WRKRC(ITDRPTR), N)
+                        ITER = NB1+NB2+1
+                        CYCLE
+                     ENDIF
+                  ENDIF
                ENDIF
             ENDIF
             IF(NUMPROCS > 1) THEN
                CALL SMUMPS_665(SCA,  WRKRC(ITDRPTR), N,
      &              IWRK(IMYRPTR),INUMMYR)
-               IF((NB1 > 0.AND.ITER==NB1).OR.
-     &              (NB3 > 0.AND.ITER == NB1+NB2+NB3)) THEN
-                  INFERRL = SMUMPS_ERRSCALOC(SCA,  
-     &                 WRKRC(ITDRPTR), N,
-     &                 IWRK(IMYRPTR),INUMMYR)                  
-                  CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)                  
-               ENDIF
-               IF(NB2 > 0.AND.ITER == NB1+NB2) THEN
-                  ONEERRL = SMUMPS_ERRSCALOC(SCA,  
-     &                 WRKRC(ITDRPTR), N,
-     &                 IWRK(IMYRPTR),INUMMYR) 
-                  CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)
-               ENDIF
-               IF(EPS .GT. RZERO) THEN
-                  NUMCNVRG = SMUMPS_CHKCONVGLOSYM(WRKRC(ITDRPTR), N, 
-     &                 IWRK(IMYRPTR),INUMMYR,
-     &                 EPS, COMM)
-               ENDIF
             ELSE
                CALL SMUMPS_666(SCA,  WRKRC(ITDRPTR), N)
-               IF((NB1 > 0.AND.ITER==NB1).OR.
-     &              (NB3 > 0.AND.ITER == NB1+NB2+NB3)) THEN
-                  INFERRL = SMUMPS_ERRSCA1(SCA, 
-     &                 WRKRC(ITDRPTR), N)
-                  CALL MPI_ALLREDUCE(INFERRL, INFERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)                  
-               ENDIF
-               IF(NB2 > 0.AND.ITER == NB1+NB2) THEN
-                  ONEERRL = SMUMPS_ERRSCA1(SCA, 
-     &                 WRKRC(ITDRPTR), N)
-                  CALL MPI_ALLREDUCE(ONEERRL, ONEERRG, 
-     &                 1, MPI_REAL,
-     &                 MPI_MAX, COMM, IERROR)
-               ENDIF
-               IF(EPS .GT. RZERO) THEN
-                  NUMCNVRG = 2*SMUMPS_CHK1CONV(WRKRC(ITDRPTR),N,EPS)
-               ENDIF
-            ENDIF               
-            IF(EPS .GT. RZERO) THEN
-               IF(NUMCNVRG == 2 * NUMPROCS) EXIT
-            ENDIF
+            ENDIF     
+            ITER = ITER + 1
          ENDDO
          ONENORMERR = ONEERRG 
          INFNORMERR = INFERRG 
@@ -3164,12 +3208,12 @@ C
       END SUBROUTINE SMUMPS_687
       SUBROUTINE SMUMPS_654(MYID, NUMPROCS, COMM,
      & IRN_loc, JCN_loc, NZ_loc,
-     & IPARTVEC, ISZ,
+     & IPARTVEC, ISZ, OSZ,
      & IWRK, IWSZ)
       IMPLICIT NONE
       EXTERNAL SMUMPS_703
       INTEGER MYID, NUMPROCS, COMM
-      INTEGER NZ_loc, ISZ, IWSZ
+      INTEGER NZ_loc, ISZ, IWSZ, OSZ
       INTEGER IRN_loc(NZ_loc), JCN_loc(NZ_loc)
       INTEGER IPARTVEC(ISZ)
       INTEGER IWRK(IWSZ)
@@ -3180,16 +3224,16 @@ C
       IF(NUMPROCS.NE.1) THEN
          CALL MPI_OP_CREATE(SMUMPS_703, .TRUE., OP, IERROR)
          CALL SMUMPS_668(IWRK, 4*ISZ, ISZ)
+         DO I=1,ISZ
+            IWRK(2*I-1) = 0
+            IWRK(2*I) = MYID
+         ENDDO
          DO I=1,NZ_loc
             IR = IRN_loc(I)
             IC = JCN_loc(I)
-            IF((IR.GE.1).AND.(IR.LE.ISZ)) THEN
-               IDIST = IR-IC
-               IF(IDIST < 0) IDIST = -IDIST 
-               IF(IDIST < IWRK(2*IR-1)) THEN
-                  IWRK(2*IR-1) = IDIST
-                  IWRK(2*IR) = MYID
-               ENDIF
+            IF((IR.GE.1).AND.(IR.LE.ISZ).AND.
+     &           (IC.GE.1).AND.(IC.LE.OSZ)) THEN
+               IWRK(2*IR-1) = IWRK(2*IR-1) + 1
             ENDIF
          ENDDO
          CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), ISZ,
@@ -3232,7 +3276,9 @@ C
       ENDDO
       DO I=1,NZ_loc
          IR = IRN_loc(I)
-         IF((IR.GE.1).AND.(IR.LE.M)) THEN
+         IC = JCN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N)) ) THEN
             IF(IWRK(IR) .EQ. 0) THEN
                IWRK(IR)= 1
                INUMMYR = INUMMYR + 1
@@ -3248,7 +3294,9 @@ C
       ENDDO
       DO I=1,NZ_loc
          IC = JCN_loc(I)
-         IF((IC.GE.1).AND.(IC.LE.N)) THEN
+         IR = IRN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N)) ) THEN
             IF(IWRK(IC) .EQ. 0) THEN
                IWRK(IC)= 1
                INUMMYC = INUMMYC + 1
@@ -3281,8 +3329,10 @@ C
          IF(ROWPARTVEC(I).EQ.MYID) IWRK(I)=1
       ENDDO
       DO I=1,NZ_loc
-         IR = IRN_loc(I)
-         IF((IR.GE.1).AND.(IR.LE.M)) THEN
+         IR = IRN_loc(I)         
+         IC = JCN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &      ((IC.GE.1).AND.(IC.LE.N))  ) THEN
             IF(IWRK(IR) .EQ. 0) IWRK(IR)= 1
          ENDIF
       ENDDO
@@ -3298,8 +3348,10 @@ C
          IF(COLPARTVEC(I).EQ.MYID) IWRK(I)= 1
       ENDDO
       DO I=1,NZ_loc
+         IR = IRN_loc(I)         
          IC = JCN_loc(I)
-         IF((IC.GE.1).AND.(IC.LE.N)) THEN
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &      ((IC.GE.1).AND.(IC.LE.N))  ) THEN
             IF(IWRK(IC) .EQ. 0) IWRK(IC)= 1
          ENDIF
       ENDDO
@@ -3495,13 +3547,19 @@ C
       INTEGER I
       INTEGER DIN, DINOUT, PIN, PINOUT
       DO I=1,2*LEN-1,2
-         DIN = INV(I)
-         PIN = INV(I+1)
+         DIN = INV(I)     
+         PIN = INV(I+1)   
          DINOUT = INOUTV(I)
          PINOUT = INOUTV(I+1)
-         IF ((DINOUT > DIN).OR.((DINOUT == DIN).AND.(PIN<PINOUT))) THEN
+         IF (DINOUT < DIN) THEN
             INOUTV(I) = DIN
             INOUTV(I+1) = PIN
+         ELSE IF (DINOUT == DIN) THEN
+            IF ((MOD(DINOUT,2).EQ.0).AND.(PIN<PINOUT)) THEN
+              INOUTV(I+1) = PIN
+            ELSE IF ((MOD(DINOUT,2).EQ.1).AND.(PIN>PINOUT)) THEN
+              INOUTV(I+1) = PIN
+            ENDIF
          ENDIF
       ENDDO
       RETURN
@@ -3547,7 +3605,9 @@ C
       ENDDO
       DO I=1,NZ_loc
          IR = IRN_loc(I)
-         IF((IR.GE.1).AND.(IR.LE.M)) THEN
+         IC = JCN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRKROW(IR) .EQ. 0) THEN
                IWRKROW(IR)= 1
                INUMMYR = INUMMYR + 1
@@ -3569,8 +3629,10 @@ C
          ENDIF
       ENDDO
       DO I=1,NZ_loc
+         IR = IRN_loc(I)
          IC = JCN_loc(I)
-         IF((IC.GE.1).AND.(IC.LE.N)) THEN
+         IF((IR.GE.1).AND.(IR.LE.M).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRKCOL(IC) .EQ. 0) THEN
                IWRKCOL(IC)= 1
                INUMMYC = INUMMYC + 1
@@ -3587,21 +3649,23 @@ C
       RETURN
       END SUBROUTINE SMUMPS_704
       SUBROUTINE SMUMPS_672(MYID, NUMPROCS, ISZ, IPARTVEC,
-     & NZ_loc, INDX,ISNDRCVNUM,ISNDRCVVOL,OSNDRCVNUM,OSNDRCVVOL,
-     & IWRK,IWRKSZ, SNDSZ, RCVSZ, COMM)
+     &     NZ_loc, INDX, OSZ, OINDX,ISNDRCVNUM,ISNDRCVVOL,
+     &     OSNDRCVNUM,OSNDRCVVOL,
+     &     IWRK,IWRKSZ, SNDSZ, RCVSZ, COMM)
       IMPLICIT NONE
-      INTEGER MYID, NUMPROCS, NZ_loc, ISZ, IWRKSZ
+      INTEGER MYID, NUMPROCS, NZ_loc, ISZ, IWRKSZ, OSZ
       INTEGER ISNDRCVNUM, ISNDRCVVOL
       INTEGER OSNDRCVNUM, OSNDRCVVOL
       INTEGER COMM
       INTEGER INDX(NZ_loc)
+      INTEGER OINDX(NZ_loc)
       INTEGER IPARTVEC(ISZ)
       INTEGER IWRK(IWRKSZ)
       INTEGER SNDSZ(NUMPROCS)
       INTEGER RCVSZ(NUMPROCS)
       INCLUDE 'mpif.h'
       INTEGER I
-      INTEGER IIND, PIND
+      INTEGER IIND, IIND2, PIND
       INTEGER IERROR
       DO I=1,NUMPROCS
          SNDSZ(I) = 0
@@ -3612,7 +3676,9 @@ C
       ENDDO
       DO I=1,NZ_loc
          IIND = INDX(I)
-         IF((IIND.GE.1).AND.(IIND.LE.ISZ))THEN
+         IIND2 = OINDX(I)
+         IF((IIND.GE.1).AND.(IIND.LE.ISZ).AND.
+     &        (IIND2.GE.1).AND.(IIND2.LE.OSZ))THEN
             PIND = IPARTVEC(IIND)
             IF(PIND .NE. MYID) THEN
                IF(IWRK(IIND).EQ.0) THEN
@@ -3637,7 +3703,7 @@ C
       RETURN
       END SUBROUTINE SMUMPS_672
       SUBROUTINE SMUMPS_674(MYID, NUMPROCS, ISZ, IPARTVEC,
-     &     NZ_loc, INDX,
+     &     NZ_loc, INDX, OSZ, OINDX,
      &     ISNDRCVNUM, ISNDVOL, INGHBPRCS, ISNDRCVIA, ISNDRCVJA,
      &     OSNDRCVNUM, OSNDVOL, ONGHBPRCS, OSNDRCVIA, OSNDRCVJA,
      &     SNDSZ, RCVSZ, IWRK, 
@@ -3645,8 +3711,9 @@ C
      &     ITAGCOMM, COMM )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
-      INTEGER MYID, NUMPROCS, NZ_loc, ISZ, ISNDVOL, OSNDVOL
+      INTEGER MYID, NUMPROCS, NZ_loc, ISZ, ISNDVOL, OSNDVOL, OSZ
       INTEGER INDX(NZ_loc)
+      INTEGER OINDX(NZ_loc)
       INTEGER IPARTVEC(ISZ)
       INTEGER ISNDRCVNUM, INGHBPRCS(ISNDRCVNUM)
       INTEGER ISNDRCVIA(NUMPROCS+1)
@@ -3660,7 +3727,8 @@ C
       INTEGER ISTATUS(MPI_STATUS_SIZE, ISNDRCVNUM)
       INTEGER REQUESTS(ISNDRCVNUM)
       INTEGER ITAGCOMM, COMM
-      INTEGER I, IIND, IPID, OFFS, IWHERETO, POFFS, ITMP, IERROR
+      INTEGER I, IIND, IIND2, IPID, OFFS 
+      INTEGER IWHERETO, POFFS, ITMP, IERROR
       DO I=1,ISZ
          IWRK(I) = 0
       ENDDO
@@ -3677,7 +3745,9 @@ C
       OSNDRCVIA(NUMPROCS+1) = OFFS
       DO I=1,NZ_loc
          IIND=INDX(I)
-         IF((IIND.GE.1).AND.(IIND.LE.ISZ)) THEN
+         IIND2 = OINDX(I)
+         IF((IIND.GE.1).AND.(IIND.LE.ISZ).AND.
+     &        (IIND2.GE.1).AND.(IIND2.LE.OSZ) ) THEN
             IPID=IPARTVEC(IIND)
             IF(IPID.NE.MYID) THEN
                IF(IWRK(IIND).EQ.0) THEN
@@ -3918,21 +3988,17 @@ C
       IF(NUMPROCS.NE.1) THEN
          CALL MPI_OP_CREATE(SMUMPS_703, .TRUE., OP, IERROR)
          CALL SMUMPS_668(IWRK, 4*ISZ, ISZ)
+         DO I=1,ISZ
+            IWRK(2*I-1) = 0
+            IWRK(2*I) = MYID
+         ENDDO
          DO I=1,NZ_loc
             IR = IRN_loc(I)
             IC = JCN_loc(I)
             IF((IR.GE.1).AND.(IR.LE.ISZ).AND.
      &           (IC.GE.1).AND.(IC.LE.ISZ)) THEN
-               IDIST = IR-IC
-               IF(IDIST < 0) IDIST = -IDIST 
-               IF(IDIST < IWRK(2*IR-1)) THEN
-                  IWRK(2*IR-1) = IDIST
-                  IWRK(2*IR) = MYID
-               ENDIF
-               IF(IDIST < IWRK(2*IC-1)) THEN
-                  IWRK(2*IC-1) = IDIST
-                  IWRK(2*IC) = MYID               
-               ENDIF
+               IWRK(2*IR-1) = IWRK(2*IR-1) + 1
+               IWRK(2*IC-1) = IWRK(2*IC-1) + 1
             ENDIF
          ENDDO
          CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), ISZ,
@@ -4032,14 +4098,16 @@ C
       ENDDO
       DO I=1,NZ_loc
          IR = IRN_loc(I)
-         IF((IR.GE.1).AND.(IR.LE.N)) THEN
+         IC = JCN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRK(IR) .EQ. 0) THEN
                IWRK(IR)= 1
                INUMMYR = INUMMYR + 1
             ENDIF
          ENDIF
-         IC = JCN_loc(I)
-         IF((IC.GE.1).AND.(IC.LE.N)) THEN
+         IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRK(IC).EQ.0) THEN
                IWRK(IC)= 1
                INUMMYR = INUMMYR + 1
@@ -4088,12 +4156,14 @@ C
          IF(PARTVEC(I).EQ.MYID) IWRK(I)=1
       ENDDO
       DO I=1,NZ_loc
-         IR = IRN_loc(I)
-         IF((IR.GE.1).AND.(IR.LE.N)) THEN
+         IR = IRN_loc(I)   
+         IC = JCN_loc(I)
+         IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRK(IR) .EQ. 0) IWRK(IR)= 1
          ENDIF
-         IC = JCN_loc(I)
-         IF((IC.GE.1).AND.(IC.LE.N)) THEN
+         IF((IR.GE.1).AND.(IR.LE.N).AND.
+     &        ((IC.GE.1).AND.(IC.LE.N))) THEN
             IF(IWRK(IC) .EQ.0) IWRK(IC)=1
          ENDIF
       ENDDO

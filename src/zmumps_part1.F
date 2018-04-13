@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
+C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -377,17 +377,17 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
      *                    id%COMM, id%MYID )
         IF ( id%INFO( 1 ) .LT. 0 ) GO TO 499
          id%KEEP(52) = id%ICNTL(8)
-         IF ( id%KEEP(52) .GT. 7 .OR. id%KEEP(52).LT.-2)
+         IF ( id%KEEP(52) .GT. 8 .OR. id%KEEP(52).LT.-2)
      *        id%KEEP(52) = 77
          IF ((id%KEEP(52).EQ.77).AND.(id%SYM.EQ.1)) THEN
            id%KEEP(52) = 0
          ENDIF
-         IF ( id%KEEP(52).EQ.77 .OR. id%KEEP(52).LT.-2) THEN 
+         IF ( id%KEEP(52).EQ.77 .OR. id%KEEP(52).LE.-2) THEN 
            IF (.not.associated(id%A)) id%KEEP(52) = 0
          ENDIF
          IF(id%KEEP(52) .EQ. -1) id%KEEP(52) = 0
          CALL ZMUMPS_26( id )
-         IF (id%ICNTL(8) .EQ. -2) THEN
+         IF (id%KEEP(52) .EQ. -2) THEN
            id%ICNTL(8)=-2
          ENDIF
         IF (id%MYID .eq. MASTER) id%INFOG(24)=id%KEEP(95)
@@ -452,13 +452,13 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           ELSE
             id%KEEP(52)=id%ICNTL(8)
           ENDIF
-          IF ( id%KEEP(52) .GT. 7 .OR. id%KEEP(52).LT.-2)
+          IF ( id%KEEP(52) .GT. 8 .OR. id%KEEP(52).LT.-2)
      *    id%KEEP(52) = 77
           IF (id%KEEP(52).EQ.77) THEN
             IF (id%SYM.EQ.1) THEN
               id%KEEP(52) = 0
             ELSE
-              id%KEEP(52) = 7
+              id%KEEP(52) = 7 
             ENDIF
           ENDIF
           IF( id%KEEP(23) .NE. 0 .AND. id%ICNTL(8) .EQ. -1) THEN
@@ -484,7 +484,8 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
               WRITE(MPG,'(A)') ' ** (incompatibility with Schur)'
             END IF
           END IF
-          IF (id%KEEP(54) .NE. 0 .AND. id%KEEP(52).NE.7 .AND.
+          IF (id%KEEP(54) .NE. 0 .AND. 
+     *        id%KEEP(52).NE.7 .AND. id%KEEP(52).NE.8 .AND.
      *        id%KEEP(52) .NE. 0 ) THEN
              id%KEEP(52) = 0
              IF ( MPG .GT. 0 .and. id%ICNTL(8) .ne. 0 ) THEN
@@ -498,6 +499,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
      *            id%KEEP(52).ne. -1 .and.
      *            id%KEEP(52).ne.  0 .and.
      *            id%KEEP(52).ne.  7 .and.
+     *            id%KEEP(52).ne.  8 .and.
      *            id%KEEP(52).ne. -2 .and.
      *            id%KEEP(52).ne. 77) THEN
               IF ( MPG .GT. 0 ) THEN
@@ -532,7 +534,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
             END IF
           END IF
           IF (id%KEEP(52).GT.0 .AND.
-     *        id%KEEP(52) .LE.7) THEN
+     *        id%KEEP(52) .LE.8) THEN
             IF ( associated(id%COLSCA))
      *             DEALLOCATE( id%COLSCA )
             IF ( associated(id%ROWSCA))
@@ -2463,7 +2465,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
      *         PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *         PIMASTER, PAMASTER, NSTK_S, COMP,
      *         IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL,
-     *         LEAF, ICNTL, KEEP, KEEP8,  root,
+     *         LEAF, NBFIN, ICNTL, KEEP, KEEP8,  root,
      *         OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW,
      *         INTARR, DBLARR, ND, FRERE,
      *         LPTRAR, NELT, IW, IW, 
@@ -3147,7 +3149,7 @@ CduplicatesCVD$ NODEPCHK
      *      PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *      PIMASTER, PAMASTER, NSTK_S, COMP,
      *      IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL, LEAF,
-     *      ICNTL, KEEP,KEEP8, root,
+     *      NBFIN, ICNTL, KEEP,KEEP8, root,
      *      OPASSW, OPELIW,
      *      ITLOC, FILS, PTRARW, PTRAIW, INTARR, DBLARR,
      *      ND, FRERE, LPTRAR, NELT, IW, IW,
@@ -3217,7 +3219,7 @@ CduplicatesCVD$ NODEPCHK
      *        PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP,
      *        PIMASTER, PAMASTER, NSTK_S, COMP,
      *        IFLAG, IERROR, MYID, COMM, NBPROCFILS, IPOOL, LPOOL, LEAF,
-     *        ICNTL, KEEP,KEEP8, root,
+     *        NBFIN, ICNTL, KEEP,KEEP8, root,
      *        OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW,
      *        INTARR, DBLARR, ND, FRERE, LPTRAR, NELT, IW,
      *        IW, 
@@ -4603,7 +4605,7 @@ CduplicatesCVD$ NODEPCHK
       INTEGER PIVNUL_LIST(LPN_LIST)
       DOUBLE PRECISION DKEEP(30)
       INTEGER INOPV, IFINB, NFRONT, NPIV, IBEG_BLOCK
-      INTEGER NASS, NEL1, NPIVB, NPIVE, NBTLKJ
+      INTEGER NASS, NEL1, NPIVB, NPIVE, NBOLKJ, NBTLKJ
       DOUBLE PRECISION UUTEMP
       INTEGER LAFAC, LIWFAC, STRAT, TYPEFile, LNextPiv2beWritten, 
      &        UNextPiv2beWritten, IFLAG_OOC,
@@ -4638,10 +4640,11 @@ CduplicatesCVD$ NODEPCHK
       NFRONT = IW(IOLDPS+KEEP(IXSZ))
       NASS   = iabs(IW(IOLDPS+2+KEEP(IXSZ)))
       IF (NASS .GT. KEEP(3)) THEN
-        NBTLKJ = min( KEEP(6), NASS )
+        NBOLKJ = min( KEEP(6), NASS )
       ELSE
-        NBTLKJ = min( KEEP(5), NASS )
+        NBOLKJ = min( KEEP(5), NASS )
       ENDIF
+      NBTLKJ = NBOLKJ
         IF (KEEP(201).EQ.1) THEN 
           LAFAC     = IW(IOLDPS+XXR)
           LIWFAC    = IW(IOLDPS+XXI)
@@ -4683,7 +4686,7 @@ CduplicatesCVD$ NODEPCHK
       IF (INOPV.EQ.2) THEN
          CALL ZMUMPS_233(IBEG_BLOCK,
      *            NFRONT,NASS,N,INODE,IW,LIW,A,LA,
-     *            IOLDPS,POSELT,NBTLKJ,KEEP(4),KEEP(IXSZ))
+     *            IOLDPS,POSELT,NBOLKJ, NBTLKJ,KEEP(4),KEEP(IXSZ))
          GOTO 50
       ENDIF
       NPVW = NPVW + 1
@@ -5013,7 +5016,7 @@ CduplicatesCVD$ NODEPCHK
      *    PTRIST, PTLUST_S, PTRFAC, PTRAST, STEP, PIMASTER, PAMASTER,
      *    NSTK_S, COMP,
      *    IFLAG, IERROR, MYID, COMM, NBPROCFILS,
-     *    IPOOL, LPOOL, LEAF, ICNTL, KEEP,KEEP8, root,
+     *    IPOOL, LPOOL, LEAF, NBFIN, ICNTL, KEEP,KEEP8, root,
      *    OPASSW, OPELIW,
      *    ITLOC, FILS, PTRARW, PTRAIW, INTARR, DBLARR,
      *    ND, FRERE, LPTRAR, NELT, FRTPTR, FRTELT,
