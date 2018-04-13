@@ -1,8 +1,8 @@
 ===========================================
-MUMPS version 4.9
+MUMPS version 4.9.1
 ===========================================
 
-MUMPS 4.9 solves a sparse system of linear equations A x = b
+MUMPS 4.9.1 solves a sparse system of linear equations A x = b
 using Gaussian elimination. Please read this README file and
 the documentation (in ./doc/) for a complete list of
 functionalities. Documentation and publications related to
@@ -59,13 +59,30 @@ PORD     contains the PORD package (not part of MUMPS) from University
          of Paderborn. See PORD/README for more info.
 
 
+Pre-requisites
+--------------
+
+If you only want to use the sequential version, you need to install:
+-> BLAS library
+
+If you want to use the parallel version, you need to install:
+-> MPI
+-> BLAS library
+-> BLACS library
+-> ScaLAPACK library
+
+For performance (time and memory issues) we also strongly recommend to install:
+-> SCOTCH and/or METIS for the sequential version
+-> PT-SCOTCH and/or ParMetis for the parallel version
+
+
 Installation
 ------------
 
 The following steps can be applied.
 
-% tar zxvf MUMPS_4.9.tar.gz
-% cd MUMPS_4.9
+% tar zxvf MUMPS_4.9.1.tar.gz
+% cd MUMPS_4.9.1
 
 You then need to build a file called Makefile.inc corresponding
 to your achitecture. Various examples are available in the
@@ -79,8 +96,6 @@ directory Make.inc :
  Makefile.SP.PAR : default for SP (32 bits), parallel version.
  Makefile.SP64.SEQ : default for SP (64 bits), sequential version.
  Makefile.SP64.PAR : default for SP (64 bits), parallel version.
- Makefile.PC.SEQ : default for PC (linux, pgf90, lam), seq. version.
- Makefile.PC.PAR : default for PC (linux, pgf90, lam), parallel version.
  Makefile.INTEL.SEQ : default for PC (linux, intel compiler, lam), sequential.
  Makefile.INTEL.PAR : default for PC (linux, intel compiler, lam), parallel.
  Makefile.ALPHA_linux.SEQ : default for ALPHA linux (compiler:fort), sequential.
@@ -93,7 +108,7 @@ Make.inc/Makefile.SP.PAR into Makefile.inc
 
 % cp Make.inc/Makefile.SP.PAR ./Makefile.inc
 
-In some cases, Makefile.inc should be adapted to fit with your
+In most cases, Makefile.inc should be adapted to fit with your
 architecture, libraries and compiler (see comments in the
 Makefile.inc.generic or Makefile.inc.generic.SEQ for details).  The
 variables LIBBLAS (BLAS library), SCALAP (ScaLAPACK library), INCPAR
@@ -185,16 +200,25 @@ systems. We could potentially generate versions for any other platform
 with Fortran 90, MPI, BLACS, and ScaLAPACK installed, but the code has
 only been tested on the above-mentionned platforms.
 
-
 * IBM SP
   ------
-On SP machines, use of pessl(p2), blacs(p2), mpi and essl is made.
+On SP machines, use of PESSL, BLACS, MPI and ESSL is made.
 
 Note that MUMPS requires PESSL release 2 or greater. The version
 of MUMPS based on PESSL release 1.1 (that used descriptors of
 size 8) is no longer available. If PESSL release 2 is not
 available on your system, the public domain version of
-ScaLAPACK should be used instead.
+ScaLAPACK should be used instead. PESSL usually does not
+include single precision versions of the ScaLAPACK routines
+required by MUMPS. If the single precision or single
+complex versions of MUMPS are needed, then ScaLAPACK should
+then be used in place of PESSL.
+
+* INTEL Compilers
+  ---------------
+Some users have reported problems (wrong results) with
+Intel compilers version 10.x when using default compiler
+optimization (-O).
 
 * COMPAQ
   ------

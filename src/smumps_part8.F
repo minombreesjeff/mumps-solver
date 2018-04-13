@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1710,16 +1710,19 @@ C
         DEALLOCATE(R_W,D)
         DEALLOCATE(IW1)
       ENDIF
-      IF ( PROKG .AND. NITREF .GT. 0 .AND.
-     &id%MYID .EQ. MASTER ) THEN
+      IF ( PROKG ) THEN
+        IF (NITREF.GT.0) THEN
         WRITE( MPG, 81 ) 
         WRITE( MPG, 141 ) 'NUMBER OF STEPS OF ITERATIVE REFINEMENTS  
      &=', NOITER
+       ENDIF
       ENDIF
-      IF ( id%MYID .EQ. MASTER .AND. NITREF .GT. 0 ) THEN
+      IF ( id%MYID .EQ. MASTER ) THEN
+       IF ( NITREF .GT. 0 ) THEN
         id%INFOG(15) = NOITER
+       END IF
       END IF
-      IF ( PROK .AND. NITREF .GT.0 ) WRITE( MP, 131 ) 
+      IF ( PROK .AND. ICNTL10 .GT.0 ) WRITE( MP, 131 ) 
       IF (ICNTL11 .GT. 0) THEN
         IF ( KEEP(54) .eq. 0 ) THEN
           IF (id%MYID .EQ. MASTER) THEN

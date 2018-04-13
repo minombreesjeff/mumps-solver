@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -195,7 +195,7 @@ C
          CALL MPI_BCAST( id%NA_ELT, 1, MPI_INTEGER, MASTER,
      &        id%COMM, ierr )
       ENDIF
-      IF ( ASSOCIATED(id%MEM_DIST) ) deallocate( id%MEM_DIST )
+      IF ( associated(id%MEM_DIST) ) deallocate( id%MEM_DIST )
       allocate( id%MEM_DIST( 0:id%NSLAVES-1 ), STAT=ierr )
       IF ( ierr .GT. 0 ) THEN
          INFO(1) = -7
@@ -221,7 +221,7 @@ C
             IF ( ( (KEEP(23) .NE. 0) .AND.
      &           ( (KEEP(23).NE.7) .OR. KEEP(50).EQ. 2 ) )
      &           .OR.
-     &           ( ASSOCIATED(id%A) .AND. KEEP(52) .EQ. 77 .AND.
+     &           ( associated(id%A) .AND. KEEP(52) .EQ. 77 .AND.
      &           (KEEP(50).EQ.2))
      &        .OR.
      &           KEEP(52) .EQ. -2 ) THEN
@@ -290,7 +290,7 @@ C
             INFOG(1) = 0
             INFOG(2) = 0
             INFOG(8) = -1
-            IF ( .NOT. ASSOCIATED( id%LISTVAR_SCHUR ) ) THEN
+            IF ( .NOT. associated( id%LISTVAR_SCHUR ) ) THEN
                SIZE_SCHUR_PASSED = 1
                LISTVAR_SCHUR_2BE_FREED=.TRUE.
                allocate( id%LISTVAR_SCHUR( 1 ), STAT=ALLOCOK )
@@ -313,7 +313,7 @@ C
      &              id%SYM,id%IS1(1),id)
                IF ( (KEEP(23).LE.-1).AND.(KEEP(23).GE.-6) ) THEN
                   KEEP(23) = -KEEP(23)
-                  IF (.NOT. ASSOCIATED(id%A)) KEEP(23) = 1
+                  IF (.NOT. associated(id%A)) KEEP(23) = 1
                   GOTO 1234
                ENDIF
                INFOG(7)=IORD
@@ -409,7 +409,7 @@ C
       IF ( INFO(1) < 0 ) RETURN
       IF(id%MYID .EQ. MASTER) THEN
          CALL MUMPS_633(KEEP(12),ICNTL(14),
-     &        KEEP(50),KEEP(54),ICNTL(6),ICNTL(8))
+     &        KEEP(50),KEEP(54),ICNTL(6),KEEP(52))
          CALL SMUMPS_348(id%N, id%IS1(FILS), id%IS1(FRERE),
      &        id%IS1(IKEEP+2*id%N), id%IS1(IKEEP+id%N))
          IF (id%NSLAVES .EQ. 1) THEN
@@ -460,6 +460,8 @@ C
       CALL MPI_BCAST( id%NELT, 1, MPI_INTEGER, MASTER,
      &     id%COMM, ierr )
       IF (KEEP(55) .EQ. 0) THEN
+         if (associated(id%FRTPTR)) DEALLOCATE(id%FRTPTR)
+         if (associated(id%FRTELT)) DEALLOCATE(id%FRTELT)
          allocate( id%FRTPTR(1), id%FRTELT(1) )
       ELSE
          LPTRAR = id%NELT+id%NELT+2
@@ -1050,7 +1052,7 @@ C
                   WRITE(LP, 150) 'id%MY_ROOT_SBTR'
                END IF
                INFO(1)= -7
-               INFO(2)= J
+               INFO(2)= id%NBSA_LOCAL
                GOTO 87
             END IF
             IF(associated(id%MY_FIRST_LEAF))
@@ -1061,7 +1063,7 @@ C
                   WRITE(LP, 150) 'MY_FIRST_LEAF'
                END IF
                INFO(1)= -7
-               INFO(2)= J
+               INFO(2)= id%NBSA_LOCAL
                GOTO 87
             END IF
             IF(associated(id%MY_NB_LEAF))
@@ -1072,7 +1074,7 @@ C
                   WRITE(LP, 150) 'MY_NB_LEAF'
                END IF
                INFO(1)= -7
-               INFO(2)= J
+               INFO(2)= id%NBSA_LOCAL
                GOTO 87
             END IF
             CALL MPI_RECV(id%MEM_SUBTREE(1),id%NBSA_LOCAL,
@@ -1595,7 +1597,7 @@ C
       INTEGER ICNTL(40),INFOG(40),KEEP(500)
       INTEGER*8 KEEP8(150)
       INTEGER NE(N),NFSIZ(N),FRERE(N),FILS(N),PROCNODE(N)
-      INTEGER SSARBR(NBSA)
+      INTEGER SSARBR(N)
       REAL PEAK
       CALL MUMPS_369(N,NSLAVES,
      &     ICNTL,INFOG, NE, NFSIZ,
@@ -1689,7 +1691,7 @@ C
             id%KEEP(60)=0
          END IF
          IF ( id%KEEP(60) .NE.0 ) THEN
-            IF ( .NOT. ASSOCIATED( id%LISTVAR_SCHUR ) ) THEN
+            IF ( .NOT. associated( id%LISTVAR_SCHUR ) ) THEN
                id%INFO(1) = -22
                id%INFO(2) = 8
                RETURN
@@ -1781,11 +1783,11 @@ C
          id%INFOG(32) = id%KEEP(244)
          IF ( (id%KEEP(244) .EQ. 1) .AND.
      &        (id%ICNTL(7) .EQ. 1) ) THEN
-            IF ( .NOT. ASSOCIATED( id%PERM_IN ) ) THEN
+            IF ( .NOT. associated( id%PERM_IN ) ) THEN
                id%INFO(1) = -22
                id%INFO(2) = 3
                RETURN
-            ELSE IF ( SIZE( id%PERM_IN ) < id%N ) THEN
+            ELSE IF ( size( id%PERM_IN ) < id%N ) THEN
                id%INFO(1) = -22
                id%INFO(2) = 3
                RETURN
@@ -2134,7 +2136,7 @@ C
      &     id%KEEP(46) .EQ. 1 ) )
       IF ( id%MYID .eq. MASTER .AND. id%KEEP(54).NE.3) THEN
          IF (id%WRITE_PROBLEM(1:20) .NE. "NAME_NOT_INITIALIZED")THEN
-            IF (ASSOCIATED(id%A)) THEN
+            IF (associated(id%A)) THEN
                ARITH='real'
             ELSE
                ARITH='pattern '
@@ -2148,7 +2150,7 @@ C
             WRITE(69,FMT=*)'%%MatrixMarket matrix coordinate ',
      &           TRIM(ARITH)," ",TRIM(SYMM)
             WRITE(69,*) id%N, id%N, id%NZ
-            IF (ASSOCIATED(id%A)) THEN
+            IF (associated(id%A)) THEN
                DO I=1,id%NZ
                   IF (id%SYM.NE.0 .AND. id%IRN(I).LT.id%JCN(I)) THEN
                      WRITE(69,*) id%JCN(I), id%IRN(I), id%A(I)  
@@ -2187,7 +2189,7 @@ C
          CALL MPI_ALLREDUCE(MM_WRITE, MM_WRITE_CHECK, 1,
      &        MPI_INTEGER, MPI_SUM, id%COMM, ierr)
          IF (MM_WRITE_CHECK.EQ.id%NSLAVES .AND. I_AM_SLAVE) THEN
-            IF (ASSOCIATED(id%A_LOC)) THEN
+            IF (associated(id%A_LOC)) THEN
                ARITH='real'
             ELSE
                ARITH='pattern '
@@ -2203,7 +2205,7 @@ C
             WRITE(69,FMT=*)'%%MatrixMarket matrix coordinate ',
      &           TRIM(ARITH)," ",TRIM(SYMM)
             WRITE(69,*) id%N, id%N, id%NZ_LOC
-            IF (ASSOCIATED(id%A_LOC)) THEN
+            IF (associated(id%A_LOC)) THEN
                DO I=1,id%NZ_LOC
                   IF (id%SYM.NE.0 .AND.
      &                 id%IRN_LOC(I).LT.id%JCN_LOC(I)) THEN
@@ -2854,7 +2856,7 @@ C
                          INFO(1) = -9
                          CALL MUMPS_731(LBUFRX, INFO(2) )
                          write(LP,*) ' Error allocating, real array ',
-     &                        'of size before SMUMPS_146',  LBUFRX
+     &                   'of size before SMUMPS_146',  LBUFRX
                          CALL MUMPS_ABORT()
                    ENDIF
                    IS_BUFRX_ALLOCATED = .FALSE.
@@ -5261,6 +5263,7 @@ C
      &                 MPI_SUM, id%COMM, IERR)
       CALL MUMPS_646( KEEP8(8), KEEP8(108), MPI_SUM,
      &                     MASTER, id%COMM )
+      CALL MUMPS_735(KEEP8(10), INFO(27))
       CALL MUMPS_646( KEEP8(10),KEEP8(110), MPI_SUM,
      &                     MASTER, id%COMM )
       CALL MUMPS_735(KEEP8(110), INFOG(29))

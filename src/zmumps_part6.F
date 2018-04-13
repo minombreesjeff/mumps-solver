@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1428,10 +1428,6 @@ C
      &              COMM, IERR )
       ENDIF
       IF (PTRIST(STEP( INODE )) .EQ. 0) THEN
-        WRITE(*,*) MYID,
-     &   ': Internal WARNING 1  in ZMUMPS_274',
-     &   ' INODE =', INODE,
-     &   ' MAITRE_DESC_BANDE not yet received from ', MSGSOU
          DO WHILE ( PTRIST(STEP(INODE)) .EQ. 0 )
           BLOCKING = .TRUE.
           SET_IRECV= .FALSE.
@@ -2569,6 +2565,7 @@ C
      &     XSIZE)
       IMPLICIT NONE
       INTEGER(8) :: LA, POSELT
+      INTEGER    :: LIW
       COMPLEX*16    A(LA)
       INTEGER IW(LIW)
       COMPLEX*16    VALPIV
@@ -2580,7 +2577,7 @@ C
       INTEGER(8) :: JJ, K1, K2
       INTEGER(8) :: POSPV1, POSPV2, OFFDAG, OFFDAG_OLD
       INTEGER(8) :: LDAFS8
-      INTEGER NASS,N,LIW,INODE,IFINB,LKJIB,LDAFS,
+      INTEGER NASS,N,INODE,IFINB,LKJIB,LDAFS,
      &        NPBEG
       INTEGER NEL2
       INTEGER XSIZE

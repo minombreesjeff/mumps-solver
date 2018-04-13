@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1015,6 +1015,7 @@ C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
       DKEEP(3)=-5.0D0
       KEEP(244) = ICNTL(28)
       KEEP(245) = ICNTL(29)
+      KEEP(250) = 1
       RETURN
       END SUBROUTINE CMUMPS_20
       SUBROUTINE CMUMPS_195(N, NZ, IRN, ICN, LIW, IKEEP, PTRAR,
@@ -1159,9 +1160,9 @@ C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
       IF(COMPRESS .GT. 0 .AND. KEEP(52) .EQ. -2) THEN
          IF(id%CNTL(4) .GE. 0.0E0) THEN
             IF (KEEP(1).LE.8) THEN
-               KEEP(1) = 16   
+               NEMIN = 16   
             ELSE
-               KEEP(1) = 2*KEEP(1)
+               NEMIN = 2*KEEP(1)
             ENDIF
             IF (PROK) 
      &           WRITE(MP,*) 'Setting static pivoting ON, COMPRESS =',
@@ -1513,7 +1514,8 @@ C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
      &     (N, IW(L2), IW(L1), IKEEP(1,1), IKEEP(1,2), IKEEP(1,3),
      &     NFSIZ, PTRAR, INFO(6), FILS, FRERE, 
      &     PTRAR(1,3), NEMIN, PTRAR(1,4), KEEP(60),
-     &     KEEP(20),KEEP(38),PTRAR(1,2),KEEP(104),IW(1),KEEP(50))
+     &     KEEP(20),KEEP(38),PTRAR(1,2),KEEP(104),IW(1),KEEP(50), 
+     &     ICNTL(13), KEEP(37), NSLAVES, KEEP(250).EQ.1)
 #endif
       IF (KEEP(60).NE.0)  THEN
          IF (KEEP(60)==1) THEN
@@ -2245,7 +2247,8 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
      &               NODE, NSTEPS,
      &               FILS, FRERE, ND, NEMIN, SUBORD, KEEP60, 
      &               KEEP20, KEEP38, NAMALG,NAMALGMAX,
-     &               CUMUL,KEEP50)
+     &               CUMUL,KEEP50, ICNTL13, KEEP37, NSLAVES,
+     &               ALLOW_AMALG_TINY_NODES)
       IMPLICIT NONE
       INTEGER N, NSTEPS, KEEP60, KEEP20, KEEP38, KEEP50
       INTEGER ND(N), NFSIZ(N)
@@ -2255,6 +2258,11 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
       INTEGER NAMALG(N),NAMALGMAX, CUMUL(N)
       DOUBLE PRECISION ACCU, FLOPS_FATHER, FLOPS_SON,
      &                  FLOPS_AVANT, FLOPS_APRES
+      INTEGER ICNTL13, KEEP37, NSLAVES
+      LOGICAL ALLOW_AMALG_TINY_NODES
+#if  defined(NOAMALGTOFATHER)
+#else
+#endif
       INTEGER I,IF,IS,NR,NR1,INS,INL,INB,INF,INFS,INSW
       INTEGER K,L,ISON,IN,IFSON,INO
       INTEGER INOS,IB,IL,INT
@@ -2350,6 +2358,7 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
       I = 0
       IPERM = 1
       DO 160 K=1,N
+        AMALG_TO_father_OK=.FALSE.
         IF (I.LE.0) THEN
          IF (NR.GT.N) EXIT
          I = NE(NR)
@@ -2414,18 +2423,23 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
                  AMALG_TO_father_OK = .FALSE.
               ENDIF
            ENDIF
-           IF (AMALG_TO_father_OK) THEN
-              NAMALG(DADI) = NAMALG(DADI) +  NAMALG(I) + 1
-              CUMUL(DADI)  =  CUMUL(DADI)+nint(ACCU)
-           ELSE
-              AMALG_TO_father_OK = (AMALG_TO_father_OK .OR.
-     &                       ( NV(I)-NODE(I).EQ.NV(DADI)) )
-              IF (AMALG_TO_father_OK) THEN
-                NAMALG(DADI) = NAMALG(DADI) +  NAMALG(I)
-                CUMUL(DADI)  = CUMUL(DADI)+nint(ACCU)
-              ENDIF
+           IF ( (NV(I).GT. 50*NV(DADI)).AND. (NSLAVES.GT.1) 
+     &          .AND. (ICNTL13.LE.0)
+     &          .AND. (NV(I).GT. KEEP37) )  THEN
+             AMALG_TO_father_OK = .TRUE.
            ENDIF
+           IF ( ALLOW_AMALG_TINY_NODES .AND.
+     &     NODE(I) * 900 .LE. NV(DADI) - NAMALG(DADI)) THEN
+             IF ( NAMALG(DADI) < (NV(DADI)-NAMALG(DADI))/50 ) THEN
+                AMALG_TO_father_OK = .TRUE.
+                NAMALG(DADI) = NAMALG(DADI) + NODE(I)
+           ENDIF
+        ENDIF
+      AMALG_TO_father_OK = (AMALG_TO_father_OK .OR.
+     &                       ( NV(I)-NODE(I).EQ.NV(DADI)) )
            IF (AMALG_TO_father_OK) THEN
+             CUMUL(DADI)=CUMUL(DADI)+nint(ACCU)
+             NAMALG(DADI) = NAMALG(DADI) + NAMALG(I)
              AMALG_COUNT = AMALG_COUNT+1
              IN = DADI
  75          IF (SUBORD(IN).EQ.0) GOTO 76
@@ -3605,7 +3619,7 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
       IF ( MYID.eq.MASTER.and.MPG.GT.0) THEN
        WRITE(MPG, 99992) INFO(1), INFO(2),
      &  KEEP8(109), KEEP8(111), INFOG(4),
-     &  INFOG(5), KEEP(28), INFOG(7), KEEP(23), ICNTL(7), 
+     &  INFOG(5), KEEP(28), INFOG(32), INFOG(7), KEEP(23), ICNTL(7), 
      &  KEEP(12), KEEP(56), KEEP(61), RINFOG(1)
        IF (KEEP(95).GT.1)             
      &                    WRITE(MPG, 99993) KEEP(95)  
@@ -3621,13 +3635,14 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
      &       ' --  (4) Storage of factors  (INT , estimated) =',I16/
      &       ' --  (5) Maximum frontal size      (estimated) =',I16/
      &       ' --  (6) Number of nodes in the tree           =',I16/
+     &       ' -- (32) Type of analysis effectively used     =',I16/
      &       ' --  (7) Ordering option effectively used      =',I16/
      &       'ICNTL(6) Maximum transversal option            =',I16/
      &       'ICNTL(7) Pivot order option                    =',I16/
      &       'Percentage of memory relaxation (effective)    =',I16/
      &       'Number of level 2 nodes                        =',I16/
      &       'Number of split nodes                          =',I16/
-     &   'RINFO(1) Operations during elimination (estim) =  ',1PD10.3)
+     &   'RINFOG(1) Operations during elimination (estim)=  ',1PD10.3)
 99993 FORMAT('Ordering compressed/constrained (ICNTL(12))    =',I16)
 99994 FORMAT('Distributed matrix entry format (ICNTL(18))    =',I16)
 99995 FORMAT('Effective Schur option (ICNTL(19))             =',I16)
@@ -4780,14 +4795,16 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
       INTEGER, POINTER     :: WORK1(:), WORK2(:),
      &     NFSIZ(:), FILS(:), FRERE(:)
       TYPE(ORD_TYPE)       :: ord
-      INTEGER, POINTER     :: IPE(:) => null(), NV(:) => null(),
-     &     NE(:) => null(), NA(:) => null(), NODE(:) => null(),
-     &     ND(:) => null(), SUBORD(:) => null(), NAMALG(:) => null(),
-     &     IPS(:) => null(), CUMUL(:) => null(),
-     &     SAVEIRN(:) => null(), SAVEJCN(:) => null()
+      INTEGER, POINTER     :: IPE(:), NV(:),
+     &     NE(:), NA(:), NODE(:),
+     &     ND(:), SUBORD(:), NAMALG(:),
+     &     IPS(:), CUMUL(:),
+     &     SAVEIRN(:), SAVEJCN(:)
       INTEGER              :: MYID, NPROCS, IERR, NEMIN, LDIAG
       LOGICAL              :: SPLITROOT
       INTEGER(8), PARAMETER :: K79REF=12000000_8
+      nullify(IPE, NV, NE, NA, NODE, ND, SUBORD, NAMALG, IPS,
+     &     CUMUL, SAVEIRN, SAVEJCN)
       CALL MPI_COMM_RANK (id%COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (id%COMM, NPROCS, IERR)
       LP    = id%ICNTL(1)
@@ -4811,10 +4828,10 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
          END IF
       END IF
       MAXMEM=0
-      MEMCNT = size(work1)+ size(work2) +
-     &     size(nfsiz) + size(fils) + size(frere) 
       IF(MEMCNT .GT. MAXMEM) MAXMEM=MEMCNT
 #if defined (memprof)
+      MEMCNT = size(work1)+ size(work2) +
+     &     size(nfsiz) + size(fils) + size(frere) 
       write(mp,'(i2,a30,2(i8,5x))')myid,'memcnt entry:',memcnt,maxmem
 #endif
       CALL CMUMPS_716(id, ord)
@@ -4876,7 +4893,8 @@ C     $        IKEEP(1,3), IKEEP(1,2), IRN, ICN, PTRAR, KEEP)
          CALL CMUMPS_557(id%N, IPE, NV, IPS, NE, NA, NFSIZ, NODE,
      &        id%INFOG(6), FILS, FRERE, ND, NEMIN, SUBORD, id%KEEP(60),
      &        id%KEEP(20),id%KEEP(38), NAMALG, id%KEEP(104), CUMUL,
-     &        id%KEEP(50))
+     &        id%KEEP(50), id%ICNTL(13), id%KEEP(37), id%NSLAVES,
+     &        id%KEEP(250).EQ.1)
          CALL MUMPS_734(CUMUL, NV, IPE, MEMCNT=MEMCNT)
 #if defined (memprof)
          write(mp,'(i2,a30,2(i8,5x))')myid,'deall cumul:',memcnt,maxmem
@@ -5100,19 +5118,21 @@ C     $     associated(IPS), associated(CUMUL)
       INTEGER, POINTER              :: WORK(:)
       INTEGER                       :: I, MYID, NPROCS, IERR, IDX, PNT,
      &     ST, MINI, MAXI, VLT_IDX, VLT_PNT, ELT_IDX, CCOMM, BASE
-      INTEGER, POINTER          :: FIRST(:) => null(),
-     &     LAST(:) => null(), SWORK(:) => null()
+      INTEGER, POINTER          :: FIRST(:),
+     &     LAST(:), SWORK(:)
       INTEGER                       :: BASEVAL, VERTLOCNBR, VERTLOCMAX,
      &     EDGELOCNBR, EDGELOCSIZ, CBLKNBR, DAD, OPTIONS(10), NROWS_LOC
-      INTEGER, POINTER :: VERTLOCTAB(:) => null(),
-     &     EDGELOCTAB(:) => null(), RCVCNTS(:) => null()
+      INTEGER, POINTER :: VERTLOCTAB(:),
+     &     EDGELOCTAB(:), RCVCNTS(:)
       CHARACTER  STRSTRING*1024
-      INTEGER, POINTER :: SIZES(:) => null(), ORDER(:) => null()
+      INTEGER, POINTER :: SIZES(:), ORDER(:)
       INTEGER                 :: STATUS(MPI_STATUS_SIZE)
       LOGICAL   :: IWORK
+      nullify(FIRST, LAST, SWORK, VERTLOCTAB, EDGELOCTAB, RCVCNTS,
+     &      SIZES, ORDER)
       CALL MPI_COMM_RANK (id%COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (id%COMM, NPROCS, IERR)
-      IF(SIZE(WORK) .LT. ID%N*3) THEN
+      IF(MUMPS_GETSIZE(WORK) .LT. ID%N*3) THEN
          WRITE(LP,
      &        '("Insufficient workspace inside CMUMPS_718")')
          CALL MUMPS_ABORT()
@@ -5242,19 +5262,20 @@ C     $     associated(first),associated(last)
       INTEGER, POINTER              :: WORK(:)
       INTEGER                       :: I, MYID, NPROCS, IERR, IDX, PNT,
      &     ST, MINI, MAXI, VLT_IDX, VLT_PNT, ELT_IDX
-      INTEGER, POINTER          :: FIRST(:) => null(),
-     &     LAST(:) => null(), SWORK(:) => null()
+      INTEGER, POINTER          :: FIRST(:),
+     &     LAST(:), SWORK(:)
       INTEGER                       :: BASEVAL, VERTLOCNBR, VERTLOCMAX,
      &     EDGELOCNBR, EDGELOCSIZ, CBLKNBR, DAD, SOURCE, MYWORKID,
      &     BASE
-      INTEGER, POINTER          :: VERTLOCTAB(:) => null(),
-     &     EDGELOCTAB(:) => null()
+      INTEGER, POINTER          :: VERTLOCTAB(:),
+     &     EDGELOCTAB(:)
       DOUBLE PRECISION              :: GRAPHDAT(SCOTCH_DGRAPHDIM),
      &     ORDEDAT(SCOTCH_DORDERDIM), STRADAT(SCOTCH_STRATDIM),
      &     CORDEDAT(SCOTCH_ORDERDIM)
       CHARACTER  STRSTRING*1024
       LOGICAL   :: IWORK
-      IF(SIZE(WORK) .LT. ID%N*3) THEN
+      nullify(FIRST, LAST, SWORK, VERTLOCTAB, EDGELOCTAB)
+      IF(MUMPS_GETSIZE(WORK) .LT. ID%N*3) THEN
          WRITE(LP,
      &        '("Insufficient workspace inside CMUMPS_719")')
          CALL MUMPS_ABORT()
@@ -5653,21 +5674,21 @@ C     $     associated(vertloctab),associated(edgeloctab)
       INTEGER, POINTER     :: GPE(:), GNV(:)
       INTEGER, POINTER     :: WORK(:)
       TYPE(GRAPH_TYPE)     :: top_graph
-      INTEGER, POINTER     :: PE(:) => null(), IPE(:),
-     &     LENG(:) => null(), I_HALO_MAP(:) => null()
-      INTEGER, POINTER     :: NDENSE(:) => null(), LAST(:) => null(),
-     &     DEGREE(:) => null(), W(:) => null(), PERM(:) => null(),
-     &     LISTVAR_SCHUR(:) => null(), NEXT(:) => null(),
-     &     HEAD(:) => null(), NV(:) => null(), ELEN(:) => null(),
-     &     RCVCNT(:) => null(), LSTVAR(:) => null()
-      INTEGER, POINTER     :: NROOTS(:) => null(), MYLIST(:) => null(),
-     &     MYNVAR(:) => null(), LVARPT(:) => null(),
-     &     DISPLS(:) => null(),  LPERM(:) => null(),
-     &     LIPERM(:) => null(),
-     &     IPET(:) => null(), NVT(:) => null(), BUF_PE1(:) => null(),
-     &     BUF_PE2(:) => null(), BUF_NV1(:) => null(),
-     &     BUF_NV2(:) => null(), ROOTPERM(:) => null(),
-     &     TMP1(:) => null(), TMP2(:) => null(), BWORK(:) => null()
+      INTEGER, POINTER     :: PE(:), IPE(:),
+     &     LENG(:), I_HALO_MAP(:)
+      INTEGER, POINTER     :: NDENSE(:), LAST(:),
+     &     DEGREE(:), W(:), PERM(:),
+     &     LISTVAR_SCHUR(:), NEXT(:),
+     &     HEAD(:), NV(:), ELEN(:),
+     &     RCVCNT(:), LSTVAR(:)
+      INTEGER, POINTER     :: NROOTS(:), MYLIST(:),
+     &     MYNVAR(:), LVARPT(:),
+     &     DISPLS(:),  LPERM(:),
+     &     LIPERM(:),
+     &     IPET(:), NVT(:), BUF_PE1(:),
+     &     BUF_PE2(:), BUF_NV1(:),
+     &     BUF_NV2(:), ROOTPERM(:),
+     &     TMP1(:), TMP2(:), BWORK(:)
       INTEGER              :: HIDX, NCMPA, I, J, SIZE_SCHUR, MYID,
      &     NPROCS, IERR, NROWS_LOC, GLOB_IDX, MYNROOTS, PNT, TMP,
      &     NCLIQUES, NTVAR, PFREES, PFREET, TGSIZE, MAXS, RHANDPE,
@@ -5677,9 +5698,15 @@ C     $     associated(vertloctab),associated(edgeloctab)
       LOGICAL              :: AGG6, SYMQAMD
       INTEGER              :: THRESH, NSTEPS
       CHARACTER            :: STRING*60
+      nullify(PE, IPE, LENG, I_HALO_MAP)
+      nullify(NDENSE, LAST, DEGREE, W, PERM, LISTVAR_SCHUR,
+     &     NEXT, HEAD, NV, ELEN, RCVCNT, LSTVAR)
+      nullify(NROOTS, MYLIST, MYNVAR, LVARPT, DISPLS,
+     &     LPERM, LIPERM, IPET, NVT, BUF_PE1, BUF_PE2,
+     &     BUF_NV1, BUF_NV2, ROOTPERM, TMP1, TMP2, BWORK)
       CALL MPI_COMM_RANK (id%COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (id%COMM, NPROCS, IERR)
-      IF(SIZE(WORK) .LT. 4*id%N) THEN
+      IF(MUMPS_GETSIZE(WORK) .LT. 4*id%N) THEN
          WRITE(LP,*)'Insufficient workspace in CMUMPS_720'
          CALL MUMPS_ABORT()
       ELSE
@@ -5740,14 +5767,15 @@ C     $     associated(vertloctab),associated(edgeloctab)
          DO I=1, HIDX
             PERM(I) = I
          END DO
-         CALL MUMPS_420(1, THRESH, NDENSE, HIDX, SIZE(PE),
-     &        IPE, PFREES, LENG, PE, NV, ELEN, LAST, NCMPA, DEGREE,
-     &        HEAD, NEXT, W, PERM, LISTVAR_SCHUR, SIZE_SCHUR, AGG6)
+         CALL MUMPS_420(1, THRESH, NDENSE, HIDX,
+     &        MUMPS_GETSIZE(PE), IPE, PFREES, LENG, PE, NV, ELEN,
+     &        LAST, NCMPA, DEGREE, HEAD, NEXT, W, PERM, LISTVAR_SCHUR,
+     &        SIZE_SCHUR, AGG6)
       ELSE
          NBBUCK = 2*TMP
          CALL MUMPS_419 (ord%SUBSTRAT, 1, .FALSE., HIDX, NBBUCK,
-     &        SIZE(PE), IPE, PFREES, LENG, PE, NV, ELEN, LAST, NCMPA,
-     &        DEGREE, PERM, NEXT, W, HEAD, AGG6, SIZE_SCHUR,
+     &        MUMPS_GETSIZE(PE), IPE, PFREES, LENG, PE, NV, ELEN, LAST,
+     &        NCMPA, DEGREE, PERM, NEXT, W, HEAD, AGG6, SIZE_SCHUR,
      &        LISTVAR_SCHUR )
          DO I=1, HIDX
             PERM(I) = I
@@ -5899,10 +5927,10 @@ C     $     associated(vertloctab),associated(edgeloctab)
             DO I=NROWS_LOC+1, TGSIZE
                PERM(I) = I
             END DO
-            CALL MUMPS_420(2, -1, NDENSE, TGSIZE, SIZE(PE),
-     &           IPET, PFREET, LENG, PE, NVT, ELEN, LAST, NCMPA,
-     &           DEGREE, HEAD, NEXT, W, PERM, LISTVAR_SCHUR,
-     &           NCLIQUES, AGG6)
+            CALL MUMPS_420(2, -1, NDENSE, TGSIZE,
+     &           MUMPS_GETSIZE(PE), IPET, PFREET, LENG, PE, NVT, ELEN,
+     &           LAST, NCMPA, DEGREE, HEAD, NEXT, W, PERM,
+     &           LISTVAR_SCHUR, NCLIQUES, AGG6)
          ELSE
             NBBUCK = 2*TGSIZE
             CALL MUMPS_733(HEAD,      NBBUCK+2, id%INFO,
@@ -5915,8 +5943,8 @@ C     $     associated(vertloctab),associated(edgeloctab)
      &           'memcnt rehead:',memcnt,maxmem
 #endif
             CALL MUMPS_419 (ord%TOPSTRAT, 2, .FALSE., TGSIZE,
-     &           NBBUCK, SIZE(PE), IPET, PFREET, LENG, PE, NVT, ELEN,
-     &           LAST, NCMPA, DEGREE, PERM, NEXT, W, HEAD, AGG6,
+     &           NBBUCK, MUMPS_GETSIZE(PE), IPET, PFREET, LENG, PE, NVT,
+     &           ELEN, LAST, NCMPA, DEGREE, PERM, NEXT, W, HEAD, AGG6,
      &           NCLIQUES, LISTVAR_SCHUR )
          END IF
       END IF
@@ -6175,7 +6203,7 @@ C     $     associated(ROOTPERM), associated(TMP1), associated(TMP2)
       INTEGER, POINTER  :: TREETAB(:), RANGTAB(:), SIZES(:)
       INTEGER           :: CBLKNBR, SUBNODES
       INTEGER           :: LCHILD, RCHILD, K, I
-      INTEGER, POINTER  :: PERM(:) => null()
+      INTEGER, POINTER  :: PERM(:)
       ALLOCATE(PERM(CBLKNBR))
       TREETAB(CBLKNBR) = -1
       IF(CBLKNBR .EQ. 1) THEN
@@ -6237,21 +6265,24 @@ C     $     associated(ROOTPERM), associated(TMP1), associated(TMP2)
       INTEGER                 :: SENDSIZE, IDX, TOP_CNT, TIDX,
      &     NROWS_LOC, DUPS, TOTDUPS, OFFDIAG
       INTEGER                 :: STATUS(MPI_STATUS_SIZE)
-      INTEGER, POINTER        :: MAPTAB(:) => null(),
-     &     SNDCNT(:) => null(), RCVCNT(:) => null(), SDISPL(:) => null()
-      INTEGER, POINTER        :: RDISPL(:) => null(),
-     &     MSGCNT(:) => null(), SIPES(:,:) => null(), LENG(:) => null()
-      INTEGER, POINTER        :: PCNT(:) => null(), TSENDI(:) => null(),
-     &     TSENDJ(:) => null(), RCVBUF(:) => null()
-      TYPE(ARRPNT), POINTER   :: APNT(:) => null()
+      INTEGER, POINTER        :: MAPTAB(:),
+     &     SNDCNT(:), RCVCNT(:), SDISPL(:)
+      INTEGER, POINTER        :: RDISPL(:),
+     &     MSGCNT(:), SIPES(:,:), LENG(:)
+      INTEGER, POINTER        :: PCNT(:), TSENDI(:),
+     &     TSENDJ(:), RCVBUF(:)
+      TYPE(ARRPNT), POINTER   :: APNT(:)
       INTEGER                 :: BUFSIZE, SOURCE, RCVPNT, MAXS, PNT,
      &     SAVEPNT
       INTEGER, PARAMETER      :: ITAG=30
       LOGICAL                 :: FLAG
       DOUBLE PRECISION        :: SYMMETRY
+      nullify(MAPTAB, SNDCNT, RCVCNT, SDISPL)
+      nullify(RDISPL, MSGCNT, SIPES, LENG)
+      nullify(PCNT, TSENDI, TSENDJ, RCVBUF, APNT)
       CALL MPI_COMM_RANK (id%COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (id%COMM, NPROCS, IERR)
-      IF(SIZE(WORK) .LT. id%N*2) THEN
+      IF(MUMPS_GETSIZE(WORK) .LT. id%N*2) THEN
          WRITE(LP,
      &        '("Insufficient workspace inside BUILD_SCOTCH_GRAPH")')
          CALL MUMPS_ABORT()
@@ -6426,22 +6457,25 @@ C     $     associated(APNT)
      &     IIDX, JJDX
       INTEGER                :: HALO_SIZE, TIDX, NROWS_LOC, DUPS
       INTEGER                :: STATUS(MPI_STATUS_SIZE)
-      INTEGER, POINTER       :: MAPTAB(:) => null(),
-     &     SNDCNT(:) => null(), RCVCNT(:) => null(),
-     &     SDISPL(:) => null(), HALO_MAP(:) => null()
-      INTEGER, POINTER       :: RDISPL(:) => null(),
-     &     MSGCNT(:) => null(), SIPES(:,:) => null()
-      INTEGER, POINTER       :: PCNT(:) => null(), TSENDI(:) => null(),
-     &     TSENDJ(:) => null(), RCVBUF(:) => null()
-      TYPE(ARRPNT), POINTER  :: APNT(:) => null()
+      INTEGER, POINTER       :: MAPTAB(:),
+     &     SNDCNT(:), RCVCNT(:),
+     &     SDISPL(:), HALO_MAP(:)
+      INTEGER, POINTER       :: RDISPL(:),
+     &     MSGCNT(:), SIPES(:,:)
+      INTEGER, POINTER       :: PCNT(:), TSENDI(:),
+     &     TSENDJ(:), RCVBUF(:)
+      TYPE(ARRPNT), POINTER  :: APNT(:)
       INTEGER                :: BUFSIZE, SOURCE, RCVPNT, MAXS, PNT,
      &     SAVEPNT
       INTEGER, PARAMETER     :: ITAG=30
       LOGICAL                :: FLAG
       DOUBLE PRECISION       :: SYMMETRY
+      nullify(MAPTAB, SNDCNT, RCVCNT, SDISPL, HALO_MAP)
+      nullify(RDISPL, MSGCNT, SIPES)
+      nullify(PCNT, TSENDI, TSENDJ, RCVBUF, APNT)
       CALL MPI_COMM_RANK (id%COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (id%COMM, NPROCS, IERR)
-      IF(SIZE(WORK) .LT. id%N*2) THEN
+      IF(MUMPS_GETSIZE(WORK) .LT. id%N*2) THEN
          WRITE(LP,
      &        '("Insufficient workspace inside BUILD_LOC_GRAPH")')
          CALL MUMPS_ABORT()
@@ -6712,15 +6746,15 @@ C     $     associated(APNT)
       INTEGER, POINTER        :: RCVBUF(:), LENG(:), PE(:), IPE(:)
       INTEGER                 :: MSGCNT(NPROCS), SNDCNT(NPROCS)
       LOGICAL, SAVE           :: INIT = .TRUE.
-      INTEGER, POINTER, SAVE  :: SPACE(:,:,:) => null()
-      LOGICAL, POINTER, SAVE  :: PENDING(:) => null()
-      INTEGER, POINTER, SAVE  :: REQ(:) => null(), CPNT(:) => null()
+      INTEGER, POINTER, SAVE  :: SPACE(:,:,:)
+      LOGICAL, POINTER, SAVE  :: PENDING(:)
+      INTEGER, POINTER, SAVE  :: REQ(:), CPNT(:)
       INTEGER                 :: IERR, MYID, I, SOURCE, J, TOTMSG
       LOGICAL                 :: FLAG, TFLAG
       INTEGER                 :: STATUS(MPI_STATUS_SIZE),
      &     TSTATUS(MPI_STATUS_SIZE)
       INTEGER, PARAMETER      :: ITAG=30, FTAG=31
-      INTEGER, POINTER        :: TMPI(:) => null(), RCVCNT(:) => null()
+      INTEGER, POINTER        :: TMPI(:), RCVCNT(:)
       CALL MPI_COMM_RANK (COMM, MYID, IERR)
       CALL MPI_COMM_SIZE (COMM, NPROCS, IERR)
       IF(INIT) THEN
@@ -6779,6 +6813,7 @@ C     $     associated(APNT)
          DEALLOCATE(PENDING, CPNT)
          DEALLOCATE(REQ)
          DEALLOCATE(RCVBUF, RCVCNT)
+         nullify(SPACE, PENDING, CPNT, REQ, RCVBUF, RCVCNT)
          INIT = .TRUE.
          RETURN
       END IF
@@ -6945,6 +6980,16 @@ C     $     associated(APNT)
       END IF
       GOTO 300
       END SUBROUTINE CMUMPS_MERGESORT
+      FUNCTION MUMPS_GETSIZE(A)
+      INTEGER, POINTER :: A(:)
+      INTEGER          :: MUMPS_GETSIZE
+      IF(ASSOCIATED(A)) THEN
+         MUMPS_GETSIZE = SIZE(A)
+      ELSE
+         MUMPS_GETSIZE = 0
+      END IF
+      RETURN
+      END FUNCTION MUMPS_GETSIZE
       SUBROUTINE MUMPS_734(A1, A2, A3, A4, A5, A6, A7, MEMCNT)
       INTEGER, POINTER :: A1(:)
       INTEGER, POINTER, OPTIONAL :: A2(:), A3(:), A4(:), A5(:),

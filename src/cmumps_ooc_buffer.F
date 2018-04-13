@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -483,7 +483,8 @@ C
       INTEGER,          INTENT(OUT):: IERR
       INTEGER   :: II, NBPIVeff
       INTEGER(8) :: IPOS, IDIAG, IDEST
-      INTEGER(8) :: DeltaIPOS, StrideIPOS
+      INTEGER(8) :: DeltaIPOS
+      INTEGER   :: StrideIPOS
       IERR=0
       IF (STRAT.NE.STRAT_WRITE_MAX.AND.STRAT.NE.STRAT_TRY_WRITE) THEN
          write(6,*) ' CMUMPS_653: STRAT Not implemented '
@@ -552,10 +553,10 @@ C
      &        I_REL_POS_CUR_HBUF(TYPEF)
          IF (MonBloc%Typenode.EQ.3) THEN
            DeltaIPOS  = int(MonBloc%NROW,8)
-           StrideIPOS = 1_8
+           StrideIPOS = 1
          ELSE
            DeltaIPOS  = 1_8
-           StrideIPOS = int(MonBloc%NCOL,8)
+           StrideIPOS = MonBloc%NCOL
          ENDIF
          IPOS  = 1_8 + int(IPIVBEG - 1,8) * DeltaIPOS
          DO II = IPIVBEG, IPIVEND

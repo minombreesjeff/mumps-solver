@@ -1,5 +1,5 @@
 MEX       = mex
-MUMPS_DIR = $(HOME)/MUMPS_4.9
+MUMPS_DIR = $(HOME)/MUMPS_4.9.1
 
 LMETISDIR = $(HOME)/METIS/metis
 LMETIS = -L$(LMETISDIR) -lmetis

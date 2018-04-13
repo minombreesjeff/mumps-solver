@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -813,7 +813,8 @@ C
       INTEGER, INTENT(IN)  :: SIZE_SCHUR, LISTVAR_SCHUR(SIZE_SCHUR)
       INTEGER, INTENT(IN)  :: IRN(NZ), ICN(NZ) 
       INTEGER, INTENT(IN)  :: ICNTL(40), SYM
-      INTEGER, INTENT(OUT) :: IFLAG,IERROR,NRORM,NIORM,IWFR
+      INTEGER, INTENT(INOUT) :: IFLAG
+      INTEGER, INTENT(OUT) :: IERROR,NRORM,NIORM,IWFR
       INTEGER, INTENT(OUT) :: AOTOA(N)
       INTEGER, INTENT(OUT) :: ATOAO(NA)  
       INTEGER, INTENT(OUT) :: LEN(N), IPE(N+1)

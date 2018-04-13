@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+#  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 #
 topdir = ..
 libdir = $(topdir)/lib
@@ -87,13 +87,13 @@ $(ARITH)mumps_part2.o : tools_common_mod.o
 
 .SUFFIXES: .c .F .o
 .F.o:
-	$(FC) $(OPTF) $(INC) $(ORDERINGSF) -I. -I../include -c $*.F
+	$(FC) $(OPTF) $(INC) $(IORDERINGSF) $(ORDERINGSF) -I. -I../include -c $*.F
 .c.o:
-	$(CC) $(OPTC) $(INC) -I../include $(CDEFS) $(IORDERINGS) $(ORDERINGSC) -c $*.c
+	$(CC) $(OPTC) $(INC) -I../include $(CDEFS) $(IORDERINGSC) $(ORDERINGSC) -c $*.c
 
 $(ARITH)mumps_c.o:	mumps_c.c
 	$(CC) $(OPTC) $(INC) $(CDEFS) -DMUMPS_ARITH=MUMPS_ARITH_$(ARITH) \
-	      $(IORDERINGS) $(ORDERINGSC) -I../include -c $? -o $@
+	      $(IORDERINGSC) $(ORDERINGSC) -I../include -c $? -o $@
 
 
 clean:

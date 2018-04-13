@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+ *  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -53,7 +53,7 @@ extern "C" {
 /* Next line defines MUMPS_INT, ZMUMPS_COMPLEX and ZMUMPS_REAL */
 #include "mumps_c_types.h"
 
-#define MUMPS_VERSION "4.9"
+#define MUMPS_VERSION "4.9.1"
 #define MUMPS_VERSION_MAX_LEN 14
 
 /*

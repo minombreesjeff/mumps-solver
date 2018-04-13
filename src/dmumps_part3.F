@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -425,6 +425,9 @@ C
      & SIZFR-SHIFTCB_SON-int(NBROW(1)-1,8)*int(LDA_SON,8),
      &                 LDA_SON, LMAP_LOC-NBROW(1)+1,
      &                 BUF_MAX_ARRAY,NFS4FATHER,COMPRESSCB,ITMP)
+                  ELSE
+                       CALL DMUMPS_757(
+     &                 BUF_MAX_ARRAY, NFS4FATHER)
                   ENDIF
                   CALL DMUMPS_619(N, INODE_PERE, IW, LIW, 
      &                 A, LA, ISON, NFS4FATHER,
@@ -855,6 +858,9 @@ C
      &          A(POSROW),ASIZE,NBCOLS,LMAP_LOC-NBROW(1)+1,
      &          BUF_MAX_ARRAY,NFS4FATHER,COMPRESSCB,
      &          NELIM+NBROW(1))
+           ELSE
+                CALL DMUMPS_757(BUF_MAX_ARRAY,
+     &          NFS4FATHER)
            ENDIF
            CALL DMUMPS_619(N, INODE_PERE, IW, LIW, 
      &          A, LA, ISON, NFS4FATHER,
@@ -1565,6 +1571,15 @@ C
       MEMORY_MBYTES = int( MEMORY_BYTES / 1000000_8 )  + 1
       RETURN
       END SUBROUTINE DMUMPS_214
+      SUBROUTINE DMUMPS_757(M_ARRAY, M_SIZE)
+      IMPLICIT NONE
+      INTEGER M_SIZE
+      DOUBLE PRECISION M_ARRAY(M_SIZE)
+      DOUBLE PRECISION ZERO
+      PARAMETER (ZERO=0.0D0)
+      M_ARRAY=ZERO
+      RETURN
+      END SUBROUTINE DMUMPS_757
       SUBROUTINE DMUMPS_618(
      &     A,ASIZE,NCOL,NROW,
      &     M_ARRAY,NMAX,COMPRESSCB,LROW1)
@@ -1683,6 +1698,21 @@ C
       NB_dble = NB_dble + NB_REAL
       RETURN
       END SUBROUTINE DMUMPS_710 
+      SUBROUTINE DMUMPS_756(N8,SRC,DEST)
+      IMPLICIT NONE
+      INTEGER(8) :: N8
+      DOUBLE PRECISION, intent(in)  :: SRC(N8)
+      DOUBLE PRECISION, intent(out) :: DEST(N8)
+      INTEGER(8) :: SHIFT8, HUG8
+      INTEGER    :: N, I, I4SIZE
+      HUG8=int(huge(I4SIZE),8)
+      DO I = 1, int(( N8 + HUG8 - 1_8 ) / HUG8)
+        SHIFT8 = 1_8 + (I-1) * HUG8
+        I4SIZE = int(min(HUG8, N8-SHIFT8+1_8))
+        CALL DCOPY(I4SIZE, SRC(SHIFT8), 1, DEST(SHIFT8), 1)
+      ENDDO
+      RETURN
+      END SUBROUTINE DMUMPS_756
       SUBROUTINE DMUMPS_22( INPLACE, MIN_SPACE_IN_PLACE,
      &   SSARBR, PROCESS_BANDE,
      &   MYID,N, KEEP,KEEP8,
@@ -2359,8 +2389,9 @@ C
      &       OLD_LOCAL_M, OLD_LOCAL_N
              CALL MUMPS_ABORT()
           END IF
-          CALL DCOPY(LREQA, A(PAMASTER(STEP(IROOT))), 1,
-     &                      A(PTRAST(STEP(IROOT))), 1)
+          CALL DMUMPS_756(LREQA,
+     &                          A( PAMASTER(STEP(IROOT)) ),
+     &                          A( PTRAST  (STEP(IROOT)) ) )
         ELSE
           CALL DMUMPS_96( A( PTRAST(STEP(IROOT))), 
      &        NEW_LOCAL_M,
@@ -3327,7 +3358,8 @@ C
      &     NFSIZ, PTRAR(1,2), 
      &     INFO(6), FILS, FRERE, PTRAR(1,3), NEMIN, 
      &     IW(L2),  KEEP(60), KEEP(20), KEEP(38),
-     &     IW2,KEEP(104),IW(L2+N),KEEP(50))
+     &     IW2,KEEP(104),IW(L2+N),KEEP(50),
+     &     ICNTL(13), KEEP(37), NSLAVES, KEEP(250).EQ.1)
 #endif
       DEALLOCATE(IW2)
       IF (KEEP(60).NE.0) THEN
@@ -5075,30 +5107,31 @@ C
              AII = AII + J2 - II + 1
              CYCLE
            ENDIF
-          ENDIF 
-          IF (KEEP(219).NE.0) THEN
-            MAXARR = ZERO
-          ENDIF
-          DO JJ=II,J2
-           J =  INTARR(JJ)
-           IF ( J .LE. NASS1) THEN
-              IF (I.LT.J) THEN
+          ELSE
+            IF (KEEP(219).NE.0) THEN
+              MAXARR = ZERO
+            ENDIF
+            DO JJ=II,J2
+              J =  INTARR(JJ)
+              IF ( J .LE. NASS1) THEN
+                IF (I.LT.J) THEN
                   APOS2 = ICT12 + int(J,8)*LDAFS8
-              ELSE
+                ELSE
                   APOS2 = ICT21 + int(J,8)
+                ENDIF
+                A(APOS2) = A(APOS2) + DBLARR(AII)
+              ELSE IF (KEEP(219).NE.0.AND.KEEP(50).EQ.2) THEN
+                MAXARR = max(MAXARR,abs(DBLARR(AII)))
               ENDIF
-              A(APOS2) = A(APOS2) + DBLARR(AII)
-           ELSE IF (KEEP(219).NE.0.AND.KEEP(50).EQ.2) THEN
-              MAXARR = max(MAXARR,abs(DBLARR(AII)))
-           ENDIF
-           AII = AII + 1
-          END DO
-          IF(KEEP(219).NE.0.AND.KEEP(50) .EQ. 2) THEN
-            A(APOSMAX+int(I-1,8)) = dble(
-     &           max( MAXARR, dble(A(APOSMAX+int(I-1,8))))
-     &         )
-          ENDIF
-         END IF
+              AII = AII + 1
+            END DO
+            IF(KEEP(219).NE.0.AND.KEEP(50) .EQ. 2) THEN
+                A(APOSMAX+int(I-1,8)) = dble(
+     &             max( MAXARR, dble(A(APOSMAX+int(I-1,8))))
+     &          )
+            ENDIF
+          ENDIF 
+         END IF 
         END DO
       END DO
       PTRCOL = IOLDPS + HF + NFRONT 

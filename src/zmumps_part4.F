@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -495,8 +495,13 @@ C
               ENTRIES_NODE_UPPER_PART =
      &        (int(NELIM,8)*int(NELIM+1,8))/2_8
             ENDIF
-            CALL MUMPS_511(NFR, NELIM, NELIM,KEEP(50),
+            IF (KEEP(50).EQ.2 .AND. LEVEL.EQ.3) THEN
+              CALL MUMPS_511(NFR, NELIM, NELIM,0,
      &           1,OPS_NODE)
+            ELSE
+              CALL MUMPS_511(NFR, NELIM, NELIM,KEEP(50),
+     &           1,OPS_NODE)
+            ENDIF
             IF (LEVEL.EQ.2) THEN
               CALL MUMPS_511(NFR, NELIM, NELIM,KEEP(50),
      &           2,OPS_NODE_MASTER)
@@ -1053,6 +1058,30 @@ C
         ISON = INODE
         PDEST_MASTER_ISON = MUMPS_275(STEP(ISON),
      &      PROCNODE_STEPS,SLAVEF)
+        DO WHILE ( PTRIST(STEP(ISON)) .EQ. 0)
+          BLOCKING = .TRUE.
+          SET_IRECV = .FALSE.
+          MESSAGE_RECEIVED = .FALSE.
+          CALL ZMUMPS_329( COMM_LOAD, ASS_IRECV,
+     &    BLOCKING, SET_IRECV, MESSAGE_RECEIVED,
+     &    PDEST_MASTER_ISON, MAITRE_DESC_BANDE,
+     &    STATUS,
+     &    BUFR, LBUFR, LBUFR_BYTES, PROCNODE_STEPS, POSFAC,
+     &    IWPOS, IWPOSCB, IPTRLU,
+     &    LRLU, LRLUS, N, IW, LIW, A, LA, PTRIST,
+     &    PTLUST_S, PTRFAC,
+     &    PTRAST, STEP, PIMASTER, PAMASTER, NSTK_S, COMP,
+     &    IFLAG, IERROR, COMM,
+     &    NBPROCFILS,
+     &    IPOOL, LPOOL, LEAF,
+     &    NBFIN, MYID, SLAVEF,
+     &
+     &    root, OPASSW, OPELIW, ITLOC, FILS, PTRARW, PTRAIW,
+     &    INTARR, DBLARR, ICNTL, KEEP,KEEP8, ND, FRERE, LPTRAR,
+     &    NELT, FRTPTR, FRTELT,
+     &    ISTEP_TO_INIV2, TAB_POS_IN_PERE, .TRUE. )
+          IF ( IFLAG .LT. 0 ) RETURN
+        ENDDO
         DO WHILE (
      &     ( IW( PTRIST(STEP(ISON)) + 1  +KEEP(IXSZ)) .NE.
      &       IW( PTRIST(STEP(ISON)) + 3  +KEEP(IXSZ)) ) .OR.
@@ -3144,7 +3173,7 @@ C
      &                    WRKRC(ITDRPTR), N)
                      INFERRG = INFERRL
                      IF(INFERRG.LE.EPS) THEN
-                        CALL ZMUMPS_666(SCA,  WRKRC(ITDRPTR), N)          
+                        CALL ZMUMPS_666(SCA,  WRKRC(ITDRPTR), N)
                         IF(ITER .LE. NB1) THEN
                            ITER = NB1+1
                            CYCLE
@@ -4759,7 +4788,7 @@ C
      &                   IW( IWPOSCB + 1 ), LREQI,
      &                   MPI_INTEGER, COMM, IERR )
           CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &                   A( IPTRLU + 1_8 ), LREQA,
+     &                   A( IPTRLU + 1_8 ), int(LREQA),
      &                   MPI_DOUBLE_COMPLEX, COMM, IERR )
           IF (KEEP(60) .EQ.0) THEN
           IF ( PTRIST(STEP(IROOT)) .NE. 0 ) THEN

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -4697,7 +4697,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER, intent(in) :: NFRONT,NPIV,KEEP50,LEVEL, NASS
       DOUBLE PRECISION, intent(out) :: COST
       IF (KEEP50.EQ.0) THEN
-        IF (LEVEL.EQ.1) THEN
+        IF (LEVEL.EQ.1 .OR. LEVEL.EQ.3) THEN
           COST = dble(2) * dble(NFRONT) * dble(NPIV) *
      &      dble(NFRONT - NPIV - 1) +
      &      dble(NPIV) * dble(NPIV + 1) * dble(2 * NPIV + 1)
@@ -6314,7 +6314,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       IMPLICIT NONE
       CHARACTER(LEN=*) :: VERSION_STR
       CHARACTER(LEN=*) :: V;
-      PARAMETER (V = "4.9" )
+      PARAMETER (V = "4.9.1" )
       IF ( LEN(V) .GT. 14 ) THEN
          WRITE(*,*) "Version string too long ( >14 characters )"
          CALL MUMPS_ABORT()
@@ -7506,8 +7506,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
-         FMTA = "Allocation failed inside realloc: "//STRING
-         FMTD = "Deallocation failed inside realloc: "//STRING
+         FMTA = "Allocation failed inside realloc: "
+         FMTD = "Deallocation failed inside realloc: "
       END IF
       IF (PRESENT(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
@@ -7598,8 +7598,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
-         FMTA = "Allocation failed inside realloc: "//STRING
-         FMTD = "Deallocation failed inside realloc: "//STRING
+         FMTA = "Allocation failed inside realloc: "
+         FMTD = "Deallocation failed inside realloc: "
       END IF
       IF (PRESENT(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
@@ -7690,8 +7690,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
-         FMTA = "Allocation failed inside realloc: "//STRING
-         FMTD = "Deallocation failed inside realloc: "//STRING
+         FMTA = "Allocation failed inside realloc: "
+         FMTD = "Deallocation failed inside realloc: "
       END IF
       IF (PRESENT(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
@@ -7782,8 +7782,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
-         FMTA = "Allocation failed inside realloc: "//STRING
-         FMTD = "Deallocation failed inside realloc: "//STRING
+         FMTA = "Allocation failed inside realloc: "
+         FMTD = "Deallocation failed inside realloc: "
       END IF
       IF (PRESENT(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
@@ -7874,8 +7874,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
-         FMTA = "Allocation failed inside realloc: "//STRING
-         FMTD = "Deallocation failed inside realloc: "//STRING
+         FMTA = "Allocation failed inside realloc: "
+         FMTD = "Deallocation failed inside realloc: "
       END IF
       IF (PRESENT(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)

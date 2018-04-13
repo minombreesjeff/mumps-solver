@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -131,6 +131,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           id%INFO(2)=JOB
         ENDIF
         ENDIF
+        CALL MPI_COMM_RANK(id%COMM, id%MYID, IERR)
         CALL MUMPS_276( id%ICNTL,
      &                       id%INFO,
      &                       id%COMM, id%MYID )
@@ -384,9 +385,13 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
          ENDIF
          IF(id%KEEP(52) .EQ. -1) id%KEEP(52) = 0
          CALL CMUMPS_26( id )
-         IF (id%KEEP(52) .EQ. -2) THEN
-           id%ICNTL(8)=-2
-         ENDIF
+        IF (id%MYID .eq. MASTER) THEN
+           IF (id%KEEP(52) .NE. 0) THEN
+             id%INFOG(33)=id%KEEP(52)
+           ELSE
+             id%INFOG(33)=id%ICNTL(8)
+           ENDIF
+        ENDIF
         IF (id%MYID .eq. MASTER) id%INFOG(24)=id%KEEP(95)
         IF ( id%INFO( 1 ) .LT. 0 ) GO TO 499
         id%KEEP(40) = 1 -456789
@@ -438,7 +443,8 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           CALL MUMPS_633(id%KEEP(12),id%ICNTL(14),
      &         id%KEEP(50),id%KEEP(54),id%ICNTL(6),id%ICNTL(8))
           CALL CMUMPS_635(N,id%KEEP,id%ICNTL,MPG)
-          IF( id%KEEP(52) .EQ. -2 .AND. id%ICNTL(8) .NE. -2) THEN
+          IF( id%KEEP(52) .EQ. -2 .AND. id%ICNTL(8) .NE. -2 .AND.
+     &        id%ICNTL(8).NE. 77 ) THEN
              IF ( MPG .GT. 0 ) THEN
                 WRITE(MPG,'(A)') ' ** WARNING : SCALING'
                 WRITE(MPG,'(A)') 
@@ -446,7 +452,8 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
                 WRITE(MPG,'(A)') 
      &               ' ** keeping the scaling from the analysis'
              ENDIF
-          ELSE
+          ENDIF
+          IF (id%KEEP(52) .NE. -2) THEN
             id%KEEP(52)=id%ICNTL(8)
           ENDIF
           IF ( id%KEEP(52) .GT. 8 .OR. id%KEEP(52).LT.-2)
@@ -603,6 +610,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
      &                      id%COMM, id%MYID )
         IF ( id%INFO(1) .LT. 0 ) GO TO 499
         CALL CMUMPS_142(id)
+        IF (id%MYID .eq. MASTER) id%INFOG(33)=id%KEEP(52)
         IF (id%KEEP(60).EQ.2.OR.id%KEEP(60).EQ.3) THEN
           IF (id%root%yes) THEN
             IF (id%root%SCHUR_NLOC==0) THEN
@@ -1860,7 +1868,6 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
       PARAMETER( MASTER = 0 )
       INTEGER color
       CALL MPI_COMM_SIZE(id%COMM, id%NPROCS, IERR )
-      CALL MPI_COMM_RANK(id%COMM, id%MYID, IERR )
       IF ( id%PAR .eq. 0 ) THEN
         IF ( id%MYID .eq. MASTER ) THEN
           color = MPI_UNDEFINED
@@ -1901,6 +1908,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
       NULLIFY(id%A_loc)
       NULLIFY(id%MAPPING)
       NULLIFY(id%RHS)
+      NULLIFY(id%REDRHS)
       NULLIFY(id%RHS_SPARSE)
       NULLIFY(id%IRHS_SPARSE)
       NULLIFY(id%IRHS_PTR)
@@ -2745,6 +2753,8 @@ CduplicatesCVD$ NODEPCHK
       IFSON = -IN
       ISON = IFSON
       NCBSON_MAX = 0
+      NELT = 1
+      LPTRAR = 1
       DO WHILE (ISON .GT. 0)
         NUMSTK = NUMSTK + 1
         IF ( KEEP(48)==5 .AND. MUMPS_330(STEP(ISON),
@@ -5699,7 +5709,7 @@ CduplicatesCVD$ NODEPCHK
       ELSE
          EFFECTIVE_SIZE =  min(NBCOL_MAX, K227_LOC)
       ENDIF
-      IF (EFFECTIVE_SIZE.EQ.0) THEN
+      IF (EFFECTIVE_SIZE.LE.0) THEN   
          write(6,*) 'Internal buffers too small to store ', 
      &        ' ONE col/row of size', NNMAX
          CALL MUMPS_ABORT()

@@ -2,6 +2,34 @@
 = ChangeLog =
 -------------
 
+Changes from 4.9 to 4.9.1
+* Balancing on the processors of both work and memory improved.
+  In a parallel environment memory consumption should be reduced
+  and performance improved 
+* Modification of the amalgamation to solve both the problem of 
+  small root nodes and the problem of tiny nodes implying too many
+  small MPI messages
+* Corrected bug occurring on big-endian environments when passing
+  a 64-bit integer argument in place of 32-bit one. This was causing
+  problems in parallel, when ScaLAPACK is used, on IBM machines.
+* Internal ERROR 2 in MUMPS_271 now impossible (was
+  already not happening in practice)
+* Solved compiler warnings (or even errors) related to the
+  order of the declarations of arrays and array sizes
+* Parallel analysis: fixed the problem due to the invocation of the size
+  function on non-allocated pointers, corrected a bug due to initialization
+  of pointers in the declaration statements, and improved the Makefiles
+* Corrected bug in the reallocation of arrays
+* Corrected several accesses to uninitialized variables
+* Internal Error (4) in OOC (MUMPS_597) no more occurs
+* Suppressed possible printing of "Internal WARNING 1 in CMUMPS_274"
+* (Minor) numerical pivoting problem in parallel LDLt solved
+* Estimated flops corrected when SYM=2 and Scalapack is used (because
+  we use LU on the root node, not LDLt, in that case)
+* Scaling option effectively used is now returned in INFOG(33) and
+  ICNTL(8) is no more modified by the package
+* INFO(25) is now correctly documented, new statistic INFO(27) added
+
 Changes from 4.8.4 to 4.9
 * Parallel analysis available
 * Use of 64-bit integer addressing for large internal workarrays
@@ -24,7 +52,7 @@ Changes from 4.8.4 to 4.9
 * Fixed some problems related to the usage of intrinsic functions inside PARAMETER
   statements (HP-UX compilers)
 * Fixed problem of explicit interface in [SDCZ]MUMPS_521
-* Out-of-core strategy from 4.7.4 can be reactivated with -DOLD_OOC_NOPANEL
+* Out-of-core strategy from 4.7.3 can be reactivated with -DOLD_OOC_NOPANEL
 * Message "problem with NIV2_FLOPS message" no more occurs
 * Avoid compilation problem with old versions of gfortran
 
@@ -332,6 +360,7 @@ Changes from 4.0.4 to 4.1.4
 = Release history =
 -------------------
 
+Release 4.9.1            : October 2009
 Release 4.9              : July 2009
 Release 4.8.4            : December 2008
 Release 4.8.3            : September 2008

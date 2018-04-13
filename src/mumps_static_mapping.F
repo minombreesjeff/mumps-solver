@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -2289,7 +2289,8 @@ cDEC$ NOOPTIMIZE
             return
           end if
          ENDIF
-         skiparrangeL0 = .NOT.skiparrangeL0   
+         IF (cv_slavef.GT.16) 
+     &        skiparrangeL0 = .NOT.skiparrangeL0   
          if (accepted.OR.(cv_costw_total.le.0.0D0)) then
             exit
          elseif(((cv_costw_layer0/cv_costw_total).gt.cv_l0wthresh) .AND.
@@ -3214,6 +3215,10 @@ cDEC$ NOOPTIMIZE
      &           keep48_loc,min_cand_needed
       character (len=48):: subname
       DOUBLE PRECISION :: relative_weight,costs_sons, shtemp
+      DOUBLE PRECISION :: costs_sons_real
+      DOUBLE PRECISION :: PartofaProc
+      LOGICAL          :: SkipSmallNodes
+      PARAMETER (PartofaProc=0.01D0)
       DOUBLE PRECISION :: loc_relax
       INTEGER :: depth
       logical force_cand
@@ -3277,6 +3282,23 @@ cDEC$ NOOPTIMIZE
          costs_sons = costs_sons + cv_tcostw(in)
          in=cv_frere(in)
       enddo
+      costs_sons_real = costs_sons
+      SkipSmallNodes = .true.
+      IF (costs_sons_real.gt.0.0D0) then
+       in = son
+       do while (in.gt.0) 
+          relative_weight=cv_tcostw(in)/costs_sons_real
+          shtemp = relative_weight*dble(nmb_procs_inode)
+          IF (shtemp.lt.PartofaProc) THEN
+            costs_sons = costs_sons - cv_tcostw(in)
+          ENDIF
+          in=cv_frere(in)
+       enddo
+       IF (costs_sons.LT. PartofaProc*costs_sons_real) THEN
+         costs_sons = costs_sons_real
+         SkipSmallNodes = .false.
+       ENDIF
+      ENDIF
       if(costs_sons.le.0.0D0) then
          if(cv_lp.gt.0)
      &        write(cv_lp,*)'Error in ',subname
@@ -3333,9 +3355,72 @@ cDEC$ NOOPTIMIZE
                relative_weight=dble(0)
             endif
             shtemp = relative_weight*dble(nmb_procs_inode)
+            IF ( (shtemp.LT.PartofaProc)
+     &             .AND. ( SkipSmallNodes ) )  THEN
+             share = 1  
+             do j=current,cv_slavef
+              if(ke69 .gt.1) then
+               call MUMPS_493(current-1,k69onid,ierr)
+              else
+               k69onid = j
+              endif 
+              if( MUMPS_481(inode,k69onid)) then
+                  call MUMPS_482(procs4son,k69onid,ierr)
+                  if(ierr.ne.0) then
+                     if(cv_lp.gt.0)write(cv_lp,*)
+     &               'BIT_SET signalled error to',subname
+                     istat = ierr
+                     return
+                  end if
+                  share = share -1
+                  exit 
+              endif
+             enddo
+             if (share.gt.0) then
+               do j=1,current-1
+                if(ke69 .gt.1) then
+                 call MUMPS_493(current-1,k69onid,ierr)
+                else
+                 k69onid = j
+                endif 
+                if( MUMPS_481(inode,k69onid)) then
+                    call MUMPS_482(procs4son,k69onid,ierr)
+                    if(ierr.ne.0) then
+                       if(cv_lp.gt.0)write(cv_lp,*)
+     &               'BIT_SET signalled error to',subname
+                       istat = ierr
+                       return
+                    end if
+                    share = share -1
+                    exit 
+                endif
+               enddo
+              endif
+              if(share.ne.0) then
+                 if(cv_lp.gt.0) write(cv_lp,*)
+     &              'Error reported in ',subname
+                 return
+              end if
+              if(.NOT.associated(cv_prop_map(in)%ind_proc)) then
+                 call MUMPS_434(in,ierr)
+              if(ierr.ne.0) then
+               if(cv_lp.gt.0)
+     &              write(cv_lp,*)'PROPMAP_INIT signalled error to'
+     &              ,subname
+               istat = ierr
+               return
+              end if
+             endif
+             current  = j 
+             cv_prop_map(in)%ind_proc = procs4son
+             in = cv_frere(in)
+             cycle   
+            ENDIF
             share  = max(1,nint(shtemp))
             if (dble(share).ge.shtemp) then
                upper_round_off=.TRUE.
+            else
+               upper_round_off = .FALSE.
             endif
             share=min(share,nmb_procs_inode)
             nmb_propmap_strict=share
@@ -3514,6 +3599,7 @@ cDEC$ NOOPTIMIZE
      &                   (cv_keep(83)/2) - nmb_propmap_strict)
             procsrest=nmb_procs_inode - nmb_propmap_strict
             share2=min(share2,procsrest)
+            share2 = 0 
             CALL RANDOM_NUMBER(Y)
             current2     =int(dble(Y)*dble(procsrest))
             nb_free_procs=1

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -2516,6 +2516,9 @@ C
      &              OOC_FCT_TYPE)),
      &              OOC_FCT_TYPE)
                IF(LAST.EQ.0_8)THEN
+                  IF(.NOT.ALREADY)THEN
+                     CUR_POS_SEQUENCE=CUR_POS_SEQUENCE+1
+                  ENDIF
                   I=I+1
                   NB_NODES_LOC=NB_NODES_LOC+1
                   CYCLE
@@ -2578,6 +2581,9 @@ C
      &              OOC_FCT_TYPE)),
      &              OOC_FCT_TYPE)
                IF(LAST.EQ.0_8)THEN
+                  IF(.NOT.ALREADY)THEN
+                     CUR_POS_SEQUENCE=CUR_POS_SEQUENCE-1
+                  ENDIF
                   NB_NODES_LOC=NB_NODES_LOC+1
                   I=I-1
                   CYCLE

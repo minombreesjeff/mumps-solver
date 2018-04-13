@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
+#  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
 #
 topdir = ..
 libdir = $(topdir)/lib
@@ -25,29 +25,29 @@ LIBMUMPS_COMMON = $(libdir)/libmumps_common$(PLAT).a
 LIBSMUMPS = $(libdir)/libsmumps$(PLAT).a $(LIBMUMPS_COMMON)
 
 ssimpletest:  $(LIBSMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) ssimpletest.o $(LIBSMUMPS)  $(LIB) $(LIBBLAS) $(LIBOTHERS) $(LORDERINGS)
+	$(FL) -o $@ $(OPTL) ssimpletest.o $(LIBSMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
 
 
 LIBDMUMPS = $(libdir)/libdmumps$(PLAT).a $(LIBMUMPS_COMMON)
 
 dsimpletest: $(LIBDMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) dsimpletest.o $(LIBDMUMPS)  $(LIB) $(LIBBLAS) $(LIBOTHERS) $(LORDERINGS)
+	$(FL) -o $@ $(OPTL) dsimpletest.o $(LIBDMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
 
 
 LIBCMUMPS = $(libdir)/libcmumps$(PLAT).a $(LIBMUMPS_COMMON)
 
 csimpletest: $(LIBCMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) csimpletest.o $(LIBCMUMPS)  $(LIB) $(LIBBLAS) $(LIBOTHERS) $(LORDERINGS)
+	$(FL) -o $@ $(OPTL) csimpletest.o $(LIBCMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
 
 
 LIBZMUMPS = $(libdir)/libzmumps$(PLAT).a $(LIBMUMPS_COMMON)
 
 zsimpletest: $(LIBZMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) zsimpletest.o $(LIBZMUMPS)  $(LIB) $(LIBBLAS) $(LIBOTHERS) $(LORDERINGS)
+	$(FL) -o $@ $(OPTL) zsimpletest.o $(LIBZMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
 
 
 c_example:	$(LIBDMUMPS) $$@.o
-	$(FL) -o $@ $(OPTL) $@.o $(LIBDMUMPS) $(LIB) $(LIBBLAS) $(LIBOTHERS) $(LORDERINGS)
+	$(FL) -o $@ $(OPTL) $@.o $(LIBDMUMPS) $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
 
 
 .SUFFIXES: .c .F .o
