@@ -2,6 +2,13 @@
 = ChangeLog =
 -------------
 
+Changes from 4.9.1 to 4.9.2
+* Compressed orderings (ICNTL(12)=2) are now compatible with PORD
+  and PT-Scotch
+* Mapping problem on large numbers of MPI processes, leading to
+  INFOG(1)=-135 on "special" matrices solved (problem appeared
+  in 4.9.1)
+
 Changes from 4.9 to 4.9.1
 * Balancing on the processors of both work and memory improved.
   In a parallel environment memory consumption should be reduced
@@ -360,6 +367,7 @@ Changes from 4.0.4 to 4.1.4
 = Release history =
 -------------------
 
+Release 4.9.2            : November 2009
 Release 4.9.1            : October 2009
 Release 4.9              : July 2009
 Release 4.8.4            : December 2008

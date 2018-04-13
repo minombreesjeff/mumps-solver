@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
+C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -3360,7 +3360,7 @@ cDEC$ NOOPTIMIZE
              share = 1  
              do j=current,cv_slavef
               if(ke69 .gt.1) then
-               call MUMPS_493(current-1,k69onid,ierr)
+               call MUMPS_493(j-1,k69onid,ierr)
               else
                k69onid = j
               endif 
@@ -3379,7 +3379,7 @@ cDEC$ NOOPTIMIZE
              if (share.gt.0) then
                do j=1,current-1
                 if(ke69 .gt.1) then
-                 call MUMPS_493(current-1,k69onid,ierr)
+                 call MUMPS_493(j-1,k69onid,ierr)
                 else
                  k69onid = j
                 endif 

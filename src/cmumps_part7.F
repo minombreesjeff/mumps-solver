@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
+C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1056,3 +1056,28 @@ C
       ENDDO
       RETURN
       END SUBROUTINE CMUMPS_549
+      SUBROUTINE CMUMPS_548(N,PE,NV,WORK)
+      IMPLICIT NONE
+      INTEGER N
+      INTEGER PE(N),NV(N),WORK(N)
+      INTEGER I,FATHER,LEN,K,NEWSON,NEWFATHER
+      DO I=1,N
+         IF(NV(I) .GT. 0) CYCLE
+         LEN = 1
+         WORK(LEN) = I
+         FATHER = -PE(I)
+         DO
+            IF(NV(FATHER) .GT. 0) THEN
+               NEWSON = FATHER
+               EXIT
+            ENDIF
+            LEN = LEN + 1
+            WORK(LEN) = FATHER
+            NV(FATHER) = 1
+            FATHER = -PE(FATHER)
+         ENDDO
+         NEWFATHER = -PE(FATHER)
+         PE(WORK(LEN)) = -NEWFATHER
+         PE(NEWSON) = -WORK(1)
+      ENDDO      
+      END SUBROUTINE CMUMPS_548

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
+C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -1282,6 +1282,7 @@ C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
                   ENDDO
                   CALL MUMPS_PORDF_WND(NCMP, IWFR-1, IW(L2), IW, 
      &                 IW(L1), NCMPA, N)
+                  CALL DMUMPS_548(NCMP,IW(L2),IW(L1),FILS)
                   CALL DMUMPS_549(NCMP,IW(L2),IKEEP(1,1),
      &                 FRERE,PTRAR(1,1))
                   DO I=1,NCMP
@@ -1308,6 +1309,14 @@ C     Let $A_{preproc}$ be the preprocessed matrix to be factored (see
                   INFO( 1 ) = -9999
                   INFO( 2 ) = 3
                   RETURN
+               ENDIF
+               IF (COMPRESS .EQ. 1) THEN
+                 CALL DMUMPS_548(NCMP,IW(L2),IW(L1),FILS)
+                 CALL DMUMPS_549(NCMP,IW(L2),IKEEP(1,1),
+     &                FRERE,PTRAR(1,1))
+                 DO I=1,NCMP
+                   IKEEP(IKEEP(I,1),2)=I
+                 ENDDO
                ENDIF
 #endif
             ELSEIF (IORD .EQ. 2) THEN

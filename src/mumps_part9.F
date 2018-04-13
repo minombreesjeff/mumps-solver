@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.9.1, built on Fri Oct 23 14:06:12 UTC 2009
+C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -6314,7 +6314,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       IMPLICIT NONE
       CHARACTER(LEN=*) :: VERSION_STR
       CHARACTER(LEN=*) :: V;
-      PARAMETER (V = "4.9.1" )
+      PARAMETER (V = "4.9.2" )
       IF ( LEN(V) .GT. 14 ) THEN
          WRITE(*,*) "Version string too long ( >14 characters )"
          CALL MUMPS_ABORT()
