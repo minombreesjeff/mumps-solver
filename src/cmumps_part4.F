@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -62,7 +62,7 @@ C
       INTEGER*8 NRLADU_CURRENT, NRLADU_ROOT_3
       INTEGER NIRADU_OOC, NIRNEC_OOC
       INTEGER MAXFR, NSTEPS
-      INTEGER MAX_FRONT_SURFACE_LOCAL
+      INTEGER*8 MAX_FRONT_SURFACE_LOCAL
       INTEGER STEP(N)
       INTEGER FRERE(NSTEPS), FILS(N), NA(LNA), NE(NSTEPS),
      *        ND(NSTEPS), PROCNODE(NSTEPS), DAD(NSTEPS)
@@ -97,6 +97,7 @@ C
       LOGICAL UPDATE, UPDATEF, MASTER, MASTERF, INSSARBR
       INTEGER LEVELF, NCB, SIZECBI
       INTEGER*8 NCB8
+      INTEGER*8 NFR8, NELIM8
       INTEGER*8 SIZECB, SIZECBINFR, SIZECB_SLAVE
       INTEGER SIZEHEADER, SIZEHEADER_OOC, XSIZE_OOC
       INTEGER EXTRA_PERM_INFO_OOC
@@ -121,8 +122,8 @@ C
       EXTERNAL CMUMPS_OOC_GET_PANEL_SIZE
       INTEGER MUMPS_275, MUMPS_330
       LOGICAL MUMPS_170
-      INTEGER MUMPS_BLOC2_GET_NSLAVESMAX
-      EXTERNAL MUMPS_MAX_SURFCB_NBROWS, MUMPS_BLOC2_GET_NSLAVESMAX
+      INTEGER MUMPS_52
+      EXTERNAL MUMPS_503, MUMPS_52
       EXTERNAL MUMPS_275, MUMPS_330, 
      *         MUMPS_170
       logical :: FORCE_CAND, CONCERNED, UPDATES, STACKCB, MASTERSON
@@ -135,7 +136,7 @@ C
         EXTRA_PERM_INFO_OOC = 0
       ENDIF
       COMPRESSCB=( KEEP(215).EQ.0 .AND. KEEP(50).NE.0 )
-      MAX_FRONT_SURFACE_LOCAL=0
+      MAX_FRONT_SURFACE_LOCAL=0_8
       MAX_SIZE_FACTOR=0_8
       ALLOCATE( LSTKR(NSTEPS), TNSTK(NSTEPS), IPOOL(NSTEPS),
      *          LSTKI(NSTEPS) , stat=ALLOCOK)
@@ -217,10 +218,12 @@ C
       ENDIF
  95   CONTINUE 
       NFR    = ND(STEP(INODE))
+      NFR8   = int(NFR,8)
       NSTK   = NE(STEP(INODE))
       NELIM = 0 
         IN = INODE
  100    NELIM = NELIM + 1 
+      NELIM8=int(NELIM,8)
         IN = FILS(IN)
         IF (IN .GT. 0 ) GOTO 100
       IFSON = -IN
@@ -275,7 +278,7 @@ C
           NSLAVES_PASSED=SLAVEF
           NSLAVES_LOC   =SLAVEF-1
         ENDIF
-         CALL MUMPS_MAX_SURFCB_NBROWS(WHAT, KEEP,KEEP8,
+         CALL MUMPS_503(WHAT, KEEP,KEEP8,
      &     NCB, NFR, NSLAVES_PASSED, NBROWMAX, SIZECB_SLAVE)
       ENDIF
       IF (KEEP(60).GT.1) THEN
@@ -303,17 +306,17 @@ C
      $        PROCNODE,SLAVEF)))THEN
             IF(LEVEL.EQ.1)THEN
                MAX_FRONT_SURFACE_LOCAL=max(MAX_FRONT_SURFACE_LOCAL,
-     $              NFR*NFR)
+     $              NFR8*NFR8)
             ELSEIF(LEVEL.EQ.2)THEN
                IF(KEEP(50).EQ.0)THEN
                  MAX_FRONT_SURFACE_LOCAL=max(MAX_FRONT_SURFACE_LOCAL,
-     $                 NFR*NELIM)
+     $                 NFR8*NELIM8)
                ELSE
                  MAX_FRONT_SURFACE_LOCAL=max(MAX_FRONT_SURFACE_LOCAL,
-     $                 NELIM*NELIM)
+     $                 NELIM8*NELIM8)
                  IF (KEEP(219).NE.0.AND.KEEP(50).EQ.2) THEN
                   MAX_FRONT_SURFACE_LOCAL=max(MAX_FRONT_SURFACE_LOCAL,
-     $                  NELIM*(NELIM+1))
+     $                  NELIM8*(NELIM8+1_8))
                  ENDIF
                ENDIF
             ENDIF
@@ -597,7 +600,7 @@ C
                WHAT = 1 
                NSLAVES_LOC=SLAVEF
            ENDIF
-           CALL MUMPS_MAX_SURFCB_NBROWS( WHAT, KEEP, KEEP8,
+           CALL MUMPS_503( WHAT, KEEP, KEEP8,
      &     NCBF, NFRF, NSLAVES_LOC, NBROWMAXF, IDUMMY8 )
          ENDIF
          IF(LEVEL.EQ.1.AND.UPDATE.AND.
@@ -3183,14 +3186,14 @@ C
             IF((IR.GE.1).AND.(IR.LE.ISZ)) THEN
                IDIST = IR-IC
                IF(IDIST < 0) IDIST = -IDIST 
-               IF(IDIST < IWRK(2*IR)) THEN
+               IF(IDIST < IWRK(2*IR-1)) THEN
                   IWRK(2*IR-1) = IDIST
                   IWRK(2*IR) = MYID
                ENDIF
             ENDIF
          ENDDO
-         CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), 2*ISZ,
-     &        MPI_INTEGER, OP, COMM, IERROR)      
+         CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), ISZ,
+     &        MPI_2INTEGER, OP, COMM, IERROR)      
          DO I=1,ISZ
             IPARTVEC(I) = IWRK(2*i+2*ISZ)
          ENDDO
@@ -3415,7 +3418,6 @@ C
       REAL TMPD(DSZ)
       INTEGER INDX(INDXSZ)
       INTRINSIC sqrt
-      REAL sqrt
       INTEGER I, IIND
       DO I=1,INDXSZ
          IIND = INDX(I)
@@ -3429,7 +3431,6 @@ C
       REAL D(DSZ)
       REAL TMPD(DSZ)
       INTRINSIC sqrt
-      REAL sqrt
       INTEGER I
       DO I=1,DSZ
          D(I) = D(I)/sqrt(TMPD(I))
@@ -3488,12 +3489,12 @@ C
       SUBROUTINE CMUMPS_703(INV, INOUTV, LEN, DTYPE)
       IMPLICIT NONE
       INTEGER LEN
-      INTEGER INV(LEN) 
-      INTEGER INOUTV(LEN)
+      INTEGER INV(2*LEN) 
+      INTEGER INOUTV(2*LEN)
       INTEGER DTYPE
       INTEGER I
       INTEGER DIN, DINOUT, PIN, PINOUT
-      DO I=1,LEN-1,2
+      DO I=1,2*LEN-1,2
          DIN = INV(I)
          PIN = INV(I+1)
          DINOUT = INOUTV(I)
@@ -3924,18 +3925,18 @@ C
      &           (IC.GE.1).AND.(IC.LE.ISZ)) THEN
                IDIST = IR-IC
                IF(IDIST < 0) IDIST = -IDIST 
-               IF(IDIST < IWRK(2*IR)) THEN
+               IF(IDIST < IWRK(2*IR-1)) THEN
                   IWRK(2*IR-1) = IDIST
                   IWRK(2*IR) = MYID
                ENDIF
-               IF(IDIST < IWRK(2*IC)) THEN
+               IF(IDIST < IWRK(2*IC-1)) THEN
                   IWRK(2*IC-1) = IDIST
                   IWRK(2*IC) = MYID               
                ENDIF
             ENDIF
          ENDDO
-         CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), 2*ISZ,
-     &        MPI_INTEGER, OP, COMM, IERROR)      
+         CALL MPI_ALLREDUCE(IWRK(1), IWRK(1+2*ISZ), ISZ,
+     &        MPI_2INTEGER, OP, COMM, IERROR)      
          DO I=1,ISZ
             IPARTVEC(I) = IWRK(2*i+2*ISZ)
          ENDDO

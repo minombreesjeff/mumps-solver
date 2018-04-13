@@ -1,5 +1,5 @@
 !
-!  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+!  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 !
 !
 !  This version of MUMPS is provided to you free of charge. It is public
@@ -41,7 +41,6 @@
 !   S. Pralet, Hybrid scheduling for the parallel solution of linear
 !   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 !
-!     $Id: zmumps_struc.h 5052 2008-07-20 08:02:13Z pcombes $
       INCLUDE 'zmumps_root.h'
       TYPE ZMUMPS_STRUC
         SEQUENCE
@@ -247,7 +246,6 @@
          INTEGER, DIMENSION(:,:),   POINTER :: OOC_INODE_SEQUENCE
          INTEGER, DIMENSION(:,:),   POINTER :: OOC_SIZE_OF_BLOCK
          INTEGER*8, DIMENSION(:,:),   POINTER :: OOC_VADDR
-        					    
          INTEGER,DIMENSION(:), POINTER :: OOC_TOTAL_NB_NODES
          INTEGER,DIMENSION(:), POINTER :: OOC_NB_FILES
          CHARACTER,DIMENSION(:,:), POINTER :: OOC_FILE_NAMES  

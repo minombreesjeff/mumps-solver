@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,17 +43,11 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io_err.h 5043 2008-07-18 08:56:02Z pcombes $  */
 #include <errno.h>
 #include "mumps_common.h"
 #if ! ( defined(MUMPS_WIN32) || defined(WITHOUT_PTHREAD) )
 # include <pthread.h>
 #endif /* ! ( MUMPS_WIN32 || WITHOUT_PTHREAD ) */
-/* Exported global variables */
-extern char error_str[200];
-extern char* mumps_err;
-extern int* dim_mumps_err;
-extern int err_flag;
 #if ! ( defined(MUMPS_WIN32) || defined(WITHOUT_PTHREAD) )
 extern pthread_mutex_t err_mutex;
 #endif /* ! ( MUMPS_WIN32 || WITHOUT_PTHREAD ) */
@@ -61,9 +55,13 @@ extern pthread_mutex_t err_mutex;
 #define MUMPS_LOW_LEVEL_INIT_ERR_STR \
     F_SYMBOL(low_level_init_err_str,LOW_LEVEL_INIT_ERR_STR)
 void MUMPS_CALL
-MUMPS_LOW_LEVEL_INIT_ERR_STR( int* dim, char* err_str, mumps_ftnlen l1);
-int mumps_io_prop_err_info(int ierr);
-int mumps_io_build_err_str(int errnum, int mumps_err,const char* desc,char* buf,int size);
+MUMPS_LOW_LEVEL_INIT_ERR_STR( int* dim, char* err_str, mumps_ftnlen l1 );
+/* Export an error to the Fortran layer
+   Returns mumps_errno for convenience */
+int mumps_io_error(int mumps_errno, const char* desc);
+/* Export a system error to the Fortran layer (errno must be set)
+   Returns mumps_errno for convenience */
+int mumps_io_sys_error(int mumps_errno, const char* desc);
 #if ! ( defined(MUMPS_WIN32) || defined(WITHOUT_PTHREAD) )
 int mumps_io_init_err_lock();
 int mumps_io_destroy_err_lock();

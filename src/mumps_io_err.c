@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,18 +43,33 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io_err.c 5045 2008-07-18 10:33:07Z jylexcel $  */
 #include "mumps_io_err.h"
 #include "mumps_io_basic.h"
+#if defined( MUMPS_WIN32 )
+# include <string.h>
+#endif
 /* Exported global variables */
-char error_str[200];
 char* mumps_err;
 int* dim_mumps_err;
+int mumps_err_max_len;
 int err_flag;
 #if ! ( defined(MUMPS_WIN32) || defined(WITHOUT_PTHREAD) )
 pthread_mutex_t err_mutex;
 #endif /* ! ( MUMPS_WIN32 || WITHOUT_PTHREAD ) */
 /* Functions */
+/* Keeps a C pointer to store error description string that will be
+   displayed by the Fortran layers.
+   * dim contains the size of the Fortran character array to store the
+   description.
+*/
+void MUMPS_CALL
+MUMPS_LOW_LEVEL_INIT_ERR_STR(int * dim, char* err_str, mumps_ftnlen l1){
+  mumps_err = err_str;
+  dim_mumps_err = dim;
+  mumps_err_max_len = *dim;
+  err_flag = 0;
+  return;
+}
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
 MUMPS_INLINE int
 mumps_io_protect_err()
@@ -87,42 +102,83 @@ mumps_io_destroy_err_lock()
 int
 mumps_check_error_th()
 {
+  /* If err_flag != 0, then error_str is set */
   return err_flag;
 }
 #endif /* MUMPS_WIN32 && WITHOUT_PTHREAD */
 int
-mumps_io_prop_err_info(int ierr)
+mumps_io_error(int mumps_errno, const char* desc)
 {
-  /* Copies the error description string in a fortran character
-     array. */
-  int i;
-  for(i=0;i<(int)strlen(error_str);i++){
-    mumps_err[i]=error_str[i];
+    int len;
+#if ! defined( MUMPS_WIN32 ) && ! defined( WITHOUT_PTHREAD )
+  mumps_io_protect_err();
+#endif
+  if(err_flag == 0){
+    strncpy(mumps_err, desc, mumps_err_max_len);
+    /* mumps_err is a FORTRAN string, we do not care about adding a final 0 */
+    len = (int) strlen(desc);
+    *dim_mumps_err = (len <= mumps_err_max_len ) ? len : mumps_err_max_len;
+    err_flag = mumps_errno;
   }
-  *dim_mumps_err=(int)strlen(mumps_err);
-  return 0;
+#if ! defined( MUMPS_WIN32 ) && ! defined( WITHOUT_PTHREAD )
+  mumps_io_unprotect_err();
+#endif
+  return mumps_errno;
 }
 int
-mumps_io_build_err_str(int errnum, int mumps_err,const char* desc,char* buf,int size)
+mumps_io_sys_error(int mumps_errno, const char* desc)
 {
-#if ( ! defined(_WIN32) || defined(__MINGW32__) ) && ! defined(WITHOUT_PTHREAD)
+  int len = 2; /* length of ": " */
+  const char* _desc;
+  char* _err;
+#if defined( MUMPS_WIN32 )
+  int _err_len;
+#endif
+#if ! defined( MUMPS_WIN32 ) && ! defined( WITHOUT_PTHREAD )
   mumps_io_protect_err();
 #endif
   if(err_flag==0){
-    sprintf(buf,"%s: %s",desc,strerror(errnum));
-    err_flag=mumps_err;
+    if(desc == NULL) {
+      _desc = "";
+    } else {
+        len += (int) strlen(desc);
+      _desc = desc;
+    }
+#if ! defined( MUMPS_WIN32 )
+    _err = strerror(errno);
+    len += (int) strlen(_err);
+    snprintf(mumps_err, mumps_err_max_len, "%s: %s", _desc, _err);
+    /* mumps_err is a FORTRAN string, we do not care about adding a final 0 */
+#else
+    /* This a VERY UGLY workaround for snprintf: this function has been
+     * integrated quite lately into the ANSI stdio: some windows compilers are
+     * not up-to-date yet. */
+    if( len >= mumps_err_max_len - 1 ) { /* then do not print sys error msg at all */
+      len -= 2;
+      len = (len >= mumps_err_max_len ) ? mumps_err_max_len - 1 : len;
+      _err = strdup( _desc );
+      _err[len] = '\0';
+      sprintf(mumps_err, "%s", _err);
+    } else {
+      _err = strdup(strerror(errno));
+      _err_len = (int) strlen(_err);
+      /* We will use sprintf, so make space for the final '\0' ! */
+      if((len + _err_len) >= mumps_err_max_len) {
+        /* truncate _err, not to overtake mumps_err_max_len at the end. */
+        _err[mumps_err_max_len - len - 1] = '\0';
+        len = mumps_err_max_len - 1;
+      } else {
+        len += _err_len;
+      }
+      sprintf(mumps_err, "%s: %s", _desc, _err);
+    }
+    free(_err);
+#endif
+    *dim_mumps_err = (len <= mumps_err_max_len ) ? len : mumps_err_max_len;
+    err_flag = mumps_errno;
   }
-#if ( ! defined(_WIN32) || defined(__MINGW32__) ) && ! defined(WITHOUT_PTHREAD)
+#if ! defined( MUMPS_WIN32 ) && ! defined( WITHOUT_PTHREAD )
   mumps_io_unprotect_err();
 #endif
-  return 0;
-}
-/* Keeps a C pointer to store error description string that will be
-   displayed by the fortran layers */
-void MUMPS_CALL
-MUMPS_LOW_LEVEL_INIT_ERR_STR(int * dim, char* err_str, mumps_ftnlen l1){
-  mumps_err=err_str;
-  dim_mumps_err=dim;
-  err_flag=0;
-  return;
+  return mumps_errno;
 }

@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io_basic.h 5045 2008-07-18 10:33:07Z jylexcel $  */
 #ifndef MUMPS_IO_BASIC_H
 #define MUMPS_IO_BASIC_H
 #include "mumps_compat.h"
@@ -98,7 +97,11 @@
 #define IO_WRITE 0
 #define UNITIALIZED "NAME_NOT_INITIALIZED"
 #define MUMPS_OOC_DEFAULT_DIR "/tmp"
-#define SEPARATOR "/"
+#ifdef MUMPS_WIN32
+# define SEPARATOR "\\"
+#else
+# define SEPARATOR "/"
+#endif
 /* #define NB_FILE_TYPE_FACTO 1 */
 /* #define NB_FILE_TYPE_SOLVE 1 */
 #define my_max(x,y) ( (x) > (y) ? (x) : (y) ) 
@@ -107,7 +110,7 @@ typedef struct __mumps_file_struct{
   int write_pos;
   int current_pos;
   int is_opened;
-#if ! defined (_WIN32) || defined(__MINGW32__)
+#if ! defined (MUMPS_WIN32)
   int file;
 #else
   FILE* file;
@@ -115,7 +118,7 @@ typedef struct __mumps_file_struct{
   char name[350]; /* Should be large enough to hold tmpdir, prefix, suffix */
 }mumps_file_struct;
 typedef struct __mumps_file_type{
-#if ! defined (_WIN32) || defined(__MINGW32__)
+#if ! defined (MUMPS_WIN32)
   int mumps_flag_open;
 #else
   char mumps_flag_open[6];
@@ -172,7 +175,7 @@ int mumps_free_file_pointers(int* step);
 int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,int nb_file_type,int *flag_tab);
 int mumps_init_file_name(char* mumps_dir,char* mumps_file,int* mumps_dim_dir,int* mumps_dim_file,int* _myid);
 int mumps_io_alloc_file_struct(int* nb,int which);
-int mumps_io_get_nb_files(int* nb_files,int* type);
+int mumps_io_get_nb_files(int* nb_files, const int* type);
 int mumps_io_get_file_name(int* indice,char* name,int* length,int* type);
 int mumps_io_alloc_pointers(int * nb_file_type, int * dim);
 int mumps_io_init_vars(int* myid_arg,int* size_element,int* async_arg);

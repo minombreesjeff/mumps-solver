@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io.h 5043 2008-07-18 08:56:02Z pcombes $ */
 #ifndef MUMPS_IO_H
 #define MUMPS_IO_H
 #include "mumps_common.h"
@@ -77,14 +76,6 @@ void MUMPS_CALL
 MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io,int* size_element,
                            int* async, int* k211, int * nb_file_type,
                            int * flag_tab , int* ierr);
-#define MUMPS_IS_THERE_FINISHED_REQUEST \
-    F_SYMBOL(is_there_finished_request,IS_THERE_FINISHED_REQUEST)
-void MUMPS_CALL
-MUMPS_IS_THERE_FINISHED_REQUEST(int* flag,int* ierr);
-#define MUMPS_CLEAN_REQUEST \
-    F_SYMBOL(clean_request,CLEAN_REQUEST)
-void MUMPS_CALL
-MUMPS_CLEAN_REQUEST(int* request_id,int* ierr);
 #define MUMPS_TEST_REQUEST_C \
     F_SYMBOL(test_request_c,TEST_REQUEST_C)
 void MUMPS_CALL
@@ -93,10 +84,6 @@ MUMPS_TEST_REQUEST_C(int* request_id,int* flag,int* ierr);
     F_SYMBOL(wait_request,WAIT_REQUEST)
 void MUMPS_CALL
 MUMPS_WAIT_REQUEST(int* request_id,int* ierr);
-#define MUMPS_WAIT_ALL_REQUESTS \
-    F_SYMBOL(wait_all_requests,WAIT_ALL_REQUESTS)
-void MUMPS_CALL
-MUMPS_WAIT_ALL_REQUESTS(int* ierr);
 #define MUMPS_LOW_LEVEL_WRITE_OOC_C \
     F_SYMBOL(low_level_write_ooc_c,LOW_LEVEL_WRITE_OOC_C)
 void MUMPS_CALL
@@ -145,7 +132,7 @@ MUMPS_GET_MAX_FILE_SIZE_C(double * max_ooc_file_size);
 #define MUMPS_OOC_GET_NB_FILES_C \
     F_SYMBOL(ooc_get_nb_files_c,OOC_GET_NB_FILES_C)
 void MUMPS_CALL
-MUMPS_OOC_GET_NB_FILES_C(int* type, int* nb_files);
+MUMPS_OOC_GET_NB_FILES_C(const int* type, int* nb_files);
 #define MUMPS_OOC_GET_FILE_NAME_C \
     F_SYMBOL(ooc_get_file_name_c,OOC_GET_FILE_NAME_C)
 void MUMPS_CALL

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -135,7 +135,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           id%INFO(2)=JOB
         ENDIF
         ENDIF
-        CALL MUMPS_PROPINFO( id%ICNTL,
+        CALL MUMPS_276( id%ICNTL,
      &                       id%INFO,
      &                       id%COMM, id%MYID )
         IF ( id%INFO(1) .LT. 0 ) THEN
@@ -181,7 +181,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           id%INFO(2) = id%NPROCS
         ENDIF
       END IF
-      CALL MUMPS_PROPINFO( id%ICNTL,
+      CALL MUMPS_276( id%ICNTL,
      &                    id%INFO,
      &                    id%COMM, id%MYID )
       IF ( id%INFO(1) .LT. 0 ) GOTO 499
@@ -255,7 +255,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
         END IF
       END IF
 #endif
-        CALL MUMPS_PROPINFO( id%ICNTL,
+        CALL MUMPS_276( id%ICNTL,
      *                    id%INFO,
      *                    id%COMM, id%MYID )
         IF ( id%INFO( 1 ) .LT. 0 ) GO TO 499
@@ -372,25 +372,23 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           ENDIF
  100    CONTINUE
         END IF
-        CALL MUMPS_PROPINFO( id%ICNTL,
+        CALL MUMPS_276( id%ICNTL,
      *                    id%INFO,
      *                    id%COMM, id%MYID )
         IF ( id%INFO( 1 ) .LT. 0 ) GO TO 499
-         IF ((id%ICNTL(8).EQ.77).AND.(id%SYM.EQ.1)) THEN
-           id%ICNTL(8) = 0
-         ENDIF
          id%KEEP(52) = id%ICNTL(8)
+         IF ( id%KEEP(52) .GT. 7 .OR. id%KEEP(52).LT.-2)
+     *        id%KEEP(52) = 77
+         IF ((id%KEEP(52).EQ.77).AND.(id%SYM.EQ.1)) THEN
+           id%KEEP(52) = 0
+         ENDIF
          IF ( id%KEEP(52).EQ.77 .OR. id%KEEP(52).LT.-2) THEN 
            IF (.not.associated(id%A)) id%KEEP(52) = 0
          ENDIF
-         IF ( id%KEEP(52) .GT. 7 .OR. id%KEEP(52).LT.-2)
-     *        id%KEEP(52) = 77
          IF(id%KEEP(52) .EQ. -1) id%KEEP(52) = 0
          CALL SMUMPS_26( id )
-         IF(id%ICNTL(8) .NE. -1) THEN
-            id%ICNTL(8) = id%KEEP(52)
-         ELSE
-            id%KEEP(52) = -1
+         IF (id%ICNTL(8) .EQ. -2) THEN
+           id%ICNTL(8)=-2
          ENDIF
         IF (id%MYID .eq. MASTER) id%INFOG(24)=id%KEEP(95)
         IF ( id%INFO( 1 ) .LT. 0 ) GO TO 499
@@ -448,7 +446,20 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
                 WRITE(MPG,'(A)') ' ** WARNING : SCALING'
                 WRITE(MPG,'(A)') 
      *               ' ** scaling already computed during analysis'
-             ENDIF 
+                WRITE(MPG,'(A)') 
+     *               ' ** keeping the scaling from the analysis'
+             ENDIF
+          ELSE
+            id%KEEP(52)=id%ICNTL(8)
+          ENDIF
+          IF ( id%KEEP(52) .GT. 7 .OR. id%KEEP(52).LT.-2)
+     *    id%KEEP(52) = 77
+          IF (id%KEEP(52).EQ.77) THEN
+            IF (id%SYM.EQ.1) THEN
+              id%KEEP(52) = 0
+            ELSE
+              id%KEEP(52) = 7
+            ENDIF
           ENDIF
           IF( id%KEEP(23) .NE. 0 .AND. id%ICNTL(8) .EQ. -1) THEN
              IF ( MPG .GT. 0 ) THEN
@@ -459,9 +470,6 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
      *               ' ** column scaling has to be permuted'
              ENDIF 
           ENDIF
-          id%KEEP(52) = id%ICNTL(8)
-          IF ( id%KEEP(52) .GT. 7 .or. id%KEEP(52).LT.-2)
-     *         id%KEEP(52) = 0
           IF ( id%KEEP( 19 ) .ne. 0 .and. id%KEEP( 52 ).ne. 0 ) THEN
             IF ( MPG .GT. 0 ) THEN
               WRITE(MPG,'(A)') ' ** Warning: Scaling not applied.'
@@ -591,7 +599,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
             ENDIF
           ENDIF
         ENDIF
-        CALL MUMPS_PROPINFO( id%ICNTL,
+        CALL MUMPS_276( id%ICNTL,
      *                      id%INFO,
      *                      id%COMM, id%MYID )
         IF ( id%INFO(1) .LT. 0 ) GO TO 499
@@ -785,7 +793,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
           END IF
         END IF
  333    CONTINUE
-        CALL MUMPS_PROPINFO( id%ICNTL,
+        CALL MUMPS_276( id%ICNTL,
      *                      id%INFO,
      *                      id%COMM, id%MYID )
         IF ( id%INFO(1) .LT. 0 ) GO TO 499
@@ -2161,14 +2169,14 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
       END IF
       NIV1 = .TRUE.
       IF (KEEP(50).EQ.0 .AND. KEEP(234) .EQ. 0) THEN
-        CALL  SMUMPS_81(MYID, INODE, N, IOLDPS, HF, NFRONT, 
+        CALL  MUMPS_81(MYID, INODE, N, IOLDPS, HF, NFRONT, 
      *        NFRONT_EFF,
      *        NASS1, NASS, NUMSTK, NUMORG, IWPOSCB, 
      *        IFSON, STEP, PIMASTER, PTRAIW, IW, LIW,
      *        INTARR, ITLOC, FILS, FRERE,
      *        SON_LEVEL2, NIV1, NBPROCFILS, KEEP, KEEP8, IFLAG)
       ELSE
-        CALL SMUMPS_86( MYID, INODE, N, IOLDPS, HF,
+        CALL MUMPS_86( MYID, INODE, N, IOLDPS, HF,
      *        NFRONT, NFRONT_EFF, PERM,
      *        NASS1, NASS, NUMSTK, NUMORG, IWPOSCB,
      *        IFSON, STEP, PIMASTER, PTRAIW, IW, LIW,
@@ -2435,7 +2443,7 @@ C       matrix in assembled format (ICNTL(5)=0, and ICNTL(18) $\neq$ 3),
            PTRCOL   = ISTCHK +  HS + NROWS + NPIVS + NELIM
            DO ISLAVE = 0, NSLSON-1
              IF (IW(PDEST+ISLAVE).EQ.MYID) THEN
-              CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
+              CALL MUMPS_49( 
      &                KEEP, KEEP8, ISON, STEP, N, SLAVEF,
      &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      &                ISLAVE+1, NCBSON, 
@@ -2769,7 +2777,7 @@ CduplicatesCVD$ NODEPCHK
       IWPOS = IWPOS + LREQ
       NIV1 = .FALSE.
       IF (KEEP(50).EQ.0 .AND. KEEP(234).EQ.0) THEN
-        CALL  SMUMPS_81(MYID, INODE, N, IOLDPS, HF, NFRONT,
+        CALL  MUMPS_81(MYID, INODE, N, IOLDPS, HF, NFRONT,
      *        NFRONT_EFF,
      *        NASS1, NASS, NUMSTK, NUMORG, IWPOSCB,
      *        IFSON, STEP, PIMASTER, PTRAIW, IW, LIW,
@@ -2777,7 +2785,7 @@ CduplicatesCVD$ NODEPCHK
      *        SON_LEVEL2, NIV1, NBPROCFILS, KEEP,KEEP8, IFLAG)
       ELSE
         ISON_IN_PLACE = -9999
-        CALL SMUMPS_86( MYID, INODE, N, IOLDPS, HF,
+        CALL MUMPS_86( MYID, INODE, N, IOLDPS, HF,
      *        NFRONT, NFRONT_EFF, PERM,
      *        NASS1, NASS, NUMSTK, NUMORG, IWPOSCB,
      *        IFSON, STEP, PIMASTER, PTRAIW, IW, LIW,
@@ -3027,7 +3035,7 @@ CduplicatesCVD$ NODEPCHK
       PTRROW = IOLDPS + HF + NASS1 
       PDEST  = IOLDPS + 6 + KEEP(IXSZ)
       DO ISLAVE = 1, NSLAVES
-              CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
+              CALL MUMPS_49( 
      &                KEEP,KEEP8, INODE, STEP, N, SLAVEF,
      &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      &                ISLAVE, NCB,
@@ -3188,7 +3196,7 @@ CduplicatesCVD$ NODEPCHK
         ELSE
           DO ISLAVE = 0, NSLSON-1
             IF (IW(PDEST+ISLAVE).EQ.MYID) THEN
-            CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
+            CALL MUMPS_49( 
      &                KEEP,KEEP8, ISON, STEP, N, SLAVEF,
      &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      &                ISLAVE+1, NCBSON,

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
       PROGRAM MUMPS_TEST
       IMPLICIT NONE
@@ -51,4 +51,3 @@ C  Destroy the instance (deallocate internal data structures)
       CALL MPI_FINALIZE(IERR)
       STOP
       END
-

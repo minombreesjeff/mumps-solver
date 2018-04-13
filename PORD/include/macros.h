@@ -9,6 +9,13 @@
 /
 ******************************************************************************/
 
+/* Some compilers (VC++ for instance) define a min and a max in the stdlib */
+#ifdef min
+# undef min
+#endif
+#ifdef max
+# undef max
+#endif
 #define  min(a,b)  ((a) < (b) ? (a) : (b))
 #define  max(a,b)  ((a) > (b) ? (a) : (b))
 

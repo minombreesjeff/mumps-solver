@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -788,12 +788,6 @@ C
       K34 = 4
 #endif
       K35 = 4
-#if 0
-      K35 = K35 * 2
-#endif
-#if 0
-      K35 = K35 * 2
-#endif
 #if defined(t3e)
       K35 = K35 * 2
 #endif
@@ -818,11 +812,6 @@ C
       CNTL(1:15)  = 0.0E0
       DKEEP(1:30) = 0.0E0
       KEEP( 50 ) = SYM
-#if 0
-      IF (SYM.EQ.1) THEN
-          KEEP(50) = 2
-      ENDIF
-#endif
       IF ( KEEP(50).NE.1 .and. KEEP(50).NE.2 ) KEEP( 50 ) = 0
       IF ( KEEP(50) .NE. 1 ) THEN
         CNTL(1)   = 0.01E0
@@ -1056,8 +1045,8 @@ C
       RETURN
       END SUBROUTINE SMUMPS_20
       SUBROUTINE SMUMPS_195(N, NZ, IRN, ICN, LIW, IKEEP, PTRAR,
-     *            IORD, NFSIZ, FILS, FRERE, LISTVAR_SCHUR, SIZE_SCHUR,
-     *            ICNTL, INFO, KEEP,KEEP8, NSLAVES, SYM, PIV, id)
+     *     IORD, NFSIZ, FILS, FRERE, LISTVAR_SCHUR, SIZE_SCHUR,
+     *     ICNTL, INFO, KEEP,KEEP8, NSLAVES, SYM, PIV, id)
       USE SMUMPS_STRUC_DEF
       IMPLICIT NONE
       INTEGER N,NZ,LIW,IORD,SIZE_SCHUR, NSLAVES, SYM
@@ -1091,49 +1080,14 @@ C
       INTEGER TOTEL
       LOGICAL IDENT,SPLITROOT
       EXTERNAL MUMPS_197, SMUMPS_198, 
-     *         SMUMPS_199, SMUMPS_351,
-     *         SMUMPS_557, SMUMPS_201
+     *     SMUMPS_199, SMUMPS_351,
+     *     SMUMPS_557, SMUMPS_201
 #if defined(OLDDFS)
       EXTERNAL SMUMPS_200
 #endif
       EXTERNAL SMUMPS_623
       EXTERNAL SMUMPS_547, SMUMPS_550,
      *     SMUMPS_556
-#if(SP_DEBUG >= 3)
-      INTERFACE
-         SUBROUTINE SMUMPS_547(
-     *        N,NZ, IRN, ICN, PERM,
-     *        NCMP, IW, LW, IPE, LEN, IQ, 
-     *        FLAG, ICMP, IWFR,
-     *        IERROR, KEEP,KEEP8, ICNTL)
-         INTEGER N,NZ,NCMP,LW,IWFR,IERROR
-         INTEGER ICNTL(40),KEEP(500)
-         INTEGER*8 KEEP8(150)
-         INTEGER IRN(NZ),ICN(NZ),IW(LW),PERM(N),IPE(N+1)
-         INTEGER LEN(N),IQ(N),FLAG(N),ICMP(N) 
-         END SUBROUTINE SMUMPS_547
-         SUBROUTINE SMUMPS_550(N,NCMP,N11,N22,PIV,
-     *        PERM,IPERM)
-         IMPLICIT NONE
-         INTEGER N11,N22,N,NCMP
-         INTEGER PIV(N),PERM(N),IPERM(N)
-         END SUBROUTINE SMUMPS_550
-         SUBROUTINE SMUMPS_549(N,PE,PERM,NFILS,WORK)
-         INTEGER N
-         INTEGER PE(N),PERM(N),NFILS(N),WORK(N)
-         END SUBROUTINE SMUMPS_549
-         SUBROUTINE SMUMPS_556(
-     *        N,PIV,FRERE,FILS,NFSIZ,IKEEP,
-     *        NCST,KEEP,KEEP8,id)
-         USE SMUMPS_STRUC_DEF
-         TYPE (SMUMPS_STRUC) :: id
-         INTEGER N,NCST
-         INTEGER PIV(N),FRERE(N),FILS(N),NFSIZ(N),IKEEP(N,3)
-         INTEGER KEEP(500)
-         INTEGER*8 KEEP8(150)
-         END SUBROUTINE SMUMPS_556
-      END INTERFACE
-#endif
       ALLOCATE( IW ( LIW ), stat = IERR )
       IF ( IERR .GT. 0 ) THEN
          INFO( 1 ) = -7
@@ -1151,71 +1105,71 @@ C
       IF (KEEP(1).LT.0) KEEP(1) = 0
       NEMIN = KEEP(1)
       IF (LDIAG.GT.2 .AND. MP.GT.0) THEN
-        WRITE (MP,99999) N, NZ, LIW, INFO(1)
-        K = min0(10,NZ)
-        IF (LDIAG.EQ.4) K = NZ
-        IF (K.GT.0) WRITE (MP,99998) (IRN(I),ICN(I),I=1,K)
-        K = min0(10,N)
-        IF (LDIAG.EQ.4) K = N
-        IF (IORD.EQ.1 .AND. K.GT.0) THEN
-           WRITE (MP,99997) (IKEEP(I,1),I=1,K)
-        ENDIF
+         WRITE (MP,99999) N, NZ, LIW, INFO(1)
+         K = min0(10,NZ)
+         IF (LDIAG.EQ.4) K = NZ
+         IF (K.GT.0) WRITE (MP,99998) (IRN(I),ICN(I),I=1,K)
+         K = min0(10,N)
+         IF (LDIAG.EQ.4) K = N
+         IF (IORD.EQ.1 .AND. K.GT.0) THEN
+            WRITE (MP,99997) (IKEEP(I,1),I=1,K)
+         ENDIF
       ENDIF
       NCMP    = N   
       IF (KEEP(60).NE.0) THEN
-        IF ((SIZE_SCHUR.LE.0 ).OR.
-     &       (SIZE_SCHUR.GE.N) ) GOTO 90
+         IF ((SIZE_SCHUR.LE.0 ).OR.
+     &        (SIZE_SCHUR.GE.N) ) GOTO 90
       ENDIF
 #if defined(metis)
       IF  ( ( KEEP(60).NE.0).AND.(SIZE_SCHUR.GT.0)
-     &         .AND.
-     &          ((IORD.EQ.7).OR.(IORD.EQ.5))
-     &        )THEN
-          COMPRESS_SCHUR=.TRUE.
-          NCMP          = N-SIZE_SCHUR
-          CALL SMUMPS_623(N,NCMP,NZ,IRN, ICN, IW(1), LLIW, 
-     *         IW(L2), PTRAR(1,2),
-     *         PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
-     *         INFO(1), INFO(2), ICNTL, symmetry, 
-     *         SYM, MedDens, NBQD, AvgDens, 
-     *         LISTVAR_SCHUR, SIZE_SCHUR, 
-     *         FRERE,FILS)
-           IORD = 5
-           KEEP(95) = 1
-           NBQD     = 0    
+     &     .AND.
+     &     ((IORD.EQ.7).OR.(IORD.EQ.5))
+     &     )THEN
+         COMPRESS_SCHUR=.TRUE.
+         NCMP          = N-SIZE_SCHUR
+         CALL SMUMPS_623(N,NCMP,NZ,IRN, ICN, IW(1), LLIW, 
+     *        IW(L2), PTRAR(1,2),
+     *        PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
+     *        INFO(1), INFO(2), ICNTL, symmetry, 
+     *        SYM, MedDens, NBQD, AvgDens, 
+     *        LISTVAR_SCHUR, SIZE_SCHUR, 
+     *        FRERE,FILS)
+         IORD = 5
+         KEEP(95) = 1
+         NBQD     = 0           
       ELSE
 #endif
-          CALL SMUMPS_351(N,NZ,IRN, ICN, IW(1), LLIW, 
-     *         IW(L2), PTRAR(1,2),
-     *         PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
-     *         INFO(1), INFO(2), ICNTL, symmetry, 
-     *         SYM, MedDens, NBQD, AvgDens)
+         CALL SMUMPS_351(N,NZ,IRN, ICN, IW(1), LLIW, 
+     *        IW(L2), PTRAR(1,2),
+     *        PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
+     *        INFO(1), INFO(2), ICNTL, symmetry, 
+     *        SYM, MedDens, NBQD, AvgDens)
 #if defined(metis)
       ENDIF
 #endif
       INFO(8) = symmetry
       IF(NBQD .GT. 0) THEN
-        IF( KEEP(50) .EQ. 2 .AND. ICNTL(12) .LE. 1 ) THEN
-          IF(KEEP(95) .NE. 1) THEN
-                   IF ( PROK ) 
-     *                  WRITE( MP,*) 
-     *                  'Compressed/constrained ordering set OFF'
-                   KEEP(95) = 1   
-          ENDIF
-        ENDIF
+         IF( KEEP(50) .EQ. 2 .AND. ICNTL(12) .LE. 1 ) THEN
+            IF(KEEP(95) .NE. 1) THEN
+               IF ( PROK ) 
+     *              WRITE( MP,*) 
+     *              'Compressed/constrained ordering set OFF'
+               KEEP(95) = 1   
+            ENDIF
+         ENDIF
       ENDIF
       IF ( (KEEP(60).NE.0) .AND. (IORD.GT.1) .AND.
      &     .NOT. COMPRESS_SCHUR ) THEN
-            IORD = 0    
+         IORD = 0               
       ENDIF 
       CALL SMUMPS_701( N, SYM, NSLAVES, IORD, 
-     &                symmetry, MedDens, NBQD, AvgDens,
-     &                PROK, MP )
+     &     symmetry, MedDens, NBQD, AvgDens,
+     &     PROK, MP )
       IF(SYM .EQ. 2) THEN
          IF(KEEP(95) .EQ. 3 .AND. IORD .NE. 2) THEN
             IF (PROK) WRITE(MP,*)
-     *       'WARNING: ANAL_F constrained ordering not available ', 
-     *       'with selected ordering'
+     *           'WARNING: ANAL_F constrained ordering not available ', 
+     *           'with selected ordering'
             KEEP(95) = 2
          ENDIF
          IF(KEEP(95) .EQ. 2 .AND. IORD .EQ. 0) THEN 
@@ -1232,304 +1186,281 @@ C
       IF(COMPRESS .GT. 0 .AND. KEEP(52) .EQ. -2) THEN
          IF(id%CNTL(4) .GE. 0.0E0) THEN
             IF (KEEP(1).LE.8) THEN
-             KEEP(1) = 16   
+               KEEP(1) = 16   
             ELSE
-             KEEP(1) = 2*KEEP(1)
+               KEEP(1) = 2*KEEP(1)
             ENDIF
             IF (PROK) 
-     *       WRITE(MP,*) 'Setting static pivoting ON, COMPRESS =',
+     *           WRITE(MP,*) 'Setting static pivoting ON, COMPRESS =',
      *           COMPRESS
          ENDIF
       ENDIF
       IF(MTRANS .GT. 0 .AND. KEEP(50) .EQ. 2) THEN
          KEEP(23) = 0
       ENDIF
-#if(SP_DEBUG >= 2)
-      WRITE(*,*) 'ICNTL(12),MTRANS,COMPRESS',KEEP(95),MTRANS,COMPRESS
-#endif
       IF(COMPRESS .EQ. 2) THEN
-        IF (IORD.NE.2) THEN
-          WRITE(*,*) "IORD not compatible with COMPRESS:",
-     *    IORD, COMPRESS
-          CALL MUMPS_ABORT()
-        ENDIF
-#if(SP_DEBUG >= 2)
-        WRITE(*,*) 'before 2x2 splitting,KEEP(93),KEEP(94)',
-     *            KEEP(93),KEEP(94)
-#endif
-        CALL  SMUMPS_556(
-     *            N,PIV,FRERE,FILS,NFSIZ,IKEEP,
-     *            NCST,KEEP,KEEP8,id)
-#if(SP_DEBUG >= 2)
-        WRITE(*,*) 'after 2x2 splitting,KEEP(93),NCST,KEEP(94)',
-     *            KEEP(93),NCST,KEEP(94)
-#endif
+         IF (IORD.NE.2) THEN
+            WRITE(*,*) "IORD not compatible with COMPRESS:",
+     *           IORD, COMPRESS
+            CALL MUMPS_ABORT()
+         ENDIF
+         CALL  SMUMPS_556(
+     *        N,PIV,FRERE,FILS,NFSIZ,IKEEP,
+     *        NCST,KEEP,KEEP8,id)
       ENDIF
       IF ( IORD .NE. 1 ) THEN
-          IF(COMPRESS .GE. 1) THEN
-             CALL SMUMPS_547(
-     *            N,NZ, IRN, ICN, PIV,
-     *            NCMP, IW(1), LLIW, IW(L2),PTRAR(1,2),PTRAR, 
-     *            IW(L1), FILS, IWFR,
-     *            IERROR, KEEP,KEEP8, ICNTL)
-             symmetry = 100
-          ENDIF
-          IF ( (symmetry.LT.MINSYM).AND.(SYM.EQ.0) ) THEN
-             IF(KEEP(23) .EQ. 7 ) THEN
-                KEEP(23) = -5
-                DEALLOCATE (IW)
-                RETURN
-             ELSE IF(KEEP(23) .EQ. -9876543) THEN
-                IDENT = .TRUE.
-                KEEP(23) = 5
-                IF (PROK) WRITE(MP,'(A)')
-     *               ' ... Apply column permutation (already computed)'
-                DO J=1,N
-                   JPERM = PIV(J)
-                   FILS(JPERM) = J 
-                   IF (JPERM.NE.J) IDENT = .FALSE.
-                ENDDO
-                IF (.NOT.IDENT) THEN
-                   DO K=1,NZ
-                      J = ICN(K)
-                      IF ((J.LE.0).OR.(J.GT.N)) CYCLE
-                      ICN(K) = FILS(J)
-                   ENDDO
-                   ALLOCATE(COLSCA_TEMP(N), stat=IERR)
-                   IF ( IERR > 0 ) THEN
+         IF(COMPRESS .GE. 1) THEN
+            CALL SMUMPS_547(
+     *           N,NZ, IRN, ICN, PIV,
+     *           NCMP, IW(1), LLIW, IW(L2),PTRAR(1,2),PTRAR, 
+     *           IW(L1), FILS, IWFR,
+     *           IERROR, KEEP,KEEP8, ICNTL)
+            symmetry = 100
+         ENDIF
+         IF ( (symmetry.LT.MINSYM).AND.(SYM.EQ.0) ) THEN
+            IF(KEEP(23) .EQ. 7 ) THEN
+               KEEP(23) = -5
+               DEALLOCATE (IW)
+               RETURN
+            ELSE IF(KEEP(23) .EQ. -9876543) THEN
+               IDENT = .TRUE.
+               KEEP(23) = 5
+               IF (PROK) WRITE(MP,'(A)')
+     *              ' ... Apply column permutation (already computed)'
+               DO J=1,N
+                  JPERM = PIV(J)
+                  FILS(JPERM) = J 
+                  IF (JPERM.NE.J) IDENT = .FALSE.
+               ENDDO
+               IF (.NOT.IDENT) THEN
+                  DO K=1,NZ
+                     J = ICN(K)
+                     IF ((J.LE.0).OR.(J.GT.N)) CYCLE
+                     ICN(K) = FILS(J)
+                  ENDDO
+                  ALLOCATE(COLSCA_TEMP(N), stat=IERR)
+                  IF ( IERR > 0 ) THEN
                      INFO( 1 ) = -7
                      INFO( 2 ) = LIW
                      RETURN
-                   ENDIF
-                   DO J = 1, N
+                  ENDIF
+                  DO J = 1, N
                      COLSCA_TEMP(J)=id%COLSCA(J)
-                   ENDDO
-                   DO J=1, N
+                  ENDDO
+                  DO J=1, N
                      id%COLSCA(FILS(J))=COLSCA_TEMP(J)
-                   ENDDO
-                   DEALLOCATE(COLSCA_TEMP)
-                   IF (MP.GT.0 .AND. ICNTL(4).GE.2)
-     *                  WRITE(MP,'(/A)')
-     *                  ' WARNING input matrix data modified'
-                   CALL SMUMPS_351
-     *             (N,NZ,IRN, ICN, IW(1), LLIW, IW(L2), PTRAR(1,2), 
-     *             PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114), 
-     *             INFO(1), INFO(2), ICNTL, symmetry, SYM,
-     *             MedDens, NBQD, AvgDens)
-                   INFO(8) = symmetry
-                   NCMP = N
-                ELSE
-                   KEEP(23) = 0
-                ENDIF
-             ENDIF
-          ELSE IF (KEEP(23) .EQ. 7 .OR. KEEP(23) .EQ. -9876543 ) THEN
-             IF (PROK) WRITE(MP,'(A)')
-     *               ' ... No column permutation'
-             KEEP(23) = 0
-          ENDIF
-      ENDIF 
+                  ENDDO
+                  DEALLOCATE(COLSCA_TEMP)
+                  IF (MP.GT.0 .AND. ICNTL(4).GE.2)
+     *                 WRITE(MP,'(/A)')
+     *                 ' WARNING input matrix data modified'
+                  CALL SMUMPS_351
+     *                 (N,NZ,IRN, ICN, IW(1), LLIW, IW(L2), PTRAR(1,2), 
+     *                 PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114), 
+     *                 INFO(1), INFO(2), ICNTL, symmetry, SYM,
+     *                 MedDens, NBQD, AvgDens)
+                  INFO(8) = symmetry
+                  NCMP = N
+               ELSE
+                  KEEP(23) = 0
+               ENDIF
+            ENDIF
+         ELSE IF (KEEP(23) .EQ. 7 .OR. KEEP(23) .EQ. -9876543 ) THEN
+            IF (PROK) WRITE(MP,'(A)')
+     *           ' ... No column permutation'
+            KEEP(23) = 0
+         ENDIF
+      ENDIF                     
       IF (IORD.NE.1 .AND. IORD.NE.5) THEN
-          IF (PROK) THEN
-             IF (IORD.EQ.2) THEN
-                WRITE(MP,'(A)') ' Ordering based on AMF '
+         IF (PROK) THEN
+            IF (IORD.EQ.2) THEN
+               WRITE(MP,'(A)') ' Ordering based on AMF '
 #if defined(scotch)
-             ELSE IF (IORD.EQ.3) THEN
-                WRITE(MP,'(A)') ' Ordering based on SCOTCH '
+            ELSE IF (IORD.EQ.3) THEN
+               WRITE(MP,'(A)') ' Ordering based on SCOTCH '
 #endif
 #if defined(pord)
-             ELSE IF (IORD.EQ.4) THEN
-                WRITE(MP,'(A)') ' Ordering based on PORD '
+            ELSE IF (IORD.EQ.4) THEN
+               WRITE(MP,'(A)') ' Ordering based on PORD '
 #endif
-             ELSE IF (IORD.EQ.6) THEN
-                WRITE(MP,'(A)') ' Ordering based on QAMD '
-             ELSE
-                WRITE(MP,'(A)') ' Ordering based on AMD '
-             ENDIF
-          ENDIF
-       IF ( KEEP(60) .NE. 0 ) THEN
-         CALL MUMPS_162(N, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1), 
-     *   IW(L1), IKEEP, 
-     *   IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3),
-     *   LISTVAR_SCHUR, SIZE_SCHUR)
-         IF (KEEP(60)==1) THEN
-           KEEP(20) = LISTVAR_SCHUR(1)
-         ELSE
-           KEEP(38) = LISTVAR_SCHUR(1)
+            ELSE IF (IORD.EQ.6) THEN
+               WRITE(MP,'(A)') ' Ordering based on QAMD '
+            ELSE
+               WRITE(MP,'(A)') ' Ordering based on AMD '
+            ENDIF
          ENDIF
-       ELSE
-      IF ( .FALSE. ) THEN
+         IF ( KEEP(60) .NE. 0 ) THEN
+            CALL MUMPS_162(N, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1), 
+     *           IW(L1), IKEEP, 
+     *           IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3),
+     *           LISTVAR_SCHUR, SIZE_SCHUR)
+            IF (KEEP(60)==1) THEN
+               KEEP(20) = LISTVAR_SCHUR(1)
+            ELSE
+               KEEP(38) = LISTVAR_SCHUR(1)
+            ENDIF
+         ELSE
+            IF ( .FALSE. ) THEN
 #if defined(pord)
-      ELSEIF (IORD .EQ. 4) THEN
-         IF(COMPRESS .EQ. 1) THEN
-            DO I=L1,L1-1+KEEP(93)/2
-               IW(I) = 2
-            ENDDO
-            DO I=L1+KEEP(93)/2,L1+NCMP-1
-               IW(I) = 1
-            ENDDO
-            CALL MUMPS_PORDF_WND(NCMP, IWFR-1, IW(L2), IW, 
-     *           IW(L1), NCMPA, N)
-            CALL SMUMPS_549(NCMP,IW(L2),IKEEP(1,1),
-     *        FRERE,PTRAR(1,1))
-            DO I=1,NCMP
-             IKEEP(IKEEP(I,1),2)=I
-            ENDDO
-         ELSE
-            CALL MUMPS_PORDF(NCMP, IWFR-1, IW(L2), IW(1), 
-     *           IW(L1), NCMPA)
-         ENDIF
-         IF ( NCMPA .NE. 0 ) THEN
-            write(6,*) ' Out PORD, NCMPA=', NCMPA
-            INFO( 1 ) = -9999
-            INFO( 2 ) = 4
-            RETURN
-         ENDIF
+            ELSEIF (IORD .EQ. 4) THEN
+               IF(COMPRESS .EQ. 1) THEN
+                  DO I=L1,L1-1+KEEP(93)/2
+                     IW(I) = 2
+                  ENDDO
+                  DO I=L1+KEEP(93)/2,L1+NCMP-1
+                     IW(I) = 1
+                  ENDDO
+                  CALL MUMPS_PORDF_WND(NCMP, IWFR-1, IW(L2), IW, 
+     *                 IW(L1), NCMPA, N)
+                  CALL SMUMPS_549(NCMP,IW(L2),IKEEP(1,1),
+     *                 FRERE,PTRAR(1,1))
+                  DO I=1,NCMP
+                     IKEEP(IKEEP(I,1),2)=I
+                  ENDDO
+               ELSE
+                  CALL MUMPS_PORDF(NCMP, IWFR-1, IW(L2), IW(1), 
+     *                 IW(L1), NCMPA)
+               ENDIF
+               IF ( NCMPA .NE. 0 ) THEN
+                  write(6,*) ' Out PORD, NCMPA=', NCMPA
+                  INFO( 1 ) = -9999
+                  INFO( 2 ) = 4
+                  RETURN
+               ENDIF
 #endif    
 #if defined(scotch)
-      ELSEIF (IORD .EQ. 3) THEN
-         CALL MUMPS_SCOTCH(NCMP, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1),
-     *        IW(L1), IKEEP, 
-     *        IKEEP(1,2), NCMPA)
-        IF ( NCMPA .NE. 0 ) THEN
-          write(6,*) ' Out SCTOCH, NCMPA=', NCMPA
-          INFO( 1 ) = -9999
-          INFO( 2 ) = 3
-          RETURN
-        ENDIF
+            ELSEIF (IORD .EQ. 3) THEN
+               CALL MUMPS_SCOTCH(NCMP, LLIW, IW(L2), IWFR,
+     $              PTRAR(1,2), IW(1), IW(L1), IKEEP, 
+     *              IKEEP(1,2), NCMPA)
+               IF ( NCMPA .NE. 0 ) THEN
+                  write(6,*) ' Out SCTOCH, NCMPA=', NCMPA
+                  INFO( 1 ) = -9999
+                  INFO( 2 ) = 3
+                  RETURN
+               ENDIF
 #endif
-      ELSEIF (IORD .EQ. 2) THEN
-         NBBUCK = 2*N
-         ALLOCATE( HEAD ( 0: NBBUCK + 1), stat = IERR )
-         IF ( IERR .GT. 0 ) THEN
-            INFO( 1 ) = -7
-            INFO( 2 ) = NBBUCK+2
-            RETURN
+            ELSEIF (IORD .EQ. 2) THEN
+               NBBUCK = 2*N
+               ALLOCATE( HEAD ( 0: NBBUCK + 1), stat = IERR )
+               IF ( IERR .GT. 0 ) THEN
+                  INFO( 1 ) = -7
+                  INFO( 2 ) = NBBUCK+2
+                  RETURN
+               ENDIF
+               IF(COMPRESS .GE. 1) THEN
+                  DO I=L1,L1-1+KEEP(93)/2
+                     IW(I) = 2
+                  ENDDO
+                  DO I=L1+KEEP(93)/2,L1+NCMP-1
+                     IW(I) = 1
+                  ENDDO
+               ELSE
+                  IW(L1) = -1
+               ENDIF
+               IF(COMPRESS .LE. 1) THEN
+                  CALL MUMPS_337(NCMP, NBBUCK, LLIW, IW(L2),
+     *                 IWFR, PTRAR(1,2),
+     *                 IW(1), IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS,
+     *                 IKEEP(1,3), PTRAR, PTRAR(1,3), HEAD)
+               ELSE
+                  IF(PROK) WRITE(MP,'(A)') 
+     *                 ' Constrained Ordering based on AMF'
+                  CALL MUMPS_560(NCMP, NBBUCK, LLIW, IW(L2),
+     *                 IWFR, PTRAR(1,2), 
+     *                 IW(1), IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS, 
+     *                 IKEEP(1,3), PTRAR, PTRAR(1,3), HEAD,
+     *                 NFSIZ, FRERE)
+               ENDIF
+               DEALLOCATE(HEAD)
+            ELSEIF (IORD .EQ. 6) THEN
+               ALLOCATE( HEAD ( N ), stat = IERR )
+               IF ( IERR .GT. 0 ) THEN
+                  INFO( 1 ) = -7
+                  INFO( 2 ) = N
+                  RETURN
+               ENDIF
+               THRESH = 1
+               IVersion = 2
+               IF(COMPRESS .EQ. 1) THEN
+                  DO I=L1,L1-1+KEEP(93)/2
+                     IW(I) = 2
+                  ENDDO
+                  DO I=L1+KEEP(93)/2,L1+NCMP-1
+                     IW(I) = 1
+                  ENDDO
+                  TOTEL = KEEP(93)+KEEP(94)
+               ELSE
+                  IW(L1) = -1
+                  TOTEL = N
+               ENDIF
+               CALL MUMPS_421(TOTEL,IVersion, THRESH, HEAD,
+     *              NCMP, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1),
+     *              IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS,
+     $              IKEEP(1,3), PTRAR, PTRAR(1,3))
+               DEALLOCATE(HEAD)
+            ELSE
+               CALL MUMPS_197(NCMP, LLIW, IW(L2), IWFR, PTRAR(1,2),
+     $              IW(1), IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS,
+     $              IKEEP(1,3), PTRAR, PTRAR(1,3))
+            ENDIF
          ENDIF
          IF(COMPRESS .GE. 1) THEN
-            DO I=L1,L1-1+KEEP(93)/2
-               IW(I) = 2
-            ENDDO
-            DO I=L1+KEEP(93)/2,L1+NCMP-1
-               IW(I) = 1
-            ENDDO
-         ELSE
-            IW(L1) = -1
+            CALL SMUMPS_550(N,NCMP,KEEP(94),KEEP(93),
+     *           PIV,IKEEP(1,1),IKEEP(1,2))
+            COMPRESS = -1
          ENDIF
-         IF(COMPRESS .LE. 1) THEN
-            CALL MUMPS_337(NCMP, NBBUCK, LLIW, IW(L2),
-     *           IWFR, PTRAR(1,2),
-     *           IW(1), IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS,
-     *           IKEEP(1,3), PTRAR, PTRAR(1,3), HEAD)
-         ELSE
-            IF(PROK) WRITE(MP,'(A)') 
-     *           ' Constrained Ordering based on AMF'
-            CALL MUMPS_560(NCMP, NBBUCK, LLIW, IW(L2),
-     *           IWFR, PTRAR(1,2), 
-     *           IW(1), IW(L1), IKEEP, IKEEP(1,2), NCMPA, FILS, 
-     *           IKEEP(1,3), PTRAR, PTRAR(1,3), HEAD,
-     *           NFSIZ, FRERE)
-         ENDIF
-         DEALLOCATE(HEAD)
-      ELSEIF (IORD .EQ. 6) THEN
-        ALLOCATE( HEAD ( N ), stat = IERR )
-        IF ( IERR .GT. 0 ) THEN
-          INFO( 1 ) = -7
-          INFO( 2 ) = N
-          RETURN
-        ENDIF
-         THRESH = 1
-         IVersion = 2
-         IF(COMPRESS .EQ. 1) THEN
-            DO I=L1,L1-1+KEEP(93)/2
-               IW(I) = 2
-            ENDDO
-            DO I=L1+KEEP(93)/2,L1+NCMP-1
-               IW(I) = 1
-            ENDDO
-            TOTEL = KEEP(93)+KEEP(94)
-         ELSE
-            IW(L1) = -1
-            TOTEL = N
-         ENDIF
-         CALL MUMPS_421(TOTEL,IVersion, THRESH, HEAD,
-     *        NCMP, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1),
-     *        IW(L1), IKEEP,
-     *        IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3))
-        DEALLOCATE(HEAD)
-      ELSE
-         CALL MUMPS_197(NCMP, LLIW, IW(L2), IWFR, PTRAR(1,2), IW(1),
-     *        IW(L1), IKEEP, 
-     *        IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3))
-      ENDIF
-      ENDIF
-      IF(COMPRESS .GE. 1) THEN
-#if(SP_DEBUG >= 2)
-         WRITE(*,*) 'MATLAB PERM = ',IKEEP(1:NCMP,2)
-         WRITE(*,*) 'PIV',PIV
-#endif
-         CALL SMUMPS_550(N,NCMP,KEEP(94),KEEP(93),
-     *        PIV,IKEEP(1,1),IKEEP(1,2))
-#if(SP_DEBUG >= 2)
-#endif
-         COMPRESS = -1
-      ENDIF
-      ENDIF 
+      ENDIF  
 #if defined(metis)
       IF (IORD.EQ.5) THEN
-          IF (PROK) THEN
-             WRITE(MP,'(A)') ' Ordering based on METIS '
-          ENDIF
-          NUMFLAG = 1
-          OPT_METIS_SIZE = 8
-          ALLOCATE( OPTIONS_METIS (OPT_METIS_SIZE ), stat = IERR )
-          IF ( IERR .GT. 0 ) THEN
-               INFO( 1 ) = -7
-               INFO( 2 ) = OPT_METIS_SIZE
-               RETURN
-          ENDIF
-          OPTIONS_METIS(1) = 0
-          IF (COMPRESS .EQ. 1) THEN
-               DO I=1,KEEP(93)/2
-                  FILS(I) = 2
-               ENDDO
-               DO I=KEEP(93)/2+1,NCMP
-                  FILS(I) = 1
-               ENDDO
-               CALL METIS_NODEWND(NCMP, IW(L2), IW(1),FILS, 
-     *              NUMFLAG, OPTIONS_METIS,
-     *              IKEEP(1,2), IKEEP(1,1) )
-          ELSE
-               CALL METIS_NODEND(NCMP, IW(L2), IW(1), NUMFLAG, 
-     *              OPTIONS_METIS,
-     *              IKEEP(1,2), IKEEP(1,1) )
-          ENDIF
-          DEALLOCATE (OPTIONS_METIS)
-          IF ( COMPRESS_SCHUR ) THEN
-               CALL SMUMPS_622(
-     *         N, NCMP, IKEEP(1,1),IKEEP(1,2),
-     *         LISTVAR_SCHUR, SIZE_SCHUR, FILS)
-               COMPRESS = -1  
-          ENDIF
-          IF (COMPRESS .EQ. 1) THEN
-#if(SP_DEBUG >= 5)
-            WRITE(*,*) 'IKEEP = ',IKEEP(1:NCMP,1)
-            WRITE(*,*) 'PIV',PIV
-#endif
+         IF (PROK) THEN
+            WRITE(MP,'(A)') ' Ordering based on METIS '
+         ENDIF
+         NUMFLAG = 1
+         OPT_METIS_SIZE = 8
+         ALLOCATE( OPTIONS_METIS (OPT_METIS_SIZE ), stat = IERR )
+         IF ( IERR .GT. 0 ) THEN
+            INFO( 1 ) = -7
+            INFO( 2 ) = OPT_METIS_SIZE
+            RETURN
+         ENDIF
+         OPTIONS_METIS(1) = 0
+         IF (COMPRESS .EQ. 1) THEN
+            DO I=1,KEEP(93)/2
+               FILS(I) = 2
+            ENDDO
+            DO I=KEEP(93)/2+1,NCMP
+               FILS(I) = 1
+            ENDDO
+            CALL METIS_NODEWND(NCMP, IW(L2), IW(1),FILS, 
+     *           NUMFLAG, OPTIONS_METIS,
+     *           IKEEP(1,2), IKEEP(1,1) )
+         ELSE
+            CALL METIS_NODEND(NCMP, IW(L2), IW(1), NUMFLAG, 
+     *           OPTIONS_METIS,
+     *           IKEEP(1,2), IKEEP(1,1) )
+         ENDIF
+         DEALLOCATE (OPTIONS_METIS)
+         IF ( COMPRESS_SCHUR ) THEN
+            CALL SMUMPS_622(
+     *           N, NCMP, IKEEP(1,1),IKEEP(1,2),
+     *           LISTVAR_SCHUR, SIZE_SCHUR, FILS)
+            COMPRESS = -1       
+         ENDIF
+         IF (COMPRESS .EQ. 1) THEN
             CALL SMUMPS_550(N,NCMP,KEEP(94),
-     *              KEEP(93),PIV,IKEEP(1,1),IKEEP(1,2))
-               COMPRESS = -1  
-#if(SP_DEBUG >= 5)
-            WRITE(*,*) 'IKEEP = ',IKEEP(1:N,1)
-#endif
-          ENDIF
-      ENDIF 
+     *           KEEP(93),PIV,IKEEP(1,1),IKEEP(1,2))
+            COMPRESS = -1       
+         ENDIF
+      ENDIF                     
 #endif
       IF (PROK) THEN
-        IF (IORD.EQ.1) THEN
-          WRITE(MP,'(A)') ' Ordering given is used'
-        ENDIF
+         IF (IORD.EQ.1) THEN
+            WRITE(MP,'(A)') ' Ordering given is used'
+         ENDIF
       ENDIF
-      IF ((IORD.EQ.1) .OR. (IORD.EQ.5)) THEN
+      IF ((IORD.EQ.1) 
+     $     ) THEN
          DO K=1,N
             PTRAR(K,1) = 0
          ENDDO
@@ -1545,176 +1476,176 @@ C
       ENDIF
       IF (IORD.EQ.1 .OR. IORD.EQ.5 .OR. COMPRESS.EQ.-1) THEN
          IF (KEEP(106)==1) THEN
-           IF ( COMPRESS .EQ. -1 ) THEN
-              CALL SMUMPS_351(N,NZ,IRN, ICN, IW(1), LLIW,
-     *        IW(L2), PTRAR(1,2),
-     *        PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
-     *        INFO(1), INFO(2), ICNTL, symmetry, SYM,
-     *        MedDens, NBQD, AvgDens)
-              INFO(8) = symmetry
-           ENDIF
-           COMPRESS = 0
-           ALLOCATE( HEAD ( 2*N ), stat = IERR )
-           IF ( IERR .GT. 0 ) THEN
-             INFO( 1 ) = -7
-             INFO( 2 ) = 2*N
-             RETURN
-           ENDIF
-           THRESH = -1
-           IF (KEEP(60) == 0) THEN
-             ITEMP = 0 
-           ELSE
-             ITEMP = SIZE_SCHUR
-             IF (KEEP(60)==1) THEN
-                KEEP(20) = LISTVAR_SCHUR(1)
-             ELSE
-                KEEP(38) = LISTVAR_SCHUR(1)
-             ENDIF
-           ENDIF
-           AGG6 = ( NSLAVES == 1 )
-           CALL MUMPS_422(THRESH, HEAD,
-     *         N, LLIW, IW(L2), IWFR, PTRAR(1,2), IW,
-     *         IW(L1), HEAD(N+1),
-     *         IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3), 
-     *         IKEEP(1,1), LISTVAR_SCHUR, ITEMP, AGG6)
-           DEALLOCATE(HEAD)
+            IF ( COMPRESS .EQ. -1 ) THEN
+               CALL SMUMPS_351(N,NZ,IRN, ICN, IW(1), LLIW,
+     *              IW(L2), PTRAR(1,2),
+     *              PTRAR, IW(L1), IWFR, KEEP(113), KEEP(114),
+     *              INFO(1), INFO(2), ICNTL, symmetry, SYM,
+     *              MedDens, NBQD, AvgDens)
+               INFO(8) = symmetry
+            ENDIF
+            COMPRESS = 0
+            ALLOCATE( HEAD ( 2*N ), stat = IERR )
+            IF ( IERR .GT. 0 ) THEN
+               INFO( 1 ) = -7
+               INFO( 2 ) = 2*N
+               RETURN
+            ENDIF
+            THRESH = -1
+            IF (KEEP(60) == 0) THEN
+               ITEMP = 0 
+            ELSE
+               ITEMP = SIZE_SCHUR
+               IF (KEEP(60)==1) THEN
+                  KEEP(20) = LISTVAR_SCHUR(1)
+               ELSE
+                  KEEP(38) = LISTVAR_SCHUR(1)
+               ENDIF
+            ENDIF
+            AGG6 = ( NSLAVES == 1 )
+            CALL MUMPS_422(THRESH, HEAD,
+     *           N, LLIW, IW(L2), IWFR, PTRAR(1,2), IW,
+     *           IW(L1), HEAD(N+1),
+     *           IKEEP(1,2), NCMPA, FILS, IKEEP(1,3), PTRAR, PTRAR(1,3), 
+     *           IKEEP(1,1), LISTVAR_SCHUR, ITEMP, AGG6)
+            DEALLOCATE(HEAD)
          ELSE
-           CALL SMUMPS_198(N, NZ, IRN, ICN, IKEEP, IW(1),
-     *         LLIW, IW(L2),
-     *         PTRAR(1,2), IW(L1), IWFR,
-     *         INFO(1),INFO(2), KEEP(11), MP)
-           IF (KEEP(60) .EQ. 0) THEN
-             ITEMP = 0 
-             CALL SMUMPS_199(N, IW(L2), IW, LLIW, IWFR, IKEEP,
-     *            IKEEP(1,2), IW(L1),
-     *            PTRAR, NCMPA, ITEMP)
-           ELSE
-             CALL SMUMPS_199(N, IW(L2), IW, LLIW, IWFR, IKEEP,
-     *            IKEEP(1,2), IW(L1),
-     *            PTRAR, NCMPA, SIZE_SCHUR)
-             IF (KEEP(60) .EQ. 1) THEN
-                KEEP(20) = LISTVAR_SCHUR(1)
-             ELSE
-                KEEP(38) = LISTVAR_SCHUR(1)
-             ENDIF
-           ENDIF
-         ENDIF 
-       ENDIF 
+            CALL SMUMPS_198(N, NZ, IRN, ICN, IKEEP, IW(1),
+     *           LLIW, IW(L2),
+     *           PTRAR(1,2), IW(L1), IWFR,
+     *           INFO(1),INFO(2), KEEP(11), MP)
+            IF (KEEP(60) .EQ. 0) THEN
+               ITEMP = 0 
+               CALL SMUMPS_199(N, IW(L2), IW, LLIW, IWFR, IKEEP,
+     *              IKEEP(1,2), IW(L1),
+     *              PTRAR, NCMPA, ITEMP)
+            ELSE
+               CALL SMUMPS_199(N, IW(L2), IW, LLIW, IWFR, IKEEP,
+     *              IKEEP(1,2), IW(L1),
+     *              PTRAR, NCMPA, SIZE_SCHUR)
+               IF (KEEP(60) .EQ. 1) THEN
+                  KEEP(20) = LISTVAR_SCHUR(1)
+               ELSE
+                  KEEP(38) = LISTVAR_SCHUR(1)
+               ENDIF
+            ENDIF
+         ENDIF                  
+      ENDIF                     
 #if defined(OLDDFS)
       CALL SMUMPS_200
-     *    (N, IW(L2), IW(L1), IKEEP(1,1), IKEEP(1,2), IKEEP(1,3),
+     *     (N, IW(L2), IW(L1), IKEEP(1,1), IKEEP(1,2), IKEEP(1,3),
      *     NFSIZ, INFO(6), FILS, FRERE, PTRAR(1,3), NEMIN, KEEP(60))
 #else
       CALL SMUMPS_557
-     *    (N, IW(L2), IW(L1), IKEEP(1,1), IKEEP(1,2), IKEEP(1,3),
+     *     (N, IW(L2), IW(L1), IKEEP(1,1), IKEEP(1,2), IKEEP(1,3),
      *     NFSIZ, PTRAR, INFO(6), FILS, FRERE, 
      *     PTRAR(1,3), NEMIN, PTRAR(1,4), KEEP(60),
      *     KEEP(20),KEEP(38),PTRAR(1,2),KEEP(104),IW(1),KEEP(50))
 #endif
       IF (KEEP(60).NE.0)  THEN
          IF (KEEP(60)==1) THEN
-           IN = KEEP(20)
+            IN = KEEP(20)
          ELSE
-           IN = KEEP(38)
+            IN = KEEP(38)
          ENDIF
          DO WHILE (IN.GT.0) 
-          IN = FILS (IN)
+            IN = FILS (IN)
          END DO
          IFSON = -IN
          IF (KEEP(60)==1) THEN
-           IN = KEEP(20)
+            IN = KEEP(20)
          ELSE
-           IN = KEEP(38)
+            IN = KEEP(38)
          ENDIF
          DO I=2,SIZE_SCHUR
-          FILS(IN) = LISTVAR_SCHUR (I)
-          IN       = FILS(IN)
-          FRERE (IN) = N+1
+            FILS(IN) = LISTVAR_SCHUR (I)
+            IN       = FILS(IN)
+            FRERE (IN) = N+1
          ENDDO
          FILS(IN) = -IFSON
       ENDIF
       CALL SMUMPS_201(IKEEP(1,2),
-     *  PTRAR(1,3), INFO(6),
-     *  INFO(5), KEEP(2), KEEP(50),
-     *  KEEP(101),KEEP(108),KEEP(5),
-     *  KEEP(6), KEEP(226))
+     *     PTRAR(1,3), INFO(6),
+     *     INFO(5), KEEP(2), KEEP(50),
+     *     KEEP(101),KEEP(108),KEEP(5),
+     *     KEEP(6), KEEP(226))
       IF ( KEEP(53) .NE. 0 ) THEN
-        CALL MUMPS_209( N, FRERE, FILS, NFSIZ, KEEP(20) )
+         CALL MUMPS_209( N, FRERE, FILS, NFSIZ, KEEP(20) )
       END IF
       IF (  (KEEP(48) == 4 .AND. KEEP(10).GT.0)
      *     .OR.
-     *      (KEEP (48)==5 .AND. KEEP(10) .GT. 0 )
+     *     (KEEP (48)==5 .AND. KEEP(10) .GT. 0 )
      *     .OR.
-     *      (KEEP(24).NE.0.AND.KEEP(10).GT.0) ) THEN 
-          CALL SMUMPS_510(KEEP(10), KEEP(2),
-     *    KEEP(48), KEEP(50), NSLAVES)
+     *     (KEEP(24).NE.0.AND.KEEP(10).GT.0) ) THEN 
+         CALL SMUMPS_510(KEEP(10), KEEP(2),
+     *        KEEP(48), KEEP(50), NSLAVES)
       END IF
       IF (KEEP(210).LT.0.OR.KEEP(210).GT.2) KEEP(210)=0
       IF (KEEP(210).EQ.0.AND.KEEP(201).GT.0) KEEP(210)=1 
       IF (KEEP(210).EQ.0.AND.KEEP(201).EQ.0) KEEP(210)=2 
       IF (KEEP(210).EQ.2) KEEP(79)=huge(KEEP(79))
       IF (KEEP(210).EQ.1.AND.KEEP(79).LE.0) THEN
-        IF ( huge(KEEP(79)) / K79REF + 1 .GE. NSLAVES ) THEN
-        KEEP(79)=huge(KEEP(79))
-        ELSE
-        KEEP(79)=K79REF * NSLAVES
-        ENDIF
+         IF ( huge(KEEP(79)) / K79REF + 1 .GE. NSLAVES ) THEN
+            KEEP(79)=huge(KEEP(79))
+         ELSE
+            KEEP(79)=K79REF * NSLAVES
+         ENDIF
       ENDIF
       IF (KEEP(210).EQ.1) THEN
-       SPLITROOT = .FALSE. 
-       IF ( KEEP(62).GE.1) THEN
-        CALL SMUMPS_97(N, FRERE, FILS, NFSIZ,INFO(6),
-     *                       NSLAVES, KEEP,KEEP8, SPLITROOT,
-     *                       MP, LDIAG,INFO(1),INFO(2))
-         IF (INFO(1).LT.0) RETURN
-       ENDIF
+         SPLITROOT = .FALSE. 
+         IF ( KEEP(62).GE.1) THEN
+            CALL SMUMPS_97(N, FRERE, FILS, NFSIZ,INFO(6),
+     *           NSLAVES, KEEP,KEEP8, SPLITROOT,
+     *           MP, LDIAG,INFO(1),INFO(2))
+            IF (INFO(1).LT.0) RETURN
+         ENDIF
       ENDIF
       SPLITROOT = ((ICNTL(13).GT.0 .AND. NSLAVES.GT.ICNTL(13)) .OR.
-     &              ICNTL(13).EQ.-1 )
-     &              .AND. (KEEP(60).EQ.0)
+     &     ICNTL(13).EQ.-1 )
+     &     .AND. (KEEP(60).EQ.0)
       IF (SPLITROOT) THEN
          CALL SMUMPS_97(N, FRERE, FILS, NFSIZ,INFO(6),
-     *                    NSLAVES, KEEP,KEEP8, SPLITROOT,
-     *                    MP, LDIAG,INFO(1),INFO(2))
+     *        NSLAVES, KEEP,KEEP8, SPLITROOT,
+     *        MP, LDIAG,INFO(1),INFO(2))
          IF (INFO(1).LT.0) RETURN
       ENDIF
       IF ( KEEP(24) == 0 ) THEN
          CALL SMUMPS_202(N, NZ, IKEEP(1,1), FILS, FRERE,
-     *      NFSIZ, IKEEP(1,3), IKEEP(1,2),
-     *      IRN, ICN, PTRAR(1,3), PTRAR(1,4), PTRAR,
-     *      ICNTL, INFO, KEEP,KEEP8)
+     *        NFSIZ, IKEEP(1,3), IKEEP(1,2),
+     *        IRN, ICN, PTRAR(1,3), PTRAR(1,4), PTRAR,
+     *        ICNTL, INFO, KEEP,KEEP8)
       ELSE
-        CALL SMUMPS_348(N, NZ, IKEEP(1,1), FILS, FRERE,
-     *      NFSIZ, IKEEP(1,3), IKEEP(1,2), 
-     *      ICNTL, INFO, KEEP,KEEP8)
+         CALL SMUMPS_348(N, NZ, IKEEP(1,1), FILS, FRERE,
+     *        NFSIZ, IKEEP(1,3), IKEEP(1,2), 
+     *        ICNTL, INFO, KEEP,KEEP8)
       ENDIF
       IF (LDIAG.GT.2 .AND. MP.GT.0) THEN
-       K = min0(10,N)
-       IF (LDIAG.EQ.4) K = N
-       IF (K.GT.0) WRITE (MP,99997) (IKEEP(I,1),I=1,K)
-       IF (K.GT.0) WRITE (MP,99991) (IKEEP(I,2),I=1,K)
-       IF (K.GT.0) WRITE (MP,99990) (IKEEP(I,3),I=1,K)
-       IF (K.GT.0) WRITE (MP,99986) (PTRAR(I,1),I=1,K)
-       IF (K.GT.0) WRITE (MP,99985) (PTRAR(I,2),I=1,K)
-       IF (K.GT.0) WRITE (MP,99984) (PTRAR(I,3),I=1,K)
-       IF (K.GT.0) WRITE (MP,99987) (NFSIZ(I),I=1,K)
-       IF (K.GT.0) WRITE (MP,99989) (FILS(I),I=1,K)
-       IF (K.GT.0) WRITE (MP,99988) (FRERE(I),I=1,K)
+         K = min0(10,N)
+         IF (LDIAG.EQ.4) K = N
+         IF (K.GT.0) WRITE (MP,99997) (IKEEP(I,1),I=1,K)
+         IF (K.GT.0) WRITE (MP,99991) (IKEEP(I,2),I=1,K)
+         IF (K.GT.0) WRITE (MP,99990) (IKEEP(I,3),I=1,K)
+         IF (K.GT.0) WRITE (MP,99986) (PTRAR(I,1),I=1,K)
+         IF (K.GT.0) WRITE (MP,99985) (PTRAR(I,2),I=1,K)
+         IF (K.GT.0) WRITE (MP,99984) (PTRAR(I,3),I=1,K)
+         IF (K.GT.0) WRITE (MP,99987) (NFSIZ(I),I=1,K)
+         IF (K.GT.0) WRITE (MP,99989) (FILS(I),I=1,K)
+         IF (K.GT.0) WRITE (MP,99988) (FRERE(I),I=1,K)
       ENDIF
       GO TO 90
-   40 INFO(1) = -4
+ 40   INFO(1) = -4
       INFO(2) = K
       IF ((LP.GT.0).AND.(ICNTL(4).GE.1)) WRITE (LP,99996) INFO(1)
       IF ((LP.GT.0).AND.(ICNTL(4).GE.1)) WRITE (LP,99982) INFO(2)
       GOTO 90
-   90 CONTINUE 
+ 90   CONTINUE 
       DEALLOCATE(IW)
       RETURN
 99999 FORMAT (/'Entering analysis phase with ...'/
-     * '                N         NZ         LIW       INFO(1)'/,
-     * 9X, I8, I11, I12, I14)
+     *     '                N         NZ         LIW       INFO(1)'/,
+     *     9X, I8, I11, I12, I14)
 99998 FORMAT ('Matrix entries:    IRN()   ICN()'/
-     * (I12, I7, I12, I7, I12, I7))
+     *     (I12, I7, I12, I7, I12, I7))
 99997 FORMAT ('IKEEP(.,1)=', 10I6/(12X, 10I6))
 99996 FORMAT (/'** Error return ** from Analysis *  INFO(1)=', I3)
 99991 FORMAT ('IKEEP(.,2)=', 10I6/(12X, 10I6))
@@ -2503,12 +2434,6 @@ C
            AMALG_TO_father_OK = ( AMALG_TO_father_OK .AND.
      &     ( ACCU .LE. dble(NEMIN)*dble(100) )
      &                           )
-#if 0
-           AMALG_TO_father_OK = (AMALG_TO_father_OK 
-     *          .AND. NAMALG(I).LT.NAMALGMAX
-     &          .AND. NAMALG(DADI).LT.NAMALGMAX)
-#endif
-#if 1
            IF (AMALG_TO_father_OK) THEN
               CALL MUMPS_511(NV(I),NODE(I),NODE(I),
      *                                  KEEP50,1,FLOPS_SON)
@@ -2527,8 +2452,6 @@ C
                  AMALG_TO_father_OK = .FALSE.
               ENDIF
            ENDIF
-#endif     
-#if 1
            IF (AMALG_TO_father_OK) THEN
               NAMALG(DADI) = NAMALG(DADI) +  NAMALG(I) + 1
               CUMUL(DADI)  =  CUMUL(DADI)+nint(ACCU)
@@ -2540,7 +2463,6 @@ C
                 CUMUL(DADI)  = CUMUL(DADI)+nint(ACCU)
               ENDIF
            ENDIF
-#endif
            IF (AMALG_TO_father_OK) THEN
              AMALG_COUNT = AMALG_COUNT+1
              IN = DADI
@@ -3109,10 +3031,6 @@ C
                ENDIF
             ENDIF
          ENDDO
-#if(SP_DEBUG >= 1)
-         WRITE(*,*) 'NZER_DIAG,RZ_DIAG,TOTZER',NZER_DIAG,RZ_DIAG,
-     *        NZER_DIAG+RZ_DIAG
-#endif
          IF(MTRANSLOC .GE. 4) THEN
             DO I =1, N
                IF(ZERODIAG(I) .EQ. 0) THEN
@@ -3128,12 +3046,6 @@ C
   20  CONTINUE
       DO 25 J=1, N
         IW(PLENR+J-1 ) = IW(IP+J-1 )
-#if (SP_DEBUG >= 2)
-        IF(IW(PLENR+J-1) .LE. 0) THEN
-           WRITE(*,*) 'J,IW(PLENR+J-1)',J,IW(PLENR+J-1)
-           CALL MUMPS_ABORT()
-        ENDIF
-#endif
   25  CONTINUE
       IF(K50 .EQ. 0) THEN
          IF (MTRANSLOC.EQ.1) THEN
@@ -3202,21 +3114,9 @@ C
                IF ( (J.LE.N).AND.(J.GE.1) .AND.
      *              (I.LE.N).AND.(I.GE.1)) THEN
                   JPOS            = IW(PLENR+J-1)
-#if (SP_DEBUG >= 2)
-                  IF(JPOS .LE. 0) THEN
-                     WRITE(*,*) 'I,J,JPOS,K',I,J,JPOS,K
-                     CALL MUMPS_ABORT()
-                  ENDIF
-#endif
                   IW(IRNW+JPOS-1) = I
                   S2(JPOS)         = abs(id%A(K))
                   IW(PLENR+J-1)   = IW(PLENR+J-1) + 1
-#if (SP_DEBUG >= 2)
-                  IF(IW(PLENR+J-1) .LE. 0) THEN
-                     WRITE(*,*) 'C0 J,IW(PLENR+J-1)',J,IW(PLENR+J-1)
-                     CALL MUMPS_ABORT()
-                  ENDIF
-#endif
                   IF(abs(id%A(K)) .GT. THEMAX) THEN
                      THEMAX = abs(id%A(K))
                   ELSE IF(abs(id%A(K)) .LT. THEMIN 
@@ -3225,40 +3125,11 @@ C
                   ENDIF
                   IF(I.NE.J) THEN
                      JPOS            = IW(PLENR+I-1)
-#if (SP_DEBUG >= 2)
-                     IF(JPOS .LE. 0) THEN
-                        WRITE(*,*) 'C1 I,J,JPOS,K,PLENR',
-     *                       I,J,JPOS,K,PLENR
-                        CALL MUMPS_ABORT()
-                     ENDIF
-#endif
                      IW(IRNW+JPOS-1) = J
                      S2(JPOS)         = abs(id%A(K))
                      IW(PLENR+I-1)   = IW(PLENR+I-1) + 1
-#if (SP_DEBUG >= 2)
-                     IF(IW(PLENR+J-1) .LE. 0) THEN
-                        WRITE(*,*) 'C2 J,IW(PLENR+J-1)',J,IW(PLENR+J-1)
-                        CALL MUMPS_ABORT()
-                     ENDIF
-#endif
                   ENDIF
                ENDIF
-#if (SP_DEBUG >= 3)
-               DO JPOS = 1,N
-                  IF(IW(PLENR+JPOS-1) .LT. IW(IP+JPOS-1)
-     *                 .OR. IW(PLENR+JPOS-1) .GT. IW(IP+JPOS)) THEN
-                     WRITE(*,*) 
-     *            'JPOS,IW(PLENR+JPOS-1),IW(IP+JPOS-1),IW(IP+JPOS)',
-     *                 JPOS,IW(PLENR+JPOS-1),IW(IP+JPOS-1),IW(IP+JPOS)
-                     CALL MUMPS_ABORT()
-                  ENDIF
-               ENDDO
-               IF(IW(PLENR+3289-1) .LE. 0) THEN
-                  WRITE(*,*) 'bbb I,J,JPOS,K',I,J,JPOS,K
-                  WRITE(*,*) 'IW(PLENR+J-1)',IW(PLENR+3289-1)
-                  CALL MUMPS_ABORT()
-               ENDIF
-#endif
             ENDDO
             DO I =1, N
                IF(ZERODIAG(I) .EQ. 0) THEN
@@ -3404,11 +3275,6 @@ C
          ENDIF
       ELSE
          IDENT = .FALSE.         
-#if (SP_DEBUG >= 3)
-         WRITE(*,*) PERM
-         WRITE(*,*) S2(RSPOS+1:RSPOS+N)
-         WRITE(*,*) S2(CSPOS+1:CSPOS+N)
-#endif
          IF(SCALINGLOC) THEN
             IF ( associated(id%COLSCA)) DEALLOCATE( id%COLSCA )
             IF ( associated(id%ROWSCA)) DEALLOCATE( id%ROWSCA )
@@ -3436,16 +3302,6 @@ C
             ENDIF
             id%KEEP(52) = -2
             id%KEEP(74) = 1
-#if 0
-            J = 5000
-            I = 1
-            DO 
-               IF(PERM(J) .EQ. 5000) EXIT
-               J = PERM(J)
-               I = I+1
-            ENDDO
-            WRITE(*,*) 'cycle 5000 lenght = ',I
-#endif
             MAXDBL = log(huge(MAXDBL))
             DO J=1,N
                IF(S2(RSPOS+J)+S2(CSPOS+J) .GT. MAXDBL) THEN
@@ -3461,9 +3317,6 @@ C
                      id%ROWSCA(J) = ONE
                   ENDIF
                   id%COLSCA(J)= id%ROWSCA(J)
-#if (SP_DEBUG >= 3)
-                  WRITE(*,*) 'J,ROWSCA(J)',J,id%ROWSCA(J)
-#endif
                ENDIF
             ENDDO
             DO JPOS=1,KER_SIZE
@@ -3475,73 +3328,7 @@ C
                COLNORM = exp(COLNORM) 
                id%ROWSCA(I) = ONE / COLNORM
                id%COLSCA(I) = id%ROWSCA(I)
-#if (SP_DEBUG >= 3)
-               WRITE(*,*) 'I,ROWSCA(I)',I,id%ROWSCA(I)
-#endif
             ENDDO
-#if (SP_DEBUG >= 2)
-            WRITE(*,*) 'check scaling factors'
-            S2 = ZERO
-            DO K=1,NZ
-               I=id%IRN(K)
-               J=id%JCN(K)
-               S2(I) = max(abs(S2(I)),
-     *              abs(id%ROWSCA(I)*id%A(K)*id%COLSCA(J)))
-               S2(J) = max(abs(S2(J)),
-     *              abs(id%ROWSCA(I)*id%A(K)*id%COLSCA(J)))
-            ENDDO
-            COLNORM = sqrt(epsilon(COLNORM))
-            DO K = 1,N
-               IF(PERM(K) .GT. 0 .AND. .NOT. DUPPLI) THEN
-                  IF( abs(S2(K)) .LT. (ONE-COLNORM)
-     *                 .OR. abs(S2(K)) .GT. (ONE+COLNORM) ) THEN
-                     WRITE(*,*) 'pb 1 K,S2(K),PERM(K),PERM(PERM(K))',
-     *                   K,S2(K),PERM(K),PERM(PERM(K))
-                     WRITE(*,*) 'id%ROWSCA(K),id%ROWSCA(PERM(K))',
-     *                           id%ROWSCA(K),id%ROWSCA(PERM(K)),
-     *                           'id%COLSCA(K),id%COLSCA(PERM(K))',
-     *                            id%COLSCA(K),id%COLSCA(PERM(K)) 
-                     CALL MUMPS_ABORT()
-                  ENDIF
-               ELSE
-                  IF( abs(S2(K)) .GT. (ONE+COLNORM) ) THEN
-                     WRITE(*,*) 'pb 2 K,S2(K),PERM(K)',K,S2(K),PERM(K)
-                     CALL MUMPS_ABORT()
-                  ENDIF
-               ENDIF
-            ENDDO
-            IF(DUPPLI) THEN
-               S2 = ZERO
-               DO K=1,NZ
-                  I=id%IRN(K)
-                  J=id%JCN(K)
-                  IF(I .EQ. PERM(J)) THEN
-                     S2(I) = S2(I) + 
-     *                    abs(id%ROWSCA(I)*id%A(K)*id%COLSCA(J))
-                     IF(I.NE. J) THEN
-                        S2(J) = S2(J) + 
-     *                       abs(id%ROWSCA(I)*id%A(K)*id%COLSCA(J))
-                     ENDIF
-                  ENDIF
-               ENDDO
-               COLNORM = sqrt(epsilon(COLNORM))
-               DO K = 1,N
-                  IF(PERM(K) .GT. 0) THEN
-                     IF( abs(S2(K)) .LT. (ONE-COLNORM)
-     *                    .OR. abs(S2(K)) .GT. (ONE+COLNORM) ) THEN
-                        WRITE(*,*) 'pb 3 K,S2(K),PERM(K),PERM(PERM(K))',
-     *                       K,S2(K),PERM(K),PERM(PERM(K))
-                        WRITE(*,*) 'id%ROWSCA(K),id%ROWSCA(PERM(K))',
-     *                       id%ROWSCA(K),id%ROWSCA(PERM(K)),
-     *                       'id%COLSCA(K),id%COLSCA(PERM(K))',
-     *                       id%COLSCA(K),id%COLSCA(PERM(K)) 
-                        CALL MUMPS_ABORT()
-                     ENDIF
-                  ENDIF
-               ENDDO
-            ENDIF
-            WRITE(*,*) 'scaling factors OK'
-#endif
          ENDIF
          IF(MTRANS .EQ. 7 .OR. id%KEEP(95) .EQ. 0) THEN
             IF( (NZER_DIAG+RZ_DIAG) .LT. (N/10) 
@@ -3649,9 +3436,9 @@ C
       INTEGER PROCNODE( N ), ND( N )
       INTEGER SSARBR( NBSA ), FRERE( N ), FILS( N )
       LOGICAL  MUMPS_167, MUMPS_283
-      INTEGER  MUMPS_330, MUMPS_275, MUMPS_REG_GETKMAX
+      INTEGER  MUMPS_330, MUMPS_275, MUMPS_497
       EXTERNAL MUMPS_330, MUMPS_275,
-     *         MUMPS_167, MUMPS_283, MUMPS_REG_GETKMAX
+     *         MUMPS_167, MUMPS_283, MUMPS_497
       INTEGER I, INODE, INODEROOT, IN, NPIV, NFRONT, NFR, NB_NIV2
       INTEGER IROOTTREE, SIZEROOT, PROCVAL, NSLAVES, KMAX
       INTEGER NNODE, ICT, TPN, MP, allocok
@@ -3833,7 +3620,7 @@ C
                  COST( ICT ) = NPIV * NFR
                END IF
              ELSE
-               KMAX  = MUMPS_REG_GETKMAX( KEEP(10), NFR - NPIV)
+               KMAX  = MUMPS_497( KEEP(10), NFR - NPIV)
                NSLAVES     = max( min((NFR-NPIV)/KMAX, SLAVEF-1),
      *                            1 )
                IF ( KEEP(50) .eq. 0 ) THEN
@@ -4097,10 +3884,10 @@ C
       INTEGER INODE_SON, INODE_FATH, IN_SON, IN_FATH, IN_GRANDFATH
       INTEGER NPIV_SON, NPIV_FATH, MAX_CUT
       INTEGER NCB, KAVERAGE, NSLAVESMIN, NSLAVESMAX
-      INTEGER  MUMPS_BLOC2_GET_NSLAVESMIN,
-     *         MUMPS_BLOC2_GET_NSLAVESMAX
-      EXTERNAL  MUMPS_BLOC2_GET_NSLAVESMIN,
-     *         MUMPS_BLOC2_GET_NSLAVESMAX
+      INTEGER  MUMPS_50,
+     *         MUMPS_52
+      EXTERNAL  MUMPS_50,
+     *         MUMPS_52
       IF  ( (KEEP(210).EQ.1.AND.KEEP(60).EQ.0) .OR.
      &       (SPLITROOT) ) THEN
         IF ( FRERE ( INODE ) .eq. 0 ) THEN 
@@ -4134,10 +3921,10 @@ C
         NSLAVESMAX    = 64  
         NSLAVES_ESTIM = 32+NSLAVES
       ELSE
-        NSLAVESMIN = MUMPS_BLOC2_GET_NSLAVESMIN 
+        NSLAVESMIN = MUMPS_50 
      *         ( NSLAVES, KEEP(48), KEEP(10), KEEP(50),
      *         NFRONT, NCB)
-        NSLAVESMAX = MUMPS_BLOC2_GET_NSLAVESMAX 
+        NSLAVESMAX = MUMPS_52 
      *        ( NSLAVES, KEEP(48), KEEP(10), KEEP(50),
      *          NFRONT, NCB)
         NSLAVES_ESTIM = max (1, 
@@ -4848,7 +4635,7 @@ C
       ENDIF
       IF (INFO(1).EQ.0) THEN
          INFO(1) = WARN1 + WARN2 + WARN4
-         IF (INFO(1).GT.0 .AND. ICNTL(2).GE.0) THEN
+         IF (INFO(1).GT.0 .AND. ICNTL(2).GT.0) THEN
             WRITE(ICNTL(2),9010) INFO(1)
             IF (WARN1.EQ.1) WRITE(ICNTL(2),9011)
             IF (WARN2.EQ.2) WRITE(ICNTL(2),9012)

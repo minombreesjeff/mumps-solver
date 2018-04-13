@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -262,8 +262,8 @@ C
       INTEGER ITEMP, NMB_OF_CAND, NSLAVES_LESS
       DOUBLE PRECISION MSG_SIZE
       LOGICAL FORCE_CAND
-      INTEGER  MUMPS_REG_GET_NSLAVES
-      EXTERNAL MUMPS_REG_GET_NSLAVES
+      INTEGER  MUMPS_12
+      EXTERNAL MUMPS_12
       IF ( KEEP(48) == 0 .AND. KEEP(50) .NE. 0) THEN
       write(*,*) "Internal error 2 in ZMUMPS_499."
       CALL MUMPS_ABORT()
@@ -290,10 +290,10 @@ C
         NMB_OF_CAND = SLAVEF - 1
       END IF
       NSLAVES_LESS = max(ITEMP,1)
-      NSLAVES_NODE = MUMPS_REG_GET_NSLAVES(KEEP(10), KEEP(48),
+      NSLAVES_NODE = MUMPS_12(KEEP(10), KEEP(48),
      *          KEEP(50),SLAVEF,
      *          NCB, NFRONT, NSLAVES_LESS, NMB_OF_CAND)
-      CALL MUMPS_BLOC2_SETPARTITION(
+      CALL MUMPS_441(
      *            KEEP,KEEP8, SLAVEF,
      *            TAB_POS,
      *            NSLAVES_NODE, NFRONT, NCB
@@ -568,7 +568,7 @@ C
         SBTR_CUR = dble(0) 
         SBTR_MEM = dble(0) 
       END IF
-      CALL MUMPS_GET_INT_DBL_SIZES(K34_LOC,K35_LOC)
+      CALL MUMPS_546(K34_LOC,K35_LOC)
       K35  = K35_LOC
       BUF_LOAD_SIZE = K34_LOC * 2 * ( NPROCS - 1 ) +
      *                NPROCS * ( K35_LOC + K34_LOC )
@@ -961,7 +961,7 @@ C
         DO i=1,NPROCS
            IDWLOAD(i) = i - 1
         ENDDO
-        CALL MUMPS_SORT_DOUBLES(NPROCS, WLOAD, IDWLOAD)
+        CALL MUMPS_558(NPROCS, WLOAD, IDWLOAD)
          NBDEST = 0
          DO i=1, NSLAVES
             J = IDWLOAD(i)
@@ -1457,7 +1457,7 @@ C
       integer, intent(out) :: DEST(CAND(SLAVEF+1))
       integer i,j,NMB_OF_CAND,deficit,nextproc
       DOUBLE PRECISION lref
-      external MUMPS_SORT_DOUBLES
+      external MUMPS_558
       NMB_OF_CAND = CAND(SLAVEF+1)
       if(nslaves_inode.ge.NPROCS .or.
      *   nslaves_inode.gt.NMB_OF_CAND) then
@@ -1476,7 +1476,7 @@ C
         do i=1,NMB_OF_CAND
                IDWLOAD(i)=i
         end do
-        call MUMPS_SORT_DOUBLES(NMB_OF_CAND,
+        call MUMPS_558(NMB_OF_CAND,
      *       WLOAD(1:NMB_OF_CAND),IDWLOAD(1:NMB_OF_CAND) )
         do i=1,nslaves_inode
            DEST(i)= CAND(IDWLOAD(i))
@@ -1984,7 +1984,7 @@ C
             OTHERS=NUMBER_OF_PROCS-1
          ENDIF
          NB_ROWS=0
-         CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, WLOAD, IDWLOAD)
+         CALL MUMPS_558(NUMBER_OF_PROCS, WLOAD, IDWLOAD)
          TOTAL_MEM=NCB*NFRONT
          SOMME=0
          J=1
@@ -2008,7 +2008,7 @@ C
             ENDIF
          ENDDO
          NUMBER_OF_PROCS=J-1
-         CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, TEMP, TEMP_ID)
+         CALL MUMPS_558(NUMBER_OF_PROCS, TEMP, TEMP_ID)
          IF(K50.EQ.0)THEN
            PEAK=max(PEAK,
      *       DM_MEM(MYID)+dble(NFRONT)*dble(NFRONT-NCB))
@@ -2520,8 +2520,8 @@ C
       INTEGER TEMP_ID(SLAVEF),NB_ROWS(SLAVEF),M2(SLAVEF),
      $     NB_ROWS_SMP(SLAVEF)
       INTEGER NSLAVES_REF,NCB_FILS
-      EXTERNAL MPI_WTIME,MUMPS_GETKMIN
-      INTEGER MUMPS_GETKMIN
+      EXTERNAL MPI_WTIME,MUMPS_442
+      INTEGER MUMPS_442
       INTEGER POS_MIN_LOAD,SIZE_MY_SMP,WHAT,ADDITIONNAL_ROWS_SPECIAL
       LOGICAL HAVE_TYPE1_SON
       DOUBLE PRECISION MIN_LOAD,MAX_LOAD,TEMP_MAX_LOAD
@@ -2581,9 +2581,9 @@ C
             OTHERS=NUMBER_OF_PROCS-1
          ENDIF
          KMAX=int(NCB/OTHERS)
-         KMIN=MUMPS_GETKMIN(NCB*KMAX,K50,KMAX,NCB)
+         KMIN=MUMPS_442(NCB*KMAX,K50,KMAX,NCB)
          NB_ROWS=0
-         CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, WLOAD, IDWLOAD)
+         CALL MUMPS_558(NUMBER_OF_PROCS, WLOAD, IDWLOAD)
          IF(K50.EQ.0)THEN
             TOTAL_COST=dble( NELIM ) * dble ( NCB ) +
      *           dble(NCB) * dble(NELIM)*dble(2*NFRONT-NELIM-1)
@@ -2621,7 +2621,7 @@ C
            ENDIF
         ENDDO               
         NUMBER_OF_PROCS=J-1
-        CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, TEMP, TEMP_ID)
+        CALL MUMPS_558(NUMBER_OF_PROCS, TEMP, TEMP_ID)
         SOMME=0
         AFFECTED=0
         DO i=1,OTHERS
@@ -2681,7 +2681,7 @@ C
               ELSE
                  WHAT = 5 
                  X8=OTHERS
-                 CALL MUMPS_MAX_SURFCB_NBROWS(WHAT, KEEP,KEEP8, NCB,
+                 CALL MUMPS_503(WHAT, KEEP,KEEP8, NCB,
      $                NFRONT, min(NCB,OTHERS), J, X8)
                  B=dble(X8)+(dble(J)*dble(NELIM))
               ENDIF
@@ -3621,7 +3621,7 @@ C
                     ENDIF
                     WLOAD(i)=MAX_MEM_ALLOW
                  ENDDO
-                 CALL MUMPS_SORT_DOUBLES(SMALL_SET, WLOAD, IDWLOAD)
+                 CALL MUMPS_558(SMALL_SET, WLOAD, IDWLOAD)
                  NB_ZERO=0
                  IF((NB_SAT.EQ.SMALL_SET).AND.
      $                (SMALL_SET.LT.NSLAVES_REF))THEN
@@ -4191,7 +4191,7 @@ C
                           ENDIF                          
                           WLOAD(i)=(BANDE_K10-(NB_ROWS(i)*NFRONT))
                        ENDDO
-                       CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, WLOAD,
+                       CALL MUMPS_558(NUMBER_OF_PROCS, WLOAD,
      $                      IDWLOAD)
                        NB_SAT=0
                        DO i=1,CHOSEN
@@ -4475,7 +4475,7 @@ C
                        ENDIF                          
                        WLOAD(i)=(BANDE_K10-(NB_ROWS(i)*NFRONT))
                     ENDDO
-                    CALL MUMPS_SORT_DOUBLES(NUMBER_OF_PROCS, WLOAD,
+                    CALL MUMPS_558(NUMBER_OF_PROCS, WLOAD,
      $                   IDWLOAD)
                     NB_SAT=0
                     DO i=1,CHOSEN

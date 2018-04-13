@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,7 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/* $Id: mumps_c_types.h 5053 2008-07-21 08:52:26Z pcombes $ */
+
 
 #ifndef MUMPS_C_TYPES_H
 #define MUMPS_C_TYPES_H

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -57,7 +57,9 @@ C
       INTEGER, DIMENSION(:),POINTER :: STEP_OOC,PROCNODE_OOC
       INTEGER, SAVE :: MYID_OOC,SLAVEF_OOC,LOW_LEVEL_STRAT_IO
       INTEGER, SAVE :: HBUF_SIZE,DIM_BUF_IO
-      CHARACTER*1 ERR_STR_OOC(200)
+      INTEGER ERR_STR_OOC_MAX_LEN
+      PARAMETER(ERR_STR_OOC_MAX_LEN = 512)
+      CHARACTER*1 ERR_STR_OOC(ERR_STR_OOC_MAX_LEN)
       INTEGER DIM_ERR_STR_OOC
       TYPE IO_BLOCK
         INTEGER :: INODE          

@@ -1,15 +1,15 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  */
-/* $Id: c_example.c 5043 2008-07-18 08:56:02Z pcombes $ */
 /* Example program using the C interface to the 
  * double real arithmetic version of MUMPS, dmumps_c.
  * We solve the system A x = RHS with
  *   A = diag(1 2) and RHS = [1 4]^T
  * Solution is [1 2]^T */
 #include <stdio.h>
+#include <string.h>
 #include "mpi.h"
 #include "dmumps_c.h"
 #define JOB_INIT -1

@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -118,11 +118,7 @@ C
             ELSE
               SIZE_ROOT=SIZE_ROOT_ARG
             ENDIF
-#           if 1
               LWK_RR=3*SIZE_ROOT+1
-#           else
-              LWK_RR=5*SIZE_ROOT+1
-#           endif
           END IF
         END IF
       ENDIF
@@ -376,10 +372,6 @@ C
       INTEGER, intent (out):: INVPERM(N)
       INTEGER CMP_POS,EXP_POS,I,J,N2,K
       N2 = N22/2
-#if(SP_DEBUG >= 5)
-      WRITE(*,*) 'PIV',PIV
-      WRITE(*,*) 'PERM',PERM(1:NCMP)
-#endif
       EXP_POS = 1
       DO CMP_POS=1,NCMP
          J = PERM(CMP_POS)
@@ -404,9 +396,6 @@ C
          INVPERM(I) = EXP_POS
          EXP_POS = EXP_POS+1
       ENDDO
-#if(SP_DEBUG >= 5)
-      WRITE(*,*) 'INVPERM',INVPERM
-#endif
       RETURN
       END SUBROUTINE CMUMPS_550
       SUBROUTINE CMUMPS_547(
@@ -526,9 +515,6 @@ C
             IF (NDUP.EQ.0) LEN(I) = IQ(I)
          ENDIF
       ENDDO
-#if (SP_DEBUG >= 2)
-      WRITE(*,*) 'NDUP =',NDUP
-#endif
       IF (NDUP.NE.0) THEN
          IWFR = 1
          DO I=1,NCMP
@@ -552,13 +538,6 @@ C
       ENDIF
       IPE(NCMP+1) = IPE(NCMP) + LEN(NCMP)
       IWFR = IPE(NCMP+1)
-#if(SP_DEBUG >= 5)
-      WRITE(*,*) 'PIV',PIV
-      WRITE(*,*) 'ICMP',ICMP
-      WRITE(*,*) 'IPE',IPE(1:NCMP+1)
-      WRITE(*,*) 'LEN',LEN(1:NCMP)
-      WRITE(*,*) 'IW',IW(1:IWFR-1)
-#endif
       RETURN
       END SUBROUTINE CMUMPS_547
       SUBROUTINE CMUMPS_551(
@@ -576,26 +555,6 @@ C
       REAL BEST_SCORE,CUR_VAL,TMP,VAL
       REAL INITSCORE, CMUMPS_UPDATESCORE, 
      *     CMUMPS_UPDATE_INVERSE, CMUMPS_METRIC2x2
-#if(SP_DEBUG >= 1)
-      INTERFACE
-         FUNCTION CMUMPS_UPDATESCORE(A,B,T)
-         REAL A,B
-         INTEGER T
-         END FUNCTION
-         FUNCTION CMUMPS_UPDATE_INVERSE(A,B,T)
-         REAL A,B
-         INTEGER T
-         END FUNCTION CMUMPS_UPDATE_INVERSE
-         FUNCTION CMUMPS_METRIC2x2(CUR_EL,CUR_EL_PATH,
-     *        SET1,SET2,L1,L2,VAL,DIAG,N,FLAG,FLAGON,T)
-         INTEGER CUR_EL,CUR_EL_PATH,L1,L2,N
-         INTEGER SET1(L1),SET2(L2),DIAG(N),FLAG(N)
-         REAL VAL
-         LOGICAL FLAGON
-         INTEGER T
-         END FUNCTION CMUMPS_METRIC2x2
-      END INTERFACE
-#endif
       LOGICAL VRAI,FAUX,MAX_CARD_DIAG,USE_SCALING
       INTEGER JOB_DEF,DONE
       INTEGER SUM,PROD,STRUCT,MA47,MAGNITUDE

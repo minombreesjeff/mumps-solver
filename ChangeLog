@@ -3,6 +3,27 @@
 = ChangeLog =
 -------------
 
+
+Changes from 4.8.2 to 4.8.3
+* Fix compilation issues on Windows platforms
+* Fix ranlib issue with libseq on MacOSX platforms
+* Fix a few problems of uninitialized variables
+
+Changes from 4.8.1 to 4.8.2
+* Problem of wrong argument in the call to [sdcz]mumps_246 solved
+* Limit occurrence of error -11 in the in-core case
+* Problem with the use of SIZE on an unassociated pointer solved
+* Problem with distributed solution combined with non-working host solved
+* Fix generation of MM matrices 
+* Fix of a minor bug in OOC error management
+* Fix portability issues on usleep
+
+Changes from 4.8.0 to 4.8.1
+* New distributed scaling is now on by default for distributed matrices
+* Error management corrected in case of 32-bit overflow during factorization
+* SEPARATOR is now defined as "\\" in Windows version
+* Bug fix in OOC panel version
+
 Changes from 4.7.3 to 4.8.0
 * Parallel scalings algorithms available
 * Possibility to dump a matrix in matrix-market format from both
@@ -270,6 +291,10 @@ Changes from 4.0.4 to 4.1.4
 = Release history =
 -------------------
 
+
+Release 4.8.3            : September 2008
+Release 4.8.2            : September 2008
+Release 4.8.1            : August 2008
 Release 4.8.0            : July 2008
 Release 4.7.3            : May 2007
 Release 4.7.2            : April 2007

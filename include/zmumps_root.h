@@ -1,5 +1,5 @@
 !
-!  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+!  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 !
 !
 !  This version of MUMPS is provided to you free of charge. It is public
@@ -41,7 +41,6 @@
 !   S. Pralet, Hybrid scheduling for the parallel solution of linear
 !   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 !
-!     $Id: zmumps_root.h 5064 2008-07-22 16:03:02Z pamestoy $
       TYPE ZMUMPS_ROOT_STRUC
         SEQUENCE
         INTEGER MBLOCK, NBLOCK, NPROW, NPCOL

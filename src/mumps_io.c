@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io.c 5045 2008-07-18 10:33:07Z jylexcel $    */
 #include "mumps_io.h"
 #include "mumps_io_basic.h"
 #include "mumps_io_err.h"
@@ -59,77 +58,12 @@ double read_op_vol,write_op_vol,total_vol;
  */
 MUMPS_INLINE int
 mumps_convert_2fint_to_longlong( int *, int *, long long *);
-/* Checks if there is a finished request in the queue of finished requests */
-/* On return *flag=1 if there is a finished request (*flag=0 otherwise)    */
-void MUMPS_CALL
-MUMPS_IS_THERE_FINISHED_REQUEST(int* flag, int* ierr)
-{
-#if ! defined(MUMPS_WIN32)
-  struct timeval start_time,end_time;
-  gettimeofday(&start_time,NULL);
-#endif
-  switch(mumps_io_flag_async){
-  case IO_SYNC:
-    printf("mumps_is_there_finished_request should not be called with strategy %d\n",mumps_io_flag_async);
-    break;
-#if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
-  case IO_ASYNC_TH:
-    *ierr=mumps_is_there_finished_request_th(flag);
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
-    break;
-#endif
-  default:
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-    *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
-    return;
-  }
-#if ! defined(MUMPS_WIN32)
-  gettimeofday(&end_time,NULL);
-  mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
-#endif
-  return;
-}
-/* Cleans one request for the queue of finished requests and set the */
-/* request_id argument to the id of the cleaned request              */
-void MUMPS_CALL
-MUMPS_CLEAN_REQUEST(int* request_id,int *ierr)
-{
-#if ! defined(MUMPS_WIN32)
-  struct timeval start_time,end_time;
-  gettimeofday(&start_time,NULL);
-#endif
-  switch(mumps_io_flag_async){
-  case IO_SYNC:
-    printf("mumps_clean_request should not be called with strategy %d\n",mumps_io_flag_async);
-    break;
-#if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
-  case IO_ASYNC_TH:
-    *ierr=mumps_clean_request_th(request_id);
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
-    break;
-#endif
-  default:
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-    *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
-    return;
-  }
-#if ! defined(MUMPS_WIN32)
-  gettimeofday(&end_time,NULL);
-  mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
-#endif
-  return;
-}
 /* Tests if the request "request_id" has finished. It sets the flag  */
 /* argument to 1 if the request has finished (0 otherwise)           */
 void MUMPS_CALL
 MUMPS_TEST_REQUEST_C(int* request_id,int *flag,int* ierr)
 {
+  char buf[64]; /* for error message */
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
   gettimeofday(&start_time,NULL);
@@ -146,15 +80,12 @@ MUMPS_TEST_REQUEST_C(int* request_id,int *flag,int* ierr)
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=mumps_test_request_th(request_id,flag);
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
     break;
 #endif
   default:
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    sprintf(buf,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
+    mumps_io_error(*ierr,buf);
     return;
   }
 #if ! defined(MUMPS_WIN32)
@@ -167,6 +98,7 @@ MUMPS_TEST_REQUEST_C(int* request_id,int *flag,int* ierr)
 void MUMPS_CALL
 MUMPS_WAIT_REQUEST(int *request_id,int* ierr)
 {
+  char buf[64]; /* for error message */
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
   gettimeofday(&start_time,NULL);
@@ -180,50 +112,15 @@ MUMPS_WAIT_REQUEST(int *request_id,int* ierr)
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=mumps_wait_request_th(request_id);
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
     break;
 #endif
   default:
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    sprintf(buf,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
+    mumps_io_error(*ierr,buf);
     return;
     /*    printf("Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
           exit (-3);*/
-  }
-#if ! defined(MUMPS_WIN32)
-  gettimeofday(&end_time,NULL);
-  mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
-#endif
-  return;
-}
-/* Waits for the termination of all the oingoing requests */
-void MUMPS_CALL
-MUMPS_WAIT_ALL_REQUESTS(int *ierr)
-{
-#if ! defined(MUMPS_WIN32)
-  struct timeval start_time,end_time;
-  gettimeofday(&start_time,NULL);
-#endif
-  switch(mumps_io_flag_async){
-  case IO_SYNC:
-    printf("mumps_wait_all_requests should not be called with strategy %d\n",mumps_io_flag_async);
-    break;
-#if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
-  case IO_ASYNC_TH:
-    *ierr=mumps_wait_all_requests_th();
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
-    break;
-#endif
-  default:
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-    *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
-    return;
   }
 #if ! defined(MUMPS_WIN32)
   gettimeofday(&end_time,NULL);
@@ -273,23 +170,20 @@ MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io, int* size_element,
                            int* async, int* k211, int * nb_file_type,
                            int * flag_tab, int* ierr)
 {
+  char buf[64]; /* for error message */
 #if defined(MUMPS_WIN32)
-  printf("inside %d\n",*async);
   if(*async==IO_ASYNC_AIO||*async==IO_ASYNC_TH){
     mumps_io_is_init_called=0;
-    sprintf(error_str,"Error: Forbidden value of Async flag with _WIN32\n");
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    mumps_io_error(*ierr,"Error: Forbidden value of Async flag with _WIN32\n");
     return;
   }
 #endif
 #if defined (WITHOUT_PTHREAD)
-  printf("inside %d\n",*async);
   if(*async==IO_ASYNC_TH){
     mumps_io_is_init_called=0;
-    sprintf(error_str,"Error: Forbidden value of Async flag with WITHOUT_PTHREAD\n");
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    mumps_io_error(*ierr,"Error: Forbidden value of Async flag with WITHOUT_PTHREAD\n");
     return;
   }
 #endif
@@ -297,21 +191,18 @@ MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io, int* size_element,
   mumps_io_flag_async=*async;
   mumps_io_k211=*k211;
   if (MUMPS_OOC_STORE_PREFIXLEN==-1) {
-    printf(error_str,"Error: prefix not initialized\n");
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    mumps_io_error(*ierr,"Error: prefix not initialized\n");
     return;
   }
   if (MUMPS_OOC_STORE_TMPDIRLEN==-1) {
-    printf(error_str,"Error: tmpdir not initialized\n");
     *ierr=-92;
-    mumps_io_prop_err_info(*ierr);
+    mumps_io_error(*ierr,"Error: tmpdir not initialized\n");
     return;
   }
   *ierr=mumps_init_file_name(MUMPS_OOC_STORE_TMPDIR, MUMPS_OOC_STORE_PREFIX,
 		             &MUMPS_OOC_STORE_TMPDIRLEN, &MUMPS_OOC_STORE_PREFIXLEN, _myid);
   if(*ierr<0){
-    mumps_io_prop_err_info(*ierr);
     return;
   }
   /* Re-initialize lenghts to -1 in order to enable the
@@ -321,8 +212,6 @@ MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io, int* size_element,
   MUMPS_OOC_STORE_TMPDIRLEN=-1;
   *ierr=mumps_init_file_structure(_myid,total_size_io,size_element,*nb_file_type,flag_tab);
   if(*ierr<0){
-    printf("c'est ici \n");
-    mumps_io_prop_err_info(*ierr);
     return;
   }
 #if ! defined(MUMPS_WIN32)
@@ -337,17 +226,15 @@ MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io, int* size_element,
     case IO_ASYNC_TH:
       mumps_low_level_init_ooc_c_th(async,ierr);
       if(*ierr<0){
-        mumps_io_prop_err_info(*ierr);
         return;
       }
       break;
 #endif
     default:
-      /*      printf("Error: unknown I/O strategy : %d\n",*async);*/
       *ierr=-92;
-      mumps_io_prop_err_info(*ierr);
+      sprintf(buf,"Error: unknown I/O strategy : %d\n",*async);
+      mumps_io_error(*ierr,buf);
       return;
-      /*      exit (-3);*/
     }
   }
   mumps_io_is_init_called=1;
@@ -367,49 +254,47 @@ MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
                             int * vaddr_int2,
                             int * ierr)
 {
-   int ret_code=0;
-   long long vaddr;
+  int ret_code=0;
+  long long vaddr;
+  char buf[64]; /* for error message */
 #if ! defined(MUMPS_WIN32)
-   struct timeval start_time,end_time;
-   gettimeofday(&start_time,NULL);
+  struct timeval start_time,end_time;
+  gettimeofday(&start_time,NULL);
 #endif
 /* JY 27/2/08: initialize *request_arg to -1 (null request).
  * There were problems of uninitialized requests in the Fortran
  * code. For example when we use the synchronous version, there are
  * still some tests on *request_arg, which is not initialized.*/
-   *request_arg=-1;
-   mumps_convert_2fint_to_longlong(vaddr_int1,vaddr_int2,&vaddr);
-   if(mumps_io_flag_async){
-     switch(*strat_IO){
+  *request_arg=-1;
+  mumps_convert_2fint_to_longlong(vaddr_int1,vaddr_int2,&vaddr);
+  if(mumps_io_flag_async){
+    switch(*strat_IO){
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
-     case IO_ASYNC_TH:
-       ret_code=mumps_async_write_th(strat_IO, address_block, block_size,inode,request_arg,type,vaddr,ierr);
-       if(ret_code<0){
-         *ierr=ret_code;
-         mumps_io_prop_err_info(ret_code);
-       }
-       break;
+    case IO_ASYNC_TH:
+      ret_code=mumps_async_write_th(strat_IO, address_block, block_size,inode,request_arg,type,vaddr,ierr);
+      if(ret_code<0){
+        *ierr=ret_code;
+      }
+      break;
 #endif
-     default:
-       ret_code=-91;
-       *ierr=ret_code;
-       sprintf(error_str,"Error: unknown I/O strategy : %d\n",*strat_IO);
-       mumps_io_prop_err_info(ret_code);
-       return;
-     }
-   }else{
-     ret_code=mumps_io_do_write_block(address_block,block_size,type,vaddr,ierr);
-     if(ret_code<0){
-       *ierr=ret_code;
-       mumps_io_prop_err_info(ret_code);
-     }
-   }
+    default:
+      *ierr=-91;
+      sprintf(buf,"Error: unknown I/O strategy : %d\n",*strat_IO);
+      mumps_io_error(*ierr,buf);
+      return;
+    }
+  } else {
+    ret_code=mumps_io_do_write_block(address_block,block_size,type,vaddr,ierr);
+    if(ret_code<0){
+      *ierr=ret_code;
+    }
+  }
 #if ! defined(MUMPS_WIN32)
-   gettimeofday(&end_time,NULL);
-   mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
+  gettimeofday(&end_time,NULL);
+  mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
 #endif
-   write_op_vol=write_op_vol+((*block_size)*mumps_elementary_data_size);
-   return;
+  write_op_vol=write_op_vol+((*block_size)*mumps_elementary_data_size);
+  return;
 }
 /**
  * Reads  a contigous block of central memory from the disk.
@@ -425,7 +310,7 @@ MUMPS_LOW_LEVEL_READ_OOC_C(const int * strat_IO,
                            int * vaddr_int2,
                            int * ierr)
 {
-  int ret_code=0;
+  char buf[64]; /* for error message */
   long long vaddr;
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
@@ -436,26 +321,17 @@ MUMPS_LOW_LEVEL_READ_OOC_C(const int * strat_IO,
       switch(*strat_IO){
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
       case IO_ASYNC_TH:
-        ret_code=mumps_async_read_th(strat_IO,address_block,block_size,inode,request_arg,type,vaddr,ierr);
-        if(ret_code<0){
-          *ierr=ret_code;
-          mumps_io_prop_err_info(ret_code);
-        }
+        mumps_async_read_th(strat_IO,address_block,block_size,inode,request_arg,type,vaddr,ierr);
         break;
 #endif
       default:
-        ret_code=-91;
-        *ierr=ret_code;
-        sprintf(error_str,"Error: unknown I/O strategy : %d\n",*strat_IO);
-        mumps_io_prop_err_info(ret_code);
+        *ierr=-91;
+        sprintf(buf,"Error: unknown I/O strategy : %d\n",*strat_IO);
+        mumps_io_error(*ierr,buf);
         return;
       }
   }else{
-    ret_code=mumps_io_do_read_block(address_block,block_size,type,vaddr,ierr);
-    if(ret_code<0){
-      *ierr=ret_code;
-      mumps_io_prop_err_info(ret_code);
-    }
+    mumps_io_do_read_block(address_block,block_size,type,vaddr,ierr);
     *request_arg=1;
   }
 #if ! defined(MUMPS_WIN32)
@@ -474,7 +350,7 @@ MUMPS_LOW_LEVEL_DIRECT_READ(void * address_block,
                             int * vaddr_int2,
                             int * ierr)
 {
-  int ret_code=0;
+    /*  int ret_code=0; */
   long long vaddr;
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
@@ -487,10 +363,8 @@ MUMPS_LOW_LEVEL_DIRECT_READ(void * address_block,
     if(mumps_io_flag_async==0)
 #endif
     {
-      ret_code=mumps_io_do_read_block(address_block,block_size,type,vaddr,ierr);
-      if(ret_code<0){
-         *ierr=ret_code;
-	 mumps_io_prop_err_info(ret_code);
+      *ierr=mumps_io_do_read_block(address_block,block_size,type,vaddr,ierr);
+      if(*ierr<0){
 	 return;
       }
     } else {
@@ -508,6 +382,7 @@ MUMPS_LOW_LEVEL_DIRECT_READ(void * address_block,
 void MUMPS_CALL
 MUMPS_CLEAN_IO_DATA_C(int * myid,int *step,int *ierr)
 {
+  char buf[64]; /* for error message */
   if(!mumps_io_is_init_called){
     return;
   }
@@ -517,15 +392,12 @@ MUMPS_CLEAN_IO_DATA_C(int * myid,int *step,int *ierr)
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=mumps_clean_io_data_c_th(myid);
-    if(*ierr<0){
-      mumps_io_prop_err_info(*ierr);
-    }
     break;
 #endif
   default:
     *ierr=-91;
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-    mumps_io_prop_err_info(*ierr);
+    sprintf(buf,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
+    mumps_io_error(*ierr,buf);
     return;
   }
   mumps_free_file_pointers(step);
@@ -547,6 +419,7 @@ MUMPS_OOC_PRINT_STATS()
 void MUMPS_CALL
 MUMPS_GET_MAX_NB_REQ_C(int *max,int *ierr)
 {
+  char buf[64]; /* for error message */
   *ierr=0;
   switch(mumps_io_flag_async){
   case IO_SYNC:
@@ -559,8 +432,8 @@ MUMPS_GET_MAX_NB_REQ_C(int *max,int *ierr)
 #endif
   default:
     *ierr=-91;
-    sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-    mumps_io_prop_err_info(*ierr);
+    sprintf(buf,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
+    mumps_io_error(*ierr,buf);
     return;
   }
   return;
@@ -572,17 +445,15 @@ MUMPS_GET_MAX_FILE_SIZE_C(double * max_ooc_file_size)
   return;
 }
 void MUMPS_CALL
-MUMPS_OOC_GET_NB_FILES_C(int* type,int* nb_files)
+MUMPS_OOC_GET_NB_FILES_C(const int* type,int* nb_files)
 {
-  int ret;
-  ret=mumps_io_get_nb_files(nb_files,type);
+  mumps_io_get_nb_files(nb_files,type);
   return;
 }
 void MUMPS_CALL
 MUMPS_OOC_GET_FILE_NAME_C(int* type,int* indice,int* length, char* name, mumps_ftnlen l1)
 {
-  int ret;
-  ret=mumps_io_get_file_name(indice,name,length,type);
+  mumps_io_get_file_name(indice,name,length,type);
   return;
 }
 void MUMPS_CALL
@@ -590,24 +461,15 @@ MUMPS_OOC_SET_FILE_NAME_C(int* type, int* indice, int* length, int *ierr,
                           char* name, mumps_ftnlen l1)
 {
   *ierr=mumps_io_set_file_name(indice,name,length,type);
-  if(*ierr<0){
-    mumps_io_prop_err_info(*ierr);
-  }
   return;
 }
 void MUMPS_CALL
 MUMPS_OOC_ALLOC_POINTERS_C(int* nb_file_type,int* dim,int* ierr)
 {
-  int ret_code;
   int i=0;
-  ret_code=mumps_io_alloc_pointers(nb_file_type,dim);
-  if(ret_code<0){
-    *ierr=ret_code;
-    mumps_io_prop_err_info(ret_code);
-  }
-  *ierr=ret_code;
+  *ierr=mumps_io_alloc_pointers(nb_file_type,dim);
   for(i=0;i<*nb_file_type;i++){
-    ret_code=mumps_io_set_last_file((dim+i),&i);
+    mumps_io_set_last_file((dim+i),&i);
   }
   return;
 }
@@ -626,11 +488,11 @@ MUMPS_OOC_INIT_VARS_C(int* myid_arg,
 void MUMPS_CALL
 MUMPS_OOC_START_LOW_LEVEL(int *ierr)
 {
+  char buf[64]; /* for error message */
   read_op_vol=0;
   write_op_vol=0;
   *ierr=mumps_io_open_files_for_read();
   if(*ierr<0){
-    mumps_io_prop_err_info(*ierr);
     return;
   }
   if(mumps_io_flag_async){
@@ -641,15 +503,14 @@ MUMPS_OOC_START_LOW_LEVEL(int *ierr)
     case IO_ASYNC_TH:
       mumps_low_level_init_ooc_c_th(&mumps_io_flag_async,ierr);
       if(*ierr<0){
-        mumps_io_prop_err_info(*ierr);
         return;
       }
       break;
 #endif
     default:
       *ierr=-91;
-      sprintf(error_str,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
-      mumps_io_prop_err_info(*ierr);
+      sprintf(buf,"Error: unknown I/O strategy : %d\n",mumps_io_flag_async);
+      mumps_io_error(*ierr,buf);
       return;
     }
   }
@@ -659,15 +520,16 @@ MUMPS_OOC_START_LOW_LEVEL(int *ierr)
 void MUMPS_CALL
 MUMPS_OOC_REMOVE_FILE_C(int *ierr, char *name, mumps_ftnlen l1)
 {
+  char buf[296]; /* for error message, count 256 chars for name */
   *ierr=remove(name);
   if(*ierr<0){
 #if ! defined(MUMPS_WIN32)
-    mumps_io_build_err_str(errno,-90,"Unable to remove OOC file",error_str,200);
+    sprintf(buf,"Unable to remove OOC file %s",name);
 #else
-    sprintf(error_str,"Unable to remove OOC file");
+    sprintf(buf,"Unable to remove OOC file %s with return value %d",name,*ierr);
 #endif
-    *ierr=-90;
-    mumps_io_prop_err_info(*ierr);
+    *ierr = -90;
+    mumps_io_sys_error(*ierr,buf);
     return;
   }
   return;
@@ -675,7 +537,6 @@ MUMPS_OOC_REMOVE_FILE_C(int *ierr, char *name, mumps_ftnlen l1)
 void MUMPS_CALL
 MUMPS_OOC_END_WRITE_C(int *ierr)
 {
-  int i;
   return;
 }
 void MUMPS_CALL

@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/* $Id: mumps_orderings.c 5043 2008-07-18 08:56:02Z pcombes $ */
 /*
  * This file contains interfaces to external ordering packages.
  * At the moment, PORD (J. Schulze) and SCOTCH are interfaced.

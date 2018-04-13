@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io_thread.h 5043 2008-07-18 08:56:02Z pcombes $  */
 #ifndef MUMPS_IO_THREAD_H
 #define MUMPS_IO_THREAD_H
 #include "mumps_compat.h"
@@ -85,14 +84,12 @@ extern int *finished_requests_inode,*finished_requests_id,first_finished_request
 extern int mumps_owns_mutex;
 extern int test_request_called_from_mumps;
 /* Exported functions */
-void*  mumps_async_thread_function_with_sem (void* arg);
-void*  mumps_async_thread_function (void* arg);
-int   mumps_wait_req_sem_th(int *request_id);
+void* mumps_async_thread_function_with_sem (void* arg);
 int   mumps_is_there_finished_request_th(int* flag);
 int   mumps_clean_request_th(int* request_id);
+int   mumps_wait_req_sem_th(int *request_id);
 int   mumps_test_request_th(int* request_id,int *flag);
 int   mumps_wait_request_th(int *request_id);
-int   mumps_wait_all_requests_th();
 int   mumps_low_level_init_ooc_c_th(int* async, int* ierr);
 int   mumps_async_write_th(const int * strat_IO,void * address_block,int * block_size,
                            int * inode,int * request_arg,int * type,long long vaddr,int * ierr);

@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,6 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/*    $Id: mumps_io_basic.c 5083 2008-07-24 14:48:27Z aguermou $  */
 #include "mumps_io_basic.h"
 #include "mumps_io_err.h"
 /* Exported global variables */
@@ -54,15 +53,15 @@ pthread_mutex_t mumps_io_pwrite_mutex;
 # endif
 /* int* mumps_io_pfile_pointer_array; */
 /* int* mumps_io_current_file; */
-/* #else /\*_WIN32*\/ */
+/* #else /\*MUMPS_WIN32*\/ */
 /* FILE** mumps_io_current_file; */
 /* FILE** mumps_io_pfile_pointer_array; */
 #endif /* MUMPS_WIN32 */
 /* mumps_file_struct* mumps_io_pfile_pointer_array;
    mumps_file_struct* mumps_io_current_file; */
-mumps_file_type* mumps_files;
+mumps_file_type* mumps_files = NULL;
 /* int mumps_io_current_file_number; */
-char* mumps_ooc_file_prefix;
+char* mumps_ooc_file_prefix = NULL;
 /* char** mumps_io_pfile_name; */
 /* int mumps_io_current_file_position; */
 /* int mumps_io_write_pos; */
@@ -82,7 +81,10 @@ int mumps_set_file(int type,int file_number_arg){
   /* Defines the pattern for the file name. The last 6 'X' will be replaced
      so as to name were unique */
   char name[150];
-  int ret_code, fd;  
+#if ! defined(_WIN32)
+  int fd;
+  char buf[64]; /* for error message */
+#endif
   mumps_file_struct  *mumps_io_pfile_pointer_array;
   /*  if ((mumps_files+type)->mumps_io_current_file_number >= ((mumps_files+type)->mumps_io_nb_file)-1){*/
   if (file_number_arg > ((mumps_files+type)->mumps_io_nb_file)-1){
@@ -90,32 +92,20 @@ int mumps_set_file(int type,int file_number_arg){
        of number of files. */
     /* We increase the number of file needed and then realloc. */
     ((mumps_files+type)->mumps_io_nb_file)++;
-/* #if ! defined(_WIN32) || defined(__MINGW32)  */
-/*     mumps_io_pfile_pointer_array=realloc((void *)mumps_io_pfile_pointer_array,mumps_io_nb_file*sizeof(int)); */
-/* #else */
-/*     mumps_io_pfile_pointer_array=realloc((void *)mumps_io_pfile_pointer_array,mumps_io_nb_file*sizeof(FILE*)); */
-/* #endif */
     (mumps_files+type)->mumps_io_pfile_pointer_array=realloc((void *)(mumps_files+type)->mumps_io_pfile_pointer_array,((mumps_files+type)->mumps_io_nb_file)*sizeof(mumps_file_struct));
     if((mumps_files+type)->mumps_io_pfile_pointer_array==NULL){
-      sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-      return -13;
+      return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
     }
-/*     mumps_io_pfile_name=realloc((void*)mumps_io_pfile_name,(mumps_io_nb_file)*sizeof(char *)); */
-/*     if(mumps_io_pfile_name==NULL){ */
-/*       sprintf(error_str,"Allocation problem in low-level OOC layer\n"); */
-/*       return -13; */
-/*     } */
-    (((mumps_files+type)->mumps_io_pfile_pointer_array)+((mumps_files+type)->mumps_io_nb_file)-1)->is_opened=0;
+    ((mumps_files+type)->mumps_io_pfile_pointer_array+((mumps_files+type)->mumps_io_nb_file)-1)->is_opened = 0;
   }
-  mumps_io_pfile_pointer_array=(mumps_files+type)->mumps_io_pfile_pointer_array;  
+  mumps_io_pfile_pointer_array=(mumps_files+type)->mumps_io_pfile_pointer_array;
   /* Do change the current file */
   ((mumps_files+type)->mumps_io_current_file_number)=file_number_arg;
   if((mumps_io_pfile_pointer_array+file_number_arg)->is_opened!=0){
     ((mumps_files+type)->mumps_io_current_file_number)=file_number_arg;
-    /*    printf("je sors %d | %d\n",file_number_arg,((mumps_files+type)->mumps_io_nb_file)-1);*/
     return 0;
   }
-/* #if ! defined(_WIN32) || defined(__MINGW32__)*/
+/* #if ! defined( MUMPS_WIN32 )*/
 /* MinGW does not have a mkstemp function and MinGW defines _WIN32,
  * so we also go in the else branch below with MinGW */
 #if ! defined(_WIN32)
@@ -125,14 +115,13 @@ int mumps_set_file(int type,int file_number_arg){
      opened. fd hold the file descriptor to access it.
      We want to close the file that will be opened later
      and might be removed before the end of the processus.
-    */
-    if(fd<0){
-      ret_code=-99;
-      return ret_code;
-    }
-    else{
-      close(fd); 
-    }
+  */
+  if(fd < 0) {
+    sprintf(buf,"mkstemp(%s) failed\n", mumps_ooc_file_prefix);
+    return mumps_io_sys_error(-99,buf);
+  } else {
+    close(fd); 
+  }
 #else
   sprintf(name,"%s_%d",mumps_ooc_file_prefix,((mumps_files+type)->mumps_io_current_file_number)+1);
 #endif
@@ -144,22 +133,19 @@ int mumps_set_file(int type,int file_number_arg){
 /*   } */
   strcpy((mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->name,name);
   /* See mumps_io_basic.h for comments on the I/O flags passed to open */
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
    (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file=open(name,(mumps_files+type)->mumps_flag_open); 
   /* 
 CPA: for LU factor file: 
 (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file= open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666); */
   if((mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file==-1){
-    mumps_io_build_err_str(errno,-90,"Unable to open OOC file",error_str,200);
-    return -90;
+    return mumps_io_sys_error(-90,"Unable to open OOC file");
   }
 #else
   (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file=fopen(name,(mumps_files+type)->mumps_flag_open);
   if((mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file==NULL){
-    /*    mumps_io_build_err_str(errno,-90,"Unable to open OOC file",error_str,200); */
-    sprintf(error_str,"Problem while opening OOC file");
-    return -90;
-   }
+    return mumps_io_error(-90,"Problem while opening OOC file");
+  }
 #endif
   (mumps_files+type)->mumps_io_current_file=(mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number);
   ((mumps_files+type)->mumps_io_nb_file_opened)++;
@@ -233,7 +219,7 @@ int mumps_io_do_write_block(void * address_block,
   int nb_concerned_files=0;
   int ret_code,file_number_loc,pos_in_file_loc;
   double to_be_written;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   int* file;
 #else
   FILE** file;
@@ -242,27 +228,28 @@ int mumps_io_do_write_block(void * address_block,
   void* loc_addr;
   int type;
   size_t already_written=0;
+  char buf[64];
   type=*type_arg;
   loc_addr=address_block;
   mumps_compute_nb_concerned_files(block_size,&nb_concerned_files,vaddr);
   to_be_written=((double)mumps_elementary_data_size)*((double)(*block_size));
   /*  printf("nb_concerned -> %d | %lf \n",nb_concerned_files,to_be_written); */
   for(i=0;i<nb_concerned_files;i++){
-#if ( ! defined (_WIN32) || defined(__MINGW32__)) && ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
     if(mumps_io_flag_async==IO_ASYNC_TH){
       mumps_io_protect_pointers();
     }
-#endif
+# endif
 #endif
     ret_code=mumps_prepare_pointers_for_write(to_be_written,&pos_in_file_loc,&file_number_loc,type,vaddr,already_written);
     if(ret_code<0){
-#if ( ! defined (_WIN32) || defined(__MINGW32__)) && ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
     if(mumps_io_flag_async==IO_ASYNC_TH){
       mumps_io_unprotect_pointers();
     }
-#endif
+# endif
 #endif
       return ret_code;
     }
@@ -273,31 +260,31 @@ int mumps_io_do_write_block(void * address_block,
       write_size=(size_t)((double)(mumps_io_max_file_size-((mumps_files+type)->mumps_io_current_file)->write_pos));
       already_written=already_written+(size_t)write_size;
     }
-#if defined (_WIN32) && ! defined(__MINGW32__)
+#if defined( MUMPS_WIN32 )
     write_size=(size_t)(int)((write_size)/mumps_elementary_data_size);
 #endif
     file=&(((mumps_files+type)->mumps_io_current_file)->file);
     where=((mumps_files+type)->mumps_io_current_file)->write_pos;
-#if ( ! defined (_WIN32) || defined(__MINGW32__) ) && ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
     if(mumps_io_flag_async==IO_ASYNC_TH){
       mumps_io_unprotect_pointers();
     }
-#endif
+# endif
 #endif
     /* printf("1 write -> size = %d | off = %d | file = %d (%d) \n",(int)write_size,where,*file,((mumps_files+type)->mumps_io_current_file)->write_pos); */
     ret_code=mumps_io_write__(file,loc_addr,write_size,where,type);
     if(ret_code<0){
       return ret_code;
     }
-#if ( ! defined (_WIN32) || defined(__MINGW32__) ) && ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
     if(mumps_io_flag_async==IO_ASYNC_TH){
       mumps_io_protect_pointers();
     }
+# endif
 #endif
-#endif
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
     ((mumps_files+type)->mumps_io_current_file)->write_pos=((mumps_files+type)->mumps_io_current_file)->write_pos+((int)write_size);
     to_be_written=to_be_written-((int)write_size);
     loc_addr=(void*)((size_t)loc_addr+write_size);
@@ -313,17 +300,18 @@ int mumps_io_do_write_block(void * address_block,
 /*     to_be_written=to_be_written-((int)write_size*mumps_elementary_data_size); */
 /*     loc_addr=(void*)((size_t)loc_addr+(size_t)((int)write_size*mumps_elementary_data_size)); */
 #endif
-#if ( ! defined (_WIN32) || defined(__MINGW32__) )  && ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
     if(mumps_io_flag_async==IO_ASYNC_TH){
       mumps_io_unprotect_pointers();
     }
-#endif
+# endif
 #endif
   }
   if(to_be_written!=0){
-    sprintf(error_str,"Internal (1) error in low-level I/O operation %lf",to_be_written);
-    return -90;
+    *ierr = -90;
+    sprintf(buf,"Internal (1) error in low-level I/O operation %lf",to_be_written);
+    return mumps_io_error(*ierr,buf);
   }
   /* printf("write ok -> %d \n");*/
   return 0;
@@ -333,9 +321,8 @@ int mumps_io_do_read_block(void * address_block,
                     int * type_arg,
          	    long long vaddr,
                     int * ierr){
-  int ret_code;
   size_t size;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   int* file;
 #else
   FILE** file;
@@ -366,7 +353,7 @@ int mumps_io_do_read_block(void * address_block,
     local_offset=(int)(vaddr_loc%(long long)mumps_io_max_file_size);
     file=&((((mumps_files+type)->mumps_io_pfile_pointer_array)+local_fnum)->file);
     /* printf("1 read | file -> %d | fnum -> %d | vaddr -> %d \n",*file,local_fnum,(int)vaddr_loc); */
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
     if(read_size+(double)local_offset>(double)mumps_io_max_file_size){
       size=(size_t)mumps_io_max_file_size-(size_t)local_offset;
     }else{
@@ -379,11 +366,11 @@ int mumps_io_do_read_block(void * address_block,
       size=(size_t)(read_size/mumps_elementary_data_size);
     }
 #endif
-    ret_code=mumps_io_read__(file,loc_addr,size,local_offset,type);
-    if(ret_code<0){
-      return ret_code;
+    *ierr=mumps_io_read__(file,loc_addr,size,local_offset,type);
+    if(*ierr<0){
+      return *ierr;
     }
-#if defined(_WIN32) && ! defined(__MINGW32__)
+#if defined( MUMPS_WIN32 )
     size=size*mumps_elementary_data_size;
 #endif
     vaddr_loc=vaddr_loc+(long long)size;
@@ -392,14 +379,18 @@ int mumps_io_do_read_block(void * address_block,
     local_fnum++;
     local_offset=0;
     if(local_fnum>(mumps_files+type)->mumps_io_nb_file){
-      sprintf(error_str,"Internal error (2) in low level read op\n");
-      return -90;
+      *ierr = -90;
+      return mumps_io_error(*ierr,"Internal error (2) in low level read op\n");
     }
   }
   return 0;
 }
 int mumps_free_file_pointers(int *step){
   int i,j,bound,ierr;
+/*   Free prefix only for facto  */
+  if (*step == 0) free(mumps_ooc_file_prefix);
+  if(mumps_files == NULL )
+      return 0;
   bound=mumps_io_nb_file_type;
 /*   if(*step==0){ */
 /*     /\* factorization *\/ */
@@ -409,34 +400,57 @@ int mumps_free_file_pointers(int *step){
 /*     bound=NB_FILE_TYPE_SOLVE; */
 /*   } */
   for(j=0;j<bound;j++){
+    if( mumps_files[j].mumps_io_pfile_pointer_array == NULL ) {
+      continue;
+    }
     for(i=0;i<(mumps_files+j)->mumps_io_nb_file_opened;i++){
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       ierr=close((((mumps_files+j)->mumps_io_pfile_pointer_array)+i)->file);
       if(ierr==-1){
-	mumps_io_build_err_str(errno,-90,"Problem while closing OOC file",error_str,200);
-	return -90;
+	return mumps_io_sys_error(-90,"Problem while closing OOC file");
       }
 #else
       ierr=fclose((((mumps_files+j)->mumps_io_pfile_pointer_array)+i)->file);
       if(ierr==-1){
-	sprintf(error_str,"Problem while opening OOC file\n");
-	return -90;
+	return mumps_io_error(-90,"Problem while closing OOC file\n");
       }    
 #endif
       /*     free(*(mumps_io_pfile_name+i)); */
-    } 
+    }
     free((mumps_files+j)->mumps_io_pfile_pointer_array);
   }
 /*   free(mumps_io_pfile_name); */
   free(mumps_files);
-/*   Free prefix only for facto  */
-  if (*step == 0) free(mumps_ooc_file_prefix);
+  return 0;
+}
+/* Initialize the mumps_file_type structure at <which>th position in
+   mumps_files. It only set values with no allocation to avoid any errors. */
+void mumps_io_init_file_struct(int* nb,int which)
+{
+  (mumps_files+which)->mumps_io_current_file_number = -1;
+  (mumps_files+which)->mumps_io_last_file_opened = -1;
+  (mumps_files+which)->mumps_io_nb_file_opened = 0;
+  (mumps_files+which)->mumps_io_nb_file=*nb;
+  (mumps_files+which)->mumps_io_pfile_pointer_array = NULL;
+  (mumps_files+which)->mumps_io_current_file=NULL;
+}
+/* Allocate the file structures for factor files */
+int mumps_io_alloc_file_struct(int* nb,int which)
+{
+  int i;
+  (mumps_files+which)->mumps_io_pfile_pointer_array=(mumps_file_struct *)malloc((*nb)*sizeof(mumps_file_struct));
+  if((mumps_files+which)->mumps_io_pfile_pointer_array==NULL){
+    return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
+  }
+  for(i=0;i<*nb;i++){
+    (((mumps_files+which)->mumps_io_pfile_pointer_array)+i)->is_opened=0;
+  }
   return 0;
 }
 int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,int nb_file_type,int * flag_tab){
   /* Computes the number of files needed. Uses ceil value. */
   int ierr;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   int k211_loc;
   int mumps_flag_open;
 #endif
@@ -446,7 +460,7 @@ int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,i
   mumps_io_nb_file_type=nb_file_type;
   mumps_io_nb_file=(int)((((double)(*total_size_io)*1000000)*((double)(*size_element)))/(double)mumps_io_max_file_size)+1;
   mumps_directio_flag=0;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   mumps_flag_open=0;
 #endif
   mumps_io_myid=*_myid;
@@ -454,47 +468,39 @@ int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,i
   /* Allocates the memory necessary to handle the file pointer array.*/
   mumps_files=(mumps_file_type *)malloc(mumps_io_nb_file_type*sizeof(mumps_file_type));
   if(mumps_files==NULL){
-    sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-    return -13;
+    return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
+  }
+  /* Safe initialization of the mumps_file_type elements */
+  for(i=0;i<mumps_io_nb_file_type;i++){
+    nb=(flag_tab[i]==0||flag_tab[i]==1) ? mumps_io_nb_file : 1;
+    mumps_io_init_file_struct(&nb,i);
   }
   ierr=0;
   for(i=0;i<mumps_io_nb_file_type;i++){
-    /* FIXME : We have to compute mumps_io_nb_file in a good way when
-       we have a file type for L and another one for U */
-    if(flag_tab[i]==0||flag_tab[i]==1){
-      nb=mumps_io_nb_file;
-    }else{
-      nb=1;
-    }
-    (mumps_files+i)->mumps_io_nb_file=nb;
     switch(flag_tab[i]){
     case 0:
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_WRONLY;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"wb");
 #endif
       break;
     case 1:
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDONLY;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"rb");
 #endif
       break;
     case 2:
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDWR;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"rwb");
 #endif
       break;
     default:
-      printf("unknown value of flag_open");
-      ierr=-90;
-    }
-    if(ierr<0){
-      return ierr;
+      return mumps_io_error(-90,"unknown value of flag_open\n");
     }
     ierr=mumps_io_alloc_file_struct(&nb,i);
     if(ierr<0){
@@ -517,13 +523,11 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
   char mumps_base[10]="mumps_";
   tmp_dir=(char *)malloc(((*mumps_dim_dir)+1)*sizeof(char));
   if(tmp_dir==NULL){
-    sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-    return -13;
+    return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
   }
   tmp_fname=(char *)malloc(((*mumps_dim_file)+1)*sizeof(char));
   if(tmp_fname==NULL){
-    sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-    return -13;
+    return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
   }
   for(i=0;i<*mumps_dim_dir;i++){
     tmp_dir[i]=mumps_dir[i];
@@ -539,14 +543,14 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
     tmp_dir=getenv("MUMPS_OOC_TMPDIR");
     if(tmp_dir==NULL){
 #ifdef SP_
-#ifndef CINES_
+# ifndef CINES_
       tmp_dir=getenv("TMPDIR");
       if(tmp_dir==NULL){
 	tmp_dir=MUMPS_OOC_DEFAULT_DIR;
       }
-#else
+# else
       tmp_dir=MUMPS_OOC_DEFAULT_DIR;       
-#endif       
+# endif       
 #else
       tmp_dir=MUMPS_OOC_DEFAULT_DIR;
 #endif      
@@ -558,27 +562,25 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
     file_flag=1;
   }
   if(tmp_fname!=NULL){
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       sprintf(base_name,"_%s%d_XXXXXX",mumps_base,*_myid);
 #else
       sprintf(base_name,"_%s%d",mumps_base,*_myid);
 #endif
       mumps_ooc_file_prefix=(char *)malloc((strlen(SEPARATOR)+strlen(tmp_dir)+strlen(tmp_fname)+strlen(base_name)+1+1)*sizeof(char));
       if(mumps_ooc_file_prefix==NULL){
-	sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-	return -13;
+	return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
       }
       sprintf(mumps_ooc_file_prefix,"%s%s%s%s",tmp_dir,SEPARATOR,tmp_fname,base_name);
   }else{
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
     sprintf(base_name,"%s%s%d_XXXXXX",SEPARATOR,mumps_base,*_myid);
 #else
     sprintf(base_name,"%s%s%d",SEPARATOR,mumps_base,*_myid);
 #endif
       mumps_ooc_file_prefix=(char *)malloc((strlen(SEPARATOR)+strlen(tmp_dir)+strlen(base_name)+1)*sizeof(char));
       if(mumps_ooc_file_prefix==NULL){
-	sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-	return -13;
+	return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
       }
       sprintf(mumps_ooc_file_prefix,"%s%s%s",tmp_dir,SEPARATOR,base_name);
   }  
@@ -590,33 +592,7 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
   }
   return 0;
 }
-int mumps_io_alloc_file_struct(int* nb,int which){
-  /* allocate structure for files corresponding to factors */
-  int i;
-  (mumps_files+which)->mumps_io_pfile_pointer_array=(mumps_file_struct *)malloc((*nb)*sizeof(mumps_file_struct));
-  if((mumps_files+which)->mumps_io_pfile_pointer_array==NULL){
-    sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-    return -13;
-  }
-  for(i=0;i<*nb;i++){
-    (((mumps_files+which)->mumps_io_pfile_pointer_array)+i)->is_opened=0;
-  }
-/*   mumps_io_pfile_name=(char **)malloc((*nb)*sizeof(char *)); */
-/*   if(mumps_io_pfile_name==NULL){ */
-/* #ifndef _WIN32       */
-/*     sprintf(error_str,"Allocation problem in low-level OOC layer\n"); */
-/* #else */
-/*     sprintf(error_str,"Allocation problem in low-level OOC layer\n"); */
-/* #endif     */
-/*     return -13; */
-/*     /\*    return -1;*\/ */
-/*   } */
-  (mumps_files+which)->mumps_io_current_file_number = -1;
-  (mumps_files+which)->mumps_io_last_file_opened=-1;
-  (mumps_files+which)->mumps_io_nb_file_opened=0;
-  return 0;
-}
-int mumps_io_get_nb_files(int* nb_files,int* type){
+int mumps_io_get_nb_files(int* nb_files, const int* type){
   *nb_files=((mumps_files+*type)->mumps_io_last_file_opened)+1;
   return 0;
 }
@@ -624,7 +600,7 @@ int mumps_io_get_file_name(int* indice,char* name,int* length,int* type){
   int i;
   i=(*indice)-1;
   strcpy(name,(((mumps_files+*type)->mumps_io_pfile_pointer_array)+i)->name);
-  *length=strlen(name)+1;
+  *length=(int)strlen(name)+1;
   return 0;  
 }
 int mumps_io_alloc_pointers(int* nb_file_type,int * dim){
@@ -634,13 +610,10 @@ int mumps_io_alloc_pointers(int* nb_file_type,int * dim){
   mumps_io_nb_file_type=*nb_file_type;
   mumps_files=(mumps_file_type *)malloc(mumps_io_nb_file_type*sizeof(mumps_file_type));
   if(mumps_files==NULL){
-    sprintf(error_str,"Allocation problem in low-level OOC layer\n");
-    return -13;
+    return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
   }
-  /* FIXME : This loop must be modified when NB_FILE_TYPE_SOLVE is
-     greater than 1 (the dim parameter is not good) */
   for(i=0;i<mumps_io_nb_file_type;i++){
-    (mumps_files+i)->mumps_io_nb_file=*(dim+i);
+    mumps_io_init_file_struct(dim+i,i);
     ierr=mumps_io_alloc_file_struct(dim+i,i);
     if(ierr<0){
       return ierr;
@@ -649,19 +622,19 @@ int mumps_io_alloc_pointers(int* nb_file_type,int * dim){
   return 0;
 }
 int mumps_io_init_vars(int* myid_arg,int* size_element,int* async_arg){
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   int k211_loc;
   int mumps_flag_open;
 #endif
   int i;
   mumps_io_max_file_size=MAX_FILE_SIZE;
   mumps_directio_flag=0;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   mumps_flag_open=0;
 #endif
   /* must be changed when we will have more than one file type during solve step */
   for(i=0;i<mumps_io_nb_file_type;i++){
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
     (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDONLY;
 #else
     strcpy((mumps_files+i)->mumps_flag_open,"rb");
@@ -692,17 +665,15 @@ int mumps_io_open_files_for_read(){
   for(j=0;j<mumps_io_nb_file_type;j++){
     mumps_io_pfile_pointer_array=(mumps_files+j)->mumps_io_pfile_pointer_array;
     for(i=0;i<(mumps_files+j)->mumps_io_nb_file;i++){
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
       (mumps_io_pfile_pointer_array+i)->file=open((mumps_io_pfile_pointer_array+i)->name,(mumps_files+j)->mumps_flag_open);
       if((mumps_io_pfile_pointer_array+i)->file==-1){
-	mumps_io_build_err_str(errno,-90,"Problem while opening OOC file",error_str,200);
-	return -90;
+	return mumps_io_sys_error(-90,"Problem while opening OOC file");
       }
 #else
       (mumps_io_pfile_pointer_array+i)->file=fopen((mumps_io_pfile_pointer_array+i)->name,(mumps_files+j)->mumps_flag_open);      
       if((mumps_io_pfile_pointer_array+i)->file==NULL){
-	sprintf(error_str,"Problem while opening OOC file");
-	return -90;
+	return mumps_io_error(-90,"Problem while opening OOC file");
       }
       (mumps_io_pfile_pointer_array+i)->is_opened=1;
 #endif
@@ -715,8 +686,8 @@ int mumps_io_set_last_file(int* dim,int* type){
   (mumps_files+*type)->mumps_io_nb_file_opened=*dim;
   return 0;
 }
-#if (! defined(_WIN32) || defined(__MINGW32__)) &&  ! defined (WITHOUT_PTHREAD)
-#ifdef WITH_PFUNC
+#if ! defined( MUMPS_WIN32 ) &&  ! defined (WITHOUT_PTHREAD)
+# ifdef WITH_PFUNC
 int mumps_io_protect_pointers(){
   pthread_mutex_lock(&mumps_io_pwrite_mutex);
   return 0;
@@ -733,11 +704,11 @@ int mumps_io_destroy_pointers_lock(){
   pthread_mutex_destroy(&mumps_io_pwrite_mutex);
   return 0;
 }
-#endif /*WITH_PFUNC*/
+# endif /*WITH_PFUNC*/
 #endif /* _WIN32 && WITHOUT_PTHREAD */
  int mumps_io_read__(void * file,void * loc_addr,size_t size,int local_offset,int type){
   int ret_code;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   if(!mumps_directio_flag){
     ret_code=mumps_io_read_os_buff__(file,loc_addr, size,local_offset);
     if(ret_code<0){
@@ -752,38 +723,36 @@ int mumps_io_destroy_pointers_lock(){
 #endif  
   return 0;
 }
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
 int mumps_io_read_os_buff__(void * file,void * loc_addr,size_t size,int local_offset){
   size_t ret_code;
   /* printf("Read with buff %d %d %d\n",(int) size, local_offset,*((int *)file)); */
-#ifdef WITH_PFUNC
+# ifdef WITH_PFUNC
   ret_code=pread(*(int *)file,loc_addr,size,local_offset);
-#else
+# else
   lseek(*(int *)file,(long) local_offset,SEEK_SET);
   ret_code=read(*(int *)file,loc_addr,size);
-#endif
+# endif
   if((int) ret_code==-1){
-    mumps_io_build_err_str(errno,-90,"Problem with low level read",error_str,200);
-    return -90;
+    return mumps_io_sys_error(-90,"Problem with low level read");
   }
   return 0;
 }
 #endif
-#if defined(_WIN32) && ! defined(__MINGW32__)
+#if defined( MUMPS_WIN32 )
 int mumps_io_read_win32__(void * file,void * loc_addr,size_t size,int local_offset){
   size_t ret_code;
   fseek(*(FILE **)file,(long) local_offset,SEEK_SET);
   ret_code=fread(loc_addr,mumps_elementary_data_size,size,*(FILE **)file);
   if(ret_code!=size){
-    sprintf(error_str,"Problem with I/O operation\n");
-    return -90;
+    return mumps_io_error(-90,"Problem with I/O operation\n");
   }
   return 0;
 }
 #endif
 int mumps_io_write__(void *file, void *loc_addr, size_t write_size, int where,int type){
   int ret_code;
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
   if(!mumps_directio_flag){
     ret_code=mumps_io_write_os_buff__(file,loc_addr, write_size,where);
     if(ret_code<0){
@@ -798,38 +767,33 @@ int mumps_io_write__(void *file, void *loc_addr, size_t write_size, int where,in
 #endif
   return 0;
 }
-#if ! defined(_WIN32) || defined(__MINGW32__)
+#if ! defined( MUMPS_WIN32 )
 int mumps_io_write_os_buff__(void *file, void *loc_addr, size_t write_size, int where){
   size_t ret_code;
   /* printf("write with buff %d %d %d\n",(int) write_size, where,*((int *)file)); */
-#ifdef WITH_PFUNC
+# ifdef WITH_PFUNC
   ret_code=pwrite(*(int *)file,loc_addr,write_size,where);
-#else
+# else
   /*in this case all the I/O's are made by the I/O thread => we don't
     need to protect the file pointer.*/
   lseek(*(int *)file,(long)where,SEEK_SET); 
   ret_code=write(*(int *)file,loc_addr,write_size);
-#endif
+# endif
   if((int)ret_code==-1){
-    mumps_io_build_err_str(errno,-90,"Problem with low level write",error_str,200);
-    return -90;
-  }else{
-    if(ret_code!=write_size){
-      sprintf(error_str,"Error not enough space on disk \n");
-      return -90;
-    }
+    return mumps_io_sys_error(-90,"Problem with low level write");
+  } else if(ret_code!=write_size){
+    return mumps_io_error(-90,"Error not enough space on disk \n");
   }
   return 0;
 }
 #endif
-#if defined(_WIN32) && ! defined(__MINGW32__)
+#if defined( MUMPS_WIN32 )
 int mumps_io_write_win32__(void *file, void *loc_addr, size_t write_size, int where){
   size_t ret_code;
   fseek(*(FILE **)file,(long)where,SEEK_SET);  
   ret_code=fwrite(loc_addr,mumps_elementary_data_size, write_size,*(FILE**)file);
   if(ret_code!=write_size){
-    sprintf(error_str,"Problem with I/O operation\n");
-    return -90;
+    return mumps_io_error(-90,"Problem with I/O operation\n");
   }
   return 0;
 }

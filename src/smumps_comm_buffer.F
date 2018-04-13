@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -262,15 +262,19 @@ C
         RECV_BUF_SMALLER_THAN_SEND = .TRUE.
       ENDIF
       SIZE_AV_REALS = ( SIZE_AV - SIZE1 ) / SIZEofREAL
-      IF (COMPRESSCB) THEN
-        NBROWS_PACKET = int( ( sqrt(
+      IF (SIZE_AV_REALS < 0 ) THEN
+        NBROWS_PACKET = 0
+      ELSE
+        IF (COMPRESSCB) THEN
+          NBROWS_PACKET = int( ( sqrt(
      *                     (2.0D0*dble(NBROWS_ALREADY_SENT)-1.0D0)*
      *                     (2.0D0*dble(NBROWS_ALREADY_SENT)-1.0D0)
      *                     + 8.0D0 * dble(SIZE_AV_REALS))
      *                  - 2.0D0 * dble(NBROWS_ALREADY_SENT) + 1.0D0 )
      *                  /2.0D0 )
-      ELSE
-        NBROWS_PACKET = SIZE_AV_REALS / LCONT
+        ELSE
+          NBROWS_PACKET = SIZE_AV_REALS / LCONT
+        ENDIF
       ENDIF
  10   CONTINUE
       NBROWS_PACKET = max(0,
@@ -1011,19 +1015,21 @@ C
       SIZE_AV = SIZE_AV - SIZE1
       NOT_ENOUGH_SPACE=.FALSE.
       IF (SIZE_AV .LT.0 ) THEN
+        NBROWS_PACKET = 0
         NOT_ENOUGH_SPACE=.TRUE.
-        GOTO 10
-      ENDIF
-      IF ( KEEP(50) .EQ. 0 ) THEN
-        NBROWS_PACKET = SIZE_AV / ( ONEorTWO*SIZEofINT+LROW*SIZEofREAL)
       ELSE
-        B = 2 * ONEorTWO + 
-     *    ( 1 + 2 *  LROW + 2 * PERM(1) + 2 * NBROWS_ALREADY_SENT )
-     *    * SIZEofREAL / SIZEofINT
-        NBROWS_PACKET=int((dble(-B)+sqrt((dble(B)*dble(B))+
+        IF ( KEEP(50) .EQ. 0 ) THEN
+          NBROWS_PACKET =
+     &       SIZE_AV / ( ONEorTWO*SIZEofINT+LROW*SIZEofREAL)
+        ELSE
+          B = 2 * ONEorTWO + 
+     *      ( 1 + 2 *  LROW + 2 * PERM(1) + 2 * NBROWS_ALREADY_SENT )
+     *      * SIZEofREAL / SIZEofINT
+          NBROWS_PACKET=int((dble(-B)+sqrt((dble(B)*dble(B))+
      $        dble(4)*dble(2*SIZE_AV)/dble(SIZEofINT) *
      &        dble(SIZEofREAL/SIZEofINT)))*
      &        dble(SIZEofINT) / dble(2) / dble(SIZEofREAL))
+        ENDIF
       ENDIF
  10   CONTINUE
       NBROWS_PACKET = max( 0,
@@ -1134,7 +1140,7 @@ C
         DO J=NBROWS_ALREADY_SENT+1,NBROWS_ALREADY_SENT+NBROWS_PACKET
            I = PERM(J)
            INDICE_PERE=MAPROW(I)
-           CALL MUMPS_BLOC2_GET_ISLAVE(
+           CALL MUMPS_47(
      *          KEEP,KEEP8, IPERE, STEP, N, SLAVEF,
      *          ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      *
@@ -1152,7 +1158,7 @@ C
         DO J=NBROWS_ALREADY_SENT+1,NBROWS_ALREADY_SENT+NBROWS_PACKET
            I = PERM(J)
            INDICE_PERE=MAPROW(I)
-           CALL MUMPS_BLOC2_GET_ISLAVE(
+           CALL MUMPS_47(
      *          KEEP,KEEP8, IPERE, STEP, N, SLAVEF,
      *          ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      *          
@@ -1380,7 +1386,7 @@ C
             RETURN
           END IF
           DO IDEST= 1, NDEST
-            CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
+            CALL MUMPS_49( 
      &                KEEP,KEEP8, ISON, STEP, N, SLAVEF,
      &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      &                IDEST, NCBSON, 

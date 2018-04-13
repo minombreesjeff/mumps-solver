@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -44,8 +44,8 @@ C
       MODULE MUMPS_STATIC_MAPPING
       IMPLICIT NONE
       PRIVATE
-      PUBLIC :: MUMPS_DISTRIBUTE, MUMPS_RETURN_CANDIDATES,
-     *     MUMPS_INIT_ARCH_PARAMETERS,MUMPS_END_ARCH_CV
+      PUBLIC :: MUMPS_369, MUMPS_393,
+     *     MUMPS_427,MUMPS_494
       integer,pointer,dimension(:,:),SAVE::cv_cand
       integer,pointer,dimension(:),SAVE::cv_par2_nodes
       integer,SAVE::cv_slavef,cv_nb_niv2,cv_lp,cv_mp
@@ -112,7 +112,7 @@ C
      * ,cv_layerl0_sorted_costw
       type(procs4node_t),dimension(:),pointer :: cv_prop_map
       contains
-      subroutine MUMPS_DISTRIBUTE(n,slavef,icntl,info,
+      subroutine MUMPS_369(n,slavef,icntl,info,
      *                        ne,nfsiz,frere,fils,keep,KEEP8,
      *                        procnode,ssarbr,nbsa,peak,istat
      $     )
@@ -140,33 +140,33 @@ C
       cv_mp=icntl(3)
       nullify(thislayer)
       err_rep='INITPART1'
-      call MUMPS_INITPART1(n,slavef,
+      call MUMPS_478(n,slavef,
      *                   frere,fils,nfsiz,ne,keep,KEEP8,icntl,info,
      *                   procnode,ssarbr,peak,ierr
      $     )
       if (ierr.ne.0) goto 99999
       err_rep='PROCINIT'
-      call MUMPS_PROCINIT(istat=ierr)
+      call MUMPS_391(istat=ierr)
       if (ierr.ne.0) goto 99999
       err_rep='CALCCOST'
-      call MUMPS_CALCCOSTS(ierr)
+      call MUMPS_417(ierr)
       if (ierr.ne.0) goto 99999
       err_rep='ROOTLIST'
-      call MUMPS_ROOTLIST(ierr)
+      call MUMPS_394(ierr)
       if (ierr.ne.0) goto 99999
       err_rep='LAYERL0'
-      call MUMPS_LAYERL0(ierr)
+      call MUMPS_381(ierr)
       if (ierr.ne.0) goto 99999
       if(cv_keep(82) .eq. 0) then
          err_rep='FIND_POTSPLIT'
-         call MUMPS_FIND_POTSPLIT(cv_equilib_flops,ierr)
+         call MUMPS_375(cv_equilib_flops,ierr)
       endif
       if (ierr.ne.0) goto 99999
       err_rep='INITPART2'
-      call MUMPS_INITPART2(ierr)
+      call MUMPS_479(ierr)
       if (ierr.ne.0) goto 99999
       err_rep='WORKMEM_'
-      call MUMPS_WORKMEM_IMBALANCE(
+      call MUMPS_408(
      *     cv_proc_workload,cv_proc_memused,
      *     maxwork,minwork,maxmem,minmem)
       if(maxwork.gt.0) then
@@ -193,7 +193,7 @@ C
       layernmb=0
       mapalgo=floponly  
       err_rep='SELECT_TYPE3'
-      call MUMPS_SELECT_TYPE3(ierr)
+      call MUMPS_396(ierr)
       if (ierr.ne.0) goto 99999
       IF (cv_keep(38) .ne. 0 .and. cv_keep(60) .eq. 0 ) THEN
         call MUMPS_511(cv_nfsiz(keep(38)),
@@ -208,43 +208,43 @@ C
       ENDIF
       do while((cont).OR.(layernmb.le.cv_maxlayer))
          err_rep='FIND_THIS'
-         call MUMPS_FIND_THISLAYER(layernmb,thislayer,nmb_thislayer,
+         call MUMPS_376(layernmb,thislayer,nmb_thislayer,
      *                                ierr)
          if (ierr.ne.0) goto 99999
          err_rep='DO_AMALGAMATION'
-         call  MUMPS_DO_AMALGAMATION
+         call  MUMPS_410
      *                    (layernmb,thislayer,nmb_thislayer,ierr)
          if (ierr.ne.0) goto 99999
          err_rep='DO_SPLITTING'
          if(cv_keep(82) .gt. 0) then
-            if(layernmb.gt.0) call MUMPS_NEWSPLITTING
+            if(layernmb.gt.0) call MUMPS_527
      *           (layernmb,thislayer,nmb_thislayer,ierr)
          else
-            if(layernmb.gt.0) call MUMPS_DO_SPLITTING
+            if(layernmb.gt.0) call MUMPS_370
      *           (layernmb,thislayer,nmb_thislayer,ierr)
          endif
          if (ierr.ne.0) goto 99999
          err_rep='ASSIGN_TYPES'
-         call MUMPS_ASSIGN_TYPES(layernmb,thislayer,nmb_thislayer,
+         call MUMPS_416(layernmb,thislayer,nmb_thislayer,
      *                              ierr)
          if (ierr.ne.0) goto 99999
          if(layernmb.gt.0) then
             if ((cv_keep(24).eq.1).OR.(cv_keep(24).eq.2).OR.
      *          (cv_keep(24).eq.4).OR.(cv_keep(24).eq.6)) then
                err_rep='COSTS_LAYER_T2'
-               call MUMPS_COSTS_LAYER_T2(layernmb,nmb_thislayer,ierr)
+               call MUMPS_367(layernmb,nmb_thislayer,ierr)
             elseif((cv_keep(24).eq.8).OR.(cv_keep(24).eq.10)
      *             .OR.(cv_keep(24).eq.12).OR.(cv_keep(24).eq.14)
      *             .OR.(cv_keep(24).eq.16).OR.(cv_keep(24).eq.18)) then
                err_rep='COSTS_LAYER_T2PM'
-               call MUMPS_COSTS_LAYER_T2PM(layernmb,nmb_thislayer,ierr)
+               call MUMPS_489(layernmb,nmb_thislayer,ierr)
             else
                err_rep='wrong strategy for COSTS_LAYER_T2'
                ierr = -9999
             endif
             if (ierr.ne.0) goto 99999
             err_rep='WORKMEM_'
-            call MUMPS_WORKMEM_IMBALANCE(
+            call MUMPS_408(
      *                          cv_proc_workload,cv_proc_memused,
      *                                   maxwork,minwork,maxmem,minmem)
             if(maxwork.gt.0) then
@@ -259,23 +259,23 @@ C
             endif
             if(mapalgo.eq.memonly) then
                err_rep='MAP_LAYER'
-               call MUMPS_MAP_LAYER(layernmb,thislayer,
+               call MUMPS_387(layernmb,thislayer,
      *              nmb_thislayer,cv_equilib_mem,ierr)
                if (ierr.ne.0) goto 99999
             elseif(mapalgo.eq.floponly) then
                err_rep='MAP_LAYER'
-               call MUMPS_MAP_LAYER(layernmb,thislayer,
+               call MUMPS_387(layernmb,thislayer,
      *              nmb_thislayer,cv_equilib_flops,ierr)
                if (ierr.ne.0) goto 99999
             elseif(mapalgo.eq.hybrid) then
                if (workbalance <= membalance) then
                   err_rep='MAP_LAYER'
-                  call MUMPS_MAP_LAYER(layernmb,thislayer,
+                  call MUMPS_387(layernmb,thislayer,
      *                 nmb_thislayer,cv_equilib_flops,ierr)
                   if (ierr.ne.0) goto 99999
                else
                   err_rep='MAP_LAYER'
-                  call MUMPS_MAP_LAYER(layernmb,thislayer,
+                  call MUMPS_387(layernmb,thislayer,
      *                 nmb_thislayer,cv_equilib_mem,ierr)
                   if (ierr.ne.0) goto 99999
                endif
@@ -287,23 +287,23 @@ C
       endif
          layernmb=layernmb+1
          err_rep='HIGHER_LAYER'
-         call MUMPS_HIGHER_LAYER(layernmb,layernmb,cont,ierr)
+         call MUMPS_377(layernmb,layernmb,cont,ierr)
          if (ierr.ne.0) goto 99999
       end do
 #if defined(t3e)
       if((cv_keep(50).eq.0).AND.(cv_slavef.ge.64))
-     *   call MUMPS_POSTPROCESS_MEM()
+     *   call MUMPS_431()
 #endif
        if(cv_slavef.gt.4)
-     *   call MUMPS_POSTPROCESS_MEM()
+     *   call MUMPS_431()
       err_rep='SETUP_CAND'
-      call MUMPS_SETUP_CAND(ierr)
+      call MUMPS_397(ierr)
       if (ierr.ne.0) goto 99999
       err_rep='ENCODE_PROC'
-      call MUMPS_ENCODE_PROCNODE(ierr)
+      call MUMPS_371(ierr)
       if (ierr.ne.0) goto 99999
       err_rep='STORE_GLOB'
-      call MUMPS_STORE_GLOBALS(ne,nfsiz,frere,fils,keep,KEEP8,
+      call MUMPS_402(ne,nfsiz,frere,fils,keep,KEEP8,
      *                         info,procnode,ssarbr,nbsa)
       err_rep='mem_dealloc'
       deallocate(thislayer,STAT=ierr)
@@ -314,7 +314,7 @@ C
          goto 99999
       endif
       err_rep='TERMGLOB'
-      call MUMPS_TERMGLOB(ierr)
+      call MUMPS_403(ierr)
       if (ierr.ne.0) goto 99999
       istat=0
       return
@@ -330,7 +330,7 @@ C
       istat=ierr
       return
       CONTAINS
-      subroutine MUMPS_ACCEPT_L0(
+      subroutine MUMPS_413(
      *                       map_strat,workload,memused,accepted,
      *                              istat)
       implicit none
@@ -401,8 +401,8 @@ C
       endif
       istat=0
       return
-      end subroutine MUMPS_ACCEPT_L0
-      subroutine MUMPS_AMALGAMATE_SONFATH(ifather,ison,istat)
+      end subroutine MUMPS_413
+      subroutine MUMPS_414(ifather,ison,istat)
       implicit none
       integer,intent(in)::ifather,ison
       integer, intent(out)::istat
@@ -486,7 +486,7 @@ C
          npiv=npiv+1
       end do
       nfront=cv_nfsiz(ifather)
-      call MUMPS_CALCNODECOSTS(npiv,nfront,costw,costm)
+      call MUMPS_418(npiv,nfront,costw,costm)
       cv_ncostw(ifather)=costw
       cv_ncostm(ifather)=costm
       cv_ncostw(ison)=0
@@ -494,7 +494,7 @@ C
       if(associated(cv_tcostw)) cv_tcostw(ison)=0
       if(associated(cv_tcostm)) cv_tcostm(ison)=0
       cv_total_amalg=cv_total_amalg+1
-      call MUMPS_PROPMAP4AMALG(ison,ifather,ierr)
+      call MUMPS_436(ison,ifather,ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *   write(cv_lp,*)'PROPMAP4AMALG error in ',subname
@@ -503,8 +503,8 @@ C
       end if
       istat = 0
       return
-      end subroutine MUMPS_AMALGAMATE_SONFATH
-      subroutine MUMPS_ARRANGEL0(map_strat,layerL0end,workload,memused,
+      end subroutine MUMPS_414
+      subroutine MUMPS_415(map_strat,layerL0end,workload,memused,
      *                           procnode,istat,respect_prop)
       implicit none
       integer, intent(in)::map_strat, layerL0end
@@ -539,10 +539,10 @@ C
          mem=cv_tcostm(nodenumber)
          err_rep='FIND_BEST_PROC'
          if(present(respect_prop)) then
-            call MUMPS_FIND_BEST_PROC(nodenumber,map_strat,work,mem,
+            call MUMPS_374(nodenumber,map_strat,work,mem,
      *           workload,memused,proc,ierr,respect_prop)
          else
-            call MUMPS_FIND_BEST_PROC(nodenumber,map_strat,work,mem,
+            call MUMPS_374(nodenumber,map_strat,work,mem,
      *           workload,memused,proc,ierr)
          endif
          if(ierr.eq.0) then
@@ -562,8 +562,8 @@ C
       end do
       istat=0
       return
-      end subroutine MUMPS_ARRANGEL0
-      subroutine MUMPS_ASSIGN_TYPES(
+      end subroutine MUMPS_415
+      subroutine MUMPS_416(
      *                              layernmb,thislayer,nmb_thislayer,
      *                                 istat)
       implicit none
@@ -620,7 +620,7 @@ C
             end do
             nfront = cv_nfsiz(inode)
             if(cv_nodetype(inode).ne.cv_invalid) cycle
-            if( ( MUMPS_ISTYPE2BYSIZE(nfront,npiv)) .AND.
+            if( ( MUMPS_359(nfront,npiv)) .AND.
      *           (in.ne.0)) then
                cv_nodetype(inode)=2
             else
@@ -673,33 +673,33 @@ C
       endif
       istat=0
       return
-      end subroutine MUMPS_ASSIGN_TYPES
-      function MUMPS_BIT_GET(procs4node,procnumber)
+      end subroutine MUMPS_416
+      function MUMPS_480(procs4node,procnumber)
       implicit none
       integer,intent(in)::procs4node(cv_size_ind_proc)
       integer,intent(in)::procnumber
-      logical :: MUMPS_BIT_GET
+      logical :: MUMPS_480
       integer pos1,pos2
       pos1 = (procnumber-1)/cv_bitsize_of_int +1
       pos2 = mod(procnumber-1,cv_bitsize_of_int)
-      MUMPS_BIT_GET=btest(procs4node(pos1),pos2)
+      MUMPS_480=btest(procs4node(pos1),pos2)
       return
-      end function MUMPS_BIT_GET
-      function MUMPS_BIT_GET4PROC(inode,procnumber)
+      end function MUMPS_480
+      function MUMPS_481(inode,procnumber)
       implicit none
       integer, intent(in)::inode,procnumber
-      logical :: MUMPS_BIT_GET4PROC
+      logical :: MUMPS_481
       integer pos1,pos2
-      MUMPS_BIT_GET4PROC=.FALSE.
+      MUMPS_481=.FALSE.
       if((procnumber.lt.1).or.(procnumber.gt.cv_slavef)) return
       if(.not.associated(cv_prop_map(inode)%ind_proc)) return
       pos1 = (procnumber-1)/cv_bitsize_of_int +1
       pos2 = mod(procnumber-1,cv_bitsize_of_int)
-      MUMPS_BIT_GET4PROC=btest
+      MUMPS_481=btest
      *               (cv_prop_map(inode)%ind_proc(pos1),pos2)
       return
-      end function MUMPS_BIT_GET4PROC
-      subroutine MUMPS_BIT_SET(procs4node,procnumber,istat)
+      end function MUMPS_481
+      subroutine MUMPS_482(procs4node,procnumber,istat)
       implicit none
       integer, intent(inout)::procs4node(cv_size_ind_proc)
       integer,intent(in)::procnumber
@@ -713,8 +713,8 @@ C
       procs4node(pos1)=ibset(procs4node(pos1),pos2)
       istat = 0
       return
-      end subroutine MUMPS_BIT_SET
-      subroutine MUMPS_CALCCOSTS(istat)
+      end subroutine MUMPS_482
+      subroutine MUMPS_417(istat)
       implicit none
       integer,intent(out)::istat
       integer i,ierr
@@ -738,7 +738,7 @@ C
          elseif (cv_frere(i).eq.0) then
             err_rep='TREECOSTS'
             cv_depth(i)=1
-            call MUMPS_TREECOSTS(i,ierr)
+            call MUMPS_404(i,ierr)
             maxcostw_root = max(maxcostw_root,cv_tcostw(i))
             if (ierr.ne.0) then
           if(cv_lp.gt.0)
@@ -751,8 +751,8 @@ C
       mincostw = 1+maxcostw_root/(dble(cv_maxnsteps)*
      &              dble(10*cv_slavef) )
       return
-      end subroutine MUMPS_CALCCOSTS
-      subroutine MUMPS_CALCNODECOSTS(npiv,nfront,costw,costm)
+      end subroutine MUMPS_417
+      subroutine MUMPS_418(npiv,nfront,costw,costm)
       implicit none
       integer,intent(in)::npiv,nfront
       DOUBLE PRECISION,intent(out)::costw,costm
@@ -778,8 +778,8 @@ C
       if((costw.lt.0).or.(costm.lt.0)) then
       endif
       return
-      end subroutine MUMPS_CALCNODECOSTS
-      subroutine MUMPS_COSTS_LAYER_T2(layernmb,nmb_thislayer,istat)
+      end subroutine MUMPS_418
+      subroutine MUMPS_367(layernmb,nmb_thislayer,istat)
       implicit none
       integer,intent(in)::layernmb,nmb_thislayer
       integer,intent(out)::istat
@@ -792,10 +792,10 @@ C
       logical force_cand
       intrinsic count,max
       character (len=48):: subname
-      integer MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN,
-     *        MUMPS_BLOC2_GET_NSLAVESMAX
-      external MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN,
-     *        MUMPS_BLOC2_GET_NSLAVESMAX
+      integer MUMPS_497, MUMPS_50,
+     *        MUMPS_52
+      external MUMPS_497, MUMPS_50,
+     *        MUMPS_52
       istat=-1
       subname='COSTS_LAYER_T2'
       if (cv_keep(24).lt.1) then
@@ -828,7 +828,7 @@ C
                in=cv_fils(in)
             end do
             ncb=nfront-npiv
-            kmax = MUMPS_REG_GETKMAX(cv_keep(10),ncb)
+            kmax = MUMPS_497(cv_keep(10),ncb)
             if (force_cand) then
               if (cv_keep(50) ==  0) then
                 keep48_loc=0
@@ -836,10 +836,10 @@ C
                 keep48_loc=3
               endif
               if (cv_keep(48).EQ.5) keep48_loc = 5
-               min_needed = MUMPS_BLOC2_GET_NSLAVESMIN(
+               min_needed = MUMPS_50(
      *             cv_slavef, keep48_loc,cv_keep(10),
      *             cv_keep(50),nfront,ncb)
-               max_needed = MUMPS_BLOC2_GET_NSLAVESMAX(
+               max_needed = MUMPS_52(
      *             cv_slavef, keep48_loc,cv_keep(10),
      *             cv_keep(50),nfront,ncb)
                if(cand_strat.eq.1) then
@@ -919,8 +919,8 @@ C
       endif
       istat=0
       return
-      end subroutine MUMPS_COSTS_LAYER_T2
-      subroutine MUMPS_COSTS_LAYER_T2PM(layernmb,nmb_thislayer,istat)
+      end subroutine MUMPS_367
+      subroutine MUMPS_489(layernmb,nmb_thislayer,istat)
       implicit none
       integer,intent(in)::layernmb,nmb_thislayer
       integer,intent(out)::istat
@@ -932,8 +932,8 @@ C
      *        relative_weight,workmaster,nrow
       intrinsic count,max
       character (len=48):: subname
-      integer MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN
-      external MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN
+      integer MUMPS_497, MUMPS_50
+      external MUMPS_497, MUMPS_50
       istat=-1
       subname='COSTS_LAYER_T2PM'
       if((cv_keep(24).ne.8).AND.(cv_keep(24).ne.10)
@@ -952,7 +952,7 @@ C
             work_type2_thislayer=work_type2_thislayer+cv_ncostw(inode)
             npropmap=0
             do jj=1,cv_slavef
-               if( MUMPS_BIT_GET4PROC(inode,jj))
+               if( MUMPS_481(inode,jj))
      *              npropmap=npropmap+1
             end do
             total_cand_layer=total_cand_layer+npropmap
@@ -967,7 +967,7 @@ C
                in=cv_fils(in)
             end do
             ncb=nfront-npiv
-            kmax = MUMPS_REG_GETKMAX(cv_keep(10),ncb)
+            kmax = MUMPS_497(cv_keep(10),ncb)
             if(kmax.lt.1) then
                kmax = max(kmax,1)
             endif
@@ -977,7 +977,7 @@ C
               keep48_loc=3
             endif
             if (cv_keep(48).EQ.5) keep48_loc = 5
-            min_needed= MUMPS_BLOC2_GET_NSLAVESMIN
+            min_needed= MUMPS_50
      *          (cv_slavef, keep48_loc,cv_keep(10),
      *           cv_keep(50),nfront,ncb)
             if(min_needed.lt.1) then
@@ -989,7 +989,7 @@ C
      *          (cv_keep(24).eq.18)) then
                npropmap=0
                do jj=1,cv_slavef
-                  if( MUMPS_BIT_GET4PROC(inode,jj))
+                  if( MUMPS_481(inode,jj))
      *                 npropmap=npropmap+1
                end do
                total_nmb_cand=max(npropmap-1,min_needed)
@@ -1010,7 +1010,7 @@ C
                   endif
                   npropmap=0
                   do jj=1,cv_slavef
-                     if( MUMPS_BIT_GET4PROC(inode,jj))
+                     if( MUMPS_481(inode,jj))
      *                    npropmap=npropmap+1
                   end do
                   total_nmb_cand=max(npropmap-1,min_needed)
@@ -1088,8 +1088,8 @@ C
       endif
       istat=0
       return
-      end subroutine MUMPS_COSTS_LAYER_T2PM
-      subroutine MUMPS_DO_AMALGAMATION(layernmb,thislayer,
+      end subroutine MUMPS_489
+      subroutine MUMPS_410(layernmb,thislayer,
      *                                    nmb_thislayer,istat)
       implicit none
       integer,intent(in)::layernmb,thislayer(cv_maxnodenmb),
@@ -1169,7 +1169,7 @@ C
             cycle
          endif
          err_rep='AMALG_SONFATH'
-         call MUMPS_AMALGAMATE_SONFATH(ifather,inode,ierr)
+         call MUMPS_414(ifather,inode,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
      *      write(cv_lp,*)'Error reported by ',err_rep,' in ',subname
@@ -1179,8 +1179,8 @@ C
       end do
       istat=0
       return
-      end subroutine MUMPS_DO_AMALGAMATION
-      subroutine MUMPS_NEWSPLITTING(
+      end subroutine MUMPS_410
+      subroutine MUMPS_527(
      *     layernmb,thislayer,nmb_thislayer,
      *     istat)
       implicit none
@@ -1202,7 +1202,7 @@ C
          ierr=0
          inode=thislayer(i)
          err_rep='GET_SPLIT_INKPART'
-         call MUMPS_GET_SPLIT_INKPART(inode,
+         call MUMPS_525(inode,
      *        doit,npiv,nfront,k1,k3,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
@@ -1218,7 +1218,7 @@ C
             cycle
          endif
          err_rep='GET_MEMSPLIT_INKPART'
-         call MUMPS_GET_MEMSPLIT_INKPART(inode,
+         call MUMPS_526(inode,
      *        doit,npiv,nfront,k2,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
@@ -1231,7 +1231,7 @@ C
          k1 = min(k1,k3)
          if( k1 .eq. 1) cycle
          err_rep='SPLITNODE_INKPART'
-         call MUMPS_SPLITNODE_INKPART(inode,nfront,npiv,k1,
+         call MUMPS_529(inode,nfront,npiv,k1,
      *        ison,ifather,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
@@ -1243,8 +1243,8 @@ C
       end do
       istat=0
       return
-      end subroutine MUMPS_NEWSPLITTING
-      subroutine MUMPS_GET_SPLIT_INKPART(inode,
+      end subroutine MUMPS_527
+      subroutine MUMPS_525(inode,
      *     doit,npiv,nfront,k1,k3,istat)
       implicit none
       integer,intent(in)::inode
@@ -1255,12 +1255,12 @@ C
       integer npropmap,j,ncb,kmax,keep48_loc,nslaves_max,
      *     nslaves_estim,strat,kk
       DOUBLE PRECISION wk_master,wk_slave,wk_master2,wk_slave2
-      integer MUMPS_REG_GETKMAX,
-     *     MUMPS_BLOC2_GET_NSLAVESMAX,
-     *     MUMPS_BLOC2_GET_NSLAVESMIN
-      external MUMPS_REG_GETKMAX
-      external MUMPS_BLOC2_GET_NSLAVESMAX
-      external MUMPS_BLOC2_GET_NSLAVESMIN
+      integer MUMPS_497,
+     *     MUMPS_52,
+     *     MUMPS_50
+      external MUMPS_497
+      external MUMPS_52
+      external MUMPS_50
       doit=.FALSE.
       if(present(npiv)) npiv=cv_invalid
       if(present(nfront)) nfront=cv_invalid
@@ -1291,7 +1291,7 @@ C
          istat = 0
          return
       endif
-      if( .not. MUMPS_ISTYPE2BYSIZE(nfront,npiv_son2) )then
+      if( .not. MUMPS_359(nfront,npiv_son2) )then
          doit=.FALSE.
          istat = 0
          return
@@ -1299,12 +1299,12 @@ C
       in = inode
       npropmap=0
       do j=1,cv_slavef
-         if( MUMPS_BIT_GET4PROC(in,j)) then
+         if( MUMPS_481(in,j)) then
             npropmap=npropmap+1
          endif
       end do
       ncb = nfront - npiv
-      kmax = MUMPS_REG_GETKMAX(cv_keep(10),ncb)
+      kmax = MUMPS_497(cv_keep(10),ncb)
       if (cv_keep(50) ==  0) then
          keep48_loc=0
       else
@@ -1312,16 +1312,16 @@ C
       endif
       if (cv_keep(48).EQ.5) keep48_loc = 5
       if(npropmap .gt. cv_keep(83)) then
-         nslaves_max   = MUMPS_BLOC2_GET_NSLAVESMAX(
+         nslaves_max   = MUMPS_52(
      *        cv_slavef, keep48_loc, cv_keep(10),
      *        cv_keep(50), nfront, ncb )
          nslaves_estim = min(npropmap,nslaves_max)
          nslaves_estim = max(nslaves_estim,1)
       else
-         nslaves_max   = MUMPS_BLOC2_GET_NSLAVESMAX(
+         nslaves_max   = MUMPS_52(
      *        cv_slavef, keep48_loc, cv_keep(10),
      *        cv_keep(50), nfront, ncb )
-         nslaves_estim = MUMPS_BLOC2_GET_NSLAVESMIN(
+         nslaves_estim = MUMPS_50(
      *     cv_slavef, keep48_loc,cv_keep(10),
      *     cv_keep(50), nfront, ncb )
          nslaves_estim = max(nslaves_estim,1)
@@ -1386,8 +1386,8 @@ C
       endif
       if(present(istat)) istat=0
       return
-      end subroutine MUMPS_GET_SPLIT_INKPART
-      subroutine MUMPS_GET_MEMSPLIT_INKPART(inode,
+      end subroutine MUMPS_525
+      subroutine MUMPS_526(inode,
      *     doit,npiv,nfront,k2,istat)
       implicit none
       integer,intent(in)::inode
@@ -1432,8 +1432,8 @@ C
       enddo
       if(present(istat)) istat=0
       return
-      end subroutine MUMPS_GET_MEMSPLIT_INKPART
-      subroutine MUMPS_SPLITNODE_INKPART(inode,nfront,npiv,k,
+      end subroutine MUMPS_526
+      subroutine MUMPS_529(inode,nfront,npiv,k,
      *     ison,ifather,istat)
       implicit none
       integer, intent(in)::nfront,npiv
@@ -1465,7 +1465,7 @@ C
       ison = d1
       in_son = f1
       next_father = cv_fils(in_son)
-      call MUMPS_CALCNODECOSTS(npiv_son,nfrontk,
+      call MUMPS_418(npiv_son,nfrontk,
      *     ncostw_ison,ncostm_ison)
       cv_ncostw(ison)=ncostw_ison
       cv_ncostm(ison)=ncostm_ison
@@ -1492,7 +1492,7 @@ C
          cv_nfsiz(ifather)=nfrontk-npiv_son
          cv_ne(ifather)=1
          cv_keep(61)=cv_keep(61)+1 
-         call MUMPS_CALCNODECOSTS(npiv_son,nfrontk-npiv_son,
+         call MUMPS_418(npiv_son,nfrontk-npiv_son,
      *        ncostw_ifather,ncostm_ifather)
          cv_ncostw(ifather)=ncostw_ifather
          cv_ncostm(ifather)=ncostm_ifather
@@ -1502,7 +1502,7 @@ C
      *        cv_tcostm(ifather) = cv_tcostm(ison)+cv_ncostm(ifather)
          cv_total_split=cv_total_split+1
          if(lev .gt. 1) then
-            call MUMPS_PROPMAP4SPLIT(inode,ison,ierr)
+            call MUMPS_437(inode,ison,ierr)
             if(ierr.ne.0) then
                if(cv_lp.gt.0)
      *              write(cv_lp,*)'PROPMAP4SPLIT error in ',subname
@@ -1510,7 +1510,7 @@ C
                return
             endif
          endif
-         if( MUMPS_ISTYPE2BYSIZE(nfrontk-npiv_son,npiv_son) ) then
+         if( MUMPS_359(nfrontk-npiv_son,npiv_son) ) then
             cv_nodetype(ifather) = 2
          else
             cv_nodetype(ifather) = 1
@@ -1522,12 +1522,12 @@ C
       enddo
       dk = ifather
       fk = in_father
-      if( MUMPS_ISTYPE2BYSIZE(nfrontk,npivk) ) then
+      if( MUMPS_359(nfrontk,npivk) ) then
          cv_nodetype(dk) = 2
       else
          cv_nodetype(dk) = 1
       endif
-      call MUMPS_CALCNODECOSTS(npivk,nfrontk,
+      call MUMPS_418(npivk,nfrontk,
      *     ncostw_ifather,ncostm_ifather)
       cv_ncostw(dk)=ncostw_ifather
       cv_ncostm(dk)=ncostm_ifather
@@ -1562,7 +1562,7 @@ C
          end do
          ison = -cv_fils(ison)
       enddo
-      call MUMPS_PROPMAP4SPLIT(inode,dk,ierr)
+      call MUMPS_437(inode,dk,ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *        write(cv_lp,*)'PROPMAP4SPLIT error in ',subname
@@ -1572,8 +1572,8 @@ C
       cv_nsteps = cv_nsteps + k-1
       istat = 0
       return
-      end subroutine MUMPS_SPLITNODE_INKPART
-      subroutine MUMPS_DO_SPLITTING(
+      end subroutine MUMPS_529
+      subroutine MUMPS_370(
      *                              layernmb,thislayer,nmb_thislayer,
      *                              istat)
       implicit none
@@ -1601,14 +1601,14 @@ C
             in=cv_fils(in)
             npiv=npiv+1
          end do
-         if( MUMPS_ISTYPE2BYSIZE(nfront,npiv))
+         if( MUMPS_359(nfront,npiv))
      &                        nmb_type2=nmb_type2+1
       end do
       do i=1,nmb_thislayer
          ierr=0
          inode=thislayer(i)
          err_rep='SPLIT2HALVES'
-         call MUMPS_SPLIT2HALVES(inode,
+         call MUMPS_400(inode,
      *                              doit,npiv,nfront,npiv_son,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
@@ -1618,7 +1618,7 @@ C
          endif
          if(.NOT.doit) cycle
          err_rep='SPLITNODE'
-         call MUMPS_SPLITNODE(inode,nfront,npiv,npiv_son,
+         call MUMPS_401(inode,nfront,npiv,npiv_son,
      *                           ison,ifather,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
@@ -1629,8 +1629,8 @@ C
       end do
       istat=0
       return
-      end subroutine MUMPS_DO_SPLITTING
-      subroutine MUMPS_ENCODE_PROCNODE(istat)
+      end subroutine MUMPS_370
+      subroutine MUMPS_371(istat)
       implicit none
       integer, intent(out)::istat
       integer i,in,inode
@@ -1646,7 +1646,7 @@ C
          end do
          in=-in
          do while(in.gt.0)
-            call MUMPS_TYPEINSSARBR(in)
+            call MUMPS_406(in)
             in=cv_frere(in)
          enddo
       enddo
@@ -1670,8 +1670,8 @@ C
       end do
       istat = 0
       return
-      end subroutine MUMPS_ENCODE_PROCNODE
-      subroutine MUMPS_FATHSON_REPLACE(ifather,istat)
+      end subroutine MUMPS_371
+      subroutine MUMPS_372(ifather,istat)
       implicit none
       integer,intent(in)::ifather
       integer,intent(out)::istat
@@ -1720,10 +1720,10 @@ C
          cv_costw_upper=cv_costw_upper + cv_ncostw(ifather)
          cv_costm_upper=cv_costm_upper + cv_ncostm(ifather)
          if(cv_layerl0_end.gt.oldl0end) then
-            call MUMPS_SORT_MSORT(cv_layerl0_end-oldl0end,
+            call MUMPS_459(cv_layerl0_end-oldl0end,
      *            cv_layerl0_array(oldl0end+1:cv_layerl0_end),
      *     cv_layerl0_sorted_costw(oldl0end+1:cv_layerl0_end))
-           call MUMPS_SORT_MMERGE(
+           call MUMPS_516(
      *        cv_layerl0_start,oldl0end,oldl0end-cv_layerl0_start+1,
      *        oldl0end+1,cv_layerl0_end,cv_layerl0_end-oldl0end,
      *        cv_layerl0_array,
@@ -1731,8 +1731,8 @@ C
          endif
       istat=0
       return
-      end subroutine MUMPS_FATHSON_REPLACE
-      subroutine MUMPS_FIND_BEST_PROC(inode,map_strat,work,mem,
+      end subroutine MUMPS_372
+      subroutine MUMPS_374(inode,map_strat,work,mem,
      *                       workload,memused,proc,istat,respect_prop)
 cDEC$ NOOPTIMIZE
       implicit none
@@ -1759,7 +1759,7 @@ cDEC$ NOOPTIMIZE
          if (
      *       ((.NOT.respect_proportional)
      *        .OR.
-     *        (MUMPS_BIT_GET4PROC(inode,i).AND.respect_proportional))
+     *        (MUMPS_481(inode,i).AND.respect_proportional))
      *      .AND.
      *       (((workload(i).lt.dummy).AND.
      *                         (map_strat.eq.cv_equilib_flops))
@@ -1786,8 +1786,8 @@ cDEC$ NOOPTIMIZE
          istat=0
       end if
       return
-      end subroutine MUMPS_FIND_BEST_PROC
-      subroutine MUMPS_FIND_POTSPLIT(map_strat,istat)
+      end subroutine MUMPS_374
+      subroutine MUMPS_375(map_strat,istat)
       implicit none
       integer,intent(in)::map_strat
       integer,intent(out)::istat
@@ -1799,10 +1799,10 @@ cDEC$ NOOPTIMIZE
       DOUBLE PRECISION,DIMENSION(:), POINTER ::  costs
       logical doit
       character (len=48):: subname
-      integer MUMPS_REG_GETKMAX,
-     *        MUMPS_BLOC2_GET_NSLAVESMAX
-      external MUMPS_REG_GETKMAX,
-     *        MUMPS_BLOC2_GET_NSLAVESMAX
+      integer MUMPS_497,
+     *        MUMPS_52
+      external MUMPS_497,
+     *        MUMPS_52
       istat=-1
       current_max_node=-9999
       current_max=0.0E0
@@ -1841,7 +1841,7 @@ cDEC$ NOOPTIMIZE
          in = inode
          npropmap=0
          do j=1,cv_slavef
-            if( MUMPS_BIT_GET4PROC(in,j)) then
+            if( MUMPS_481(in,j)) then
                npropmap=npropmap+1
             endif
          end do
@@ -1851,14 +1851,14 @@ cDEC$ NOOPTIMIZE
             npiv = npiv + 1
          end do
          ncb = nfront - npiv
-         kmax = MUMPS_REG_GETKMAX(cv_keep(10),ncb)
+         kmax = MUMPS_497(cv_keep(10),ncb)
          if (cv_keep(50) ==  0) then
            keep48_loc=0
          else
            keep48_loc=3
          endif
          if (cv_keep(48).EQ.5) keep48_loc = 5
-         nslaves_max   = MUMPS_BLOC2_GET_NSLAVESMAX(
+         nslaves_max   = MUMPS_52(
      *        cv_slavef, keep48_loc, cv_keep(10),
      *        cv_keep(50), nfront, ncb )
          nslaves_estim = min(npropmap,nslaves_max)
@@ -1888,8 +1888,8 @@ cDEC$ NOOPTIMIZE
       cv_potsplit(aux_int:cv_maxcut)=cv_invalid
       istat=0
       return
-      end subroutine MUMPS_FIND_POTSPLIT
-      subroutine MUMPS_FIND_THISLAYER(nmb,
+      end subroutine MUMPS_375
+      subroutine MUMPS_376(nmb,
      *                                   thislayer,nmb_thislayer,istat)
       implicit none
       integer, intent(in)::nmb
@@ -1914,8 +1914,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat=0
       return
-      end subroutine MUMPS_FIND_THISLAYER
-      subroutine MUMPS_HIGHER_LAYER(startlayer,stoplayer,cont,istat)
+      end subroutine MUMPS_376
+      subroutine MUMPS_377(startlayer,stoplayer,cont,istat)
       implicit none
       integer,intent(in)::startlayer,stoplayer
       logical,intent(inout)::cont
@@ -1977,8 +1977,8 @@ cDEC$ NOOPTIMIZE
       endif
       istat=0
       return
-      end subroutine MUMPS_HIGHER_LAYER
-      subroutine MUMPS_INITPART1(n,slavef,
+      end subroutine MUMPS_377
+      subroutine MUMPS_478(n,slavef,
      *                    frere,fils,nfsiz,ne,keep,KEEP8,icntl,info,
      *                    procnode,ssarbr,peak,istat
      $     )
@@ -2115,8 +2115,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat=0
       return
-      end subroutine MUMPS_INITPART1
-      subroutine MUMPS_INITPART2(istat)
+      end subroutine MUMPS_478
+      subroutine MUMPS_479(istat)
       implicit none
       integer,intent(out)::istat
       integer i,allocok,inode,in,inoderoot,ierr
@@ -2196,18 +2196,18 @@ cDEC$ NOOPTIMIZE
          cv_layer_p2node(i)%nmb_t2s=0
       enddo
       istat = 0
-      end subroutine MUMPS_INITPART2
-      function MUMPS_ISTYPE2BYSIZE(nfront,npiv)
+      end subroutine MUMPS_479
+      function MUMPS_359(nfront,npiv)
       implicit none
-      logical::MUMPS_ISTYPE2BYSIZE
+      logical::MUMPS_359
       integer,intent(in)::nfront,npiv
-      MUMPS_ISTYPE2BYSIZE=.FALSE.
+      MUMPS_359=.FALSE.
       if( (nfront - npiv > cv_keep(9))
      *     .and. ((npiv > cv_keep(4)).or.(.TRUE.))
-     *     .and. (cv_icntl(40).eq.0) ) MUMPS_ISTYPE2BYSIZE=.TRUE.
+     *     .and. (cv_icntl(40).eq.0) ) MUMPS_359=.TRUE.
       return
-      end function MUMPS_ISTYPE2BYSIZE
-      subroutine MUMPS_LAYERL0(istat)
+      end function MUMPS_359
+      subroutine MUMPS_381(istat)
       implicit none
       integer,intent(out)::istat
       integer i,ierr,inode
@@ -2237,7 +2237,7 @@ cDEC$ NOOPTIMIZE
           accepted = .false.  
          ELSE
           err_rep='ARRANGEL0'
-          call MUMPS_ARRANGEL0(map_strat, layerL0_endforarrangeL0,
+          call MUMPS_415(map_strat, layerL0_endforarrangeL0,
      *                           cv_layerworkload,cv_layermemused,
      *                           cv_procnode,ierr)
           if(ierr.ne.0) then
@@ -2247,7 +2247,7 @@ cDEC$ NOOPTIMIZE
             return
           end if
           err_rep='ACCEPT_L0'
-          call MUMPS_ACCEPT_L0(map_strat,
+          call MUMPS_413(map_strat,
      *                           cv_layerworkload,cv_layermemused,
      *                           accepted,ierr)
           if(ierr.ne.0) then
@@ -2267,7 +2267,7 @@ cDEC$ NOOPTIMIZE
             use_geist_ng_replace = .TRUE.
             if(use_geist_ng_replace) then
                err_rep='FATHSON_REPLACE'
-               call MUMPS_FATHSON_REPLACE(inode,ierr)
+               call MUMPS_372(inode,ierr)
                if(ierr.eq.1) then
                   accepted=.TRUE.
                elseif(ierr.ne.0) then
@@ -2288,7 +2288,7 @@ cDEC$ NOOPTIMIZE
          goto 55
       endif
       err_rep='LIST2LAYER'
-      call MUMPS_LIST2LAYER(ierr)
+      call MUMPS_382(ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *        write(cv_lp,*)'Error reported by ',err_rep,' in ',subname
@@ -2296,7 +2296,7 @@ cDEC$ NOOPTIMIZE
          return
       end if
       err_rep='MAKE_PROPMAP'
-      call MUMPS_MAKE_PROPMAP(ierr)
+      call MUMPS_477(ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *        write(cv_lp,*)'Error reported by ',err_rep,' in ',subname
@@ -2304,7 +2304,7 @@ cDEC$ NOOPTIMIZE
          return
       end if
       if ( cv_keep(75).EQ.1 ) then
-         call MUMPS_ARRANGEL0(map_strat, cv_layerl0_end,
+         call MUMPS_415(map_strat, cv_layerl0_end,
      *                     cv_layerworkload,cv_layermemused,
      *                     cv_procnode,ierr, respect_prop=.TRUE.)
          if(ierr.ne.0) then
@@ -2314,19 +2314,19 @@ cDEC$ NOOPTIMIZE
             return
          end if
       else if (layerL0_endforarrangeL0.LT.cv_layerl0_end) THEN
-         call MUMPS_ARRANGEL0(map_strat, cv_layerl0_end,
+         call MUMPS_415(map_strat, cv_layerl0_end,
      *                     cv_layerworkload,cv_layermemused,
      *                     cv_procnode,ierr)
       endif
-      call MUMPS_MAPSUBTREE(cv_procnode)
+      call MUMPS_386(cv_procnode)
       do i=1,cv_slavef
          cv_proc_workload(i)=cv_layerworkload(i)
          cv_proc_memused(i)=cv_layermemused(i)
       end do
       istat=0
       return
-      end subroutine MUMPS_LAYERL0
-      subroutine MUMPS_LIST2LAYER(istat)
+      end subroutine MUMPS_381
+      subroutine MUMPS_382(istat)
       implicit none
       integer, intent(out)::istat
       type(nodelist),pointer::dummy
@@ -2348,8 +2348,8 @@ cDEC$ NOOPTIMIZE
       enddo
       istat=0
       return
-      end subroutine MUMPS_LIST2LAYER
-      subroutine MUMPS_MAKE_PROPMAP(istat)
+      end subroutine MUMPS_382
+      subroutine MUMPS_477(istat)
       implicit none
       integer,intent(out)::istat
       integer i,pctr,pctr2,ierr,procindex(cv_size_ind_proc)
@@ -2357,7 +2357,7 @@ cDEC$ NOOPTIMIZE
       pctr=cv_n
       pctr2=cv_mixed_strat_bound
       do i=1,cv_slavef
-         call MUMPS_BIT_SET(procindex,i,ierr)
+         call MUMPS_482(procindex,i,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)write(cv_lp,*)
      *           'BIT_SET signalled error to',subname
@@ -2368,7 +2368,7 @@ cDEC$ NOOPTIMIZE
       do i=1,cv_n
          if(cv_frere(i).eq.0) then
             if(.NOT.associated(cv_prop_map(i)%ind_proc)) then
-               call MUMPS_PROPMAP_INIT(i,ierr)
+               call MUMPS_434(i,ierr)
                if(ierr.ne.0) then
                   if(cv_lp.gt.0)
      *                 write(cv_lp,*)'PROPMAP_INIT signalled error to'
@@ -2378,7 +2378,7 @@ cDEC$ NOOPTIMIZE
                end if
             endif
             cv_prop_map(i)%ind_proc = procindex
-            call MUMPS_PROPMAP(i,pctr,ierr)
+            call MUMPS_433(i,pctr,ierr)
             if(ierr.ne.0) then
             if(cv_lp.gt.0)write(cv_lp,*)
      *           'PROPMAP signalled error to',subname
@@ -2386,7 +2386,7 @@ cDEC$ NOOPTIMIZE
                return
             endif
             if((cv_keep(24).eq.16).OR.(cv_keep(24).eq.18)) then
-               call MUMPS_MOD_PROPMAP(i,pctr2,ierr)
+               call MUMPS_517(i,pctr2,ierr)
                if(ierr.ne.0) then
                   if(cv_lp.gt.0)write(cv_lp,*)
      *           'MOD_PROPMAP signalled error to',subname
@@ -2398,8 +2398,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat = 0
       return
-      end subroutine MUMPS_MAKE_PROPMAP
-      subroutine MUMPS_MAP_LAYER(layernmb,thislayer,
+      end subroutine MUMPS_477
+      subroutine MUMPS_387(layernmb,thislayer,
      *   nmb_thislayer,map_strat,istat)
       implicit none
       integer, intent(in)::layernmb,thislayer(cv_maxnodenmb),
@@ -2479,10 +2479,10 @@ cDEC$ NOOPTIMIZE
          end if
       end do
       if (map_strat.eq.cv_equilib_flops) then
-         call MUMPS_SORT_MSORT(nmb,sorted_nmb(1:nmb),
+         call MUMPS_459(nmb,sorted_nmb(1:nmb),
      *                   sorted_costw(1:nmb),sorted_costm(1:nmb))
       elseif(map_strat.eq.cv_equilib_mem) then
-         call MUMPS_SORT_MSORT(nmb,sorted_nmb(1:nmb),
+         call MUMPS_459(nmb,sorted_nmb(1:nmb),
      *                   sorted_costm(1:nmb),sorted_costw(1:nmb))
       endif
       do i=1,nmb
@@ -2494,11 +2494,11 @@ cDEC$ NOOPTIMIZE
             inode=-aux_int
             err_rep='SORTPROCS'
             if(use_propmap) then
-               call MUMPS_SORTPROCS(map_strat,
+               call MUMPS_398(map_strat,
      *              cv_proc_workload,cv_proc_memused,
      *              inode=inode,istat=ierr)
             else
-               call MUMPS_SORTPROCS(map_strat,
+               call MUMPS_398(map_strat,
      *              cv_proc_workload,cv_proc_memused,
      *              istat=ierr)
             end if
@@ -2598,11 +2598,11 @@ cDEC$ NOOPTIMIZE
             inode=aux_int
             err_rep='SORTPROCS'
             if(use_propmap) then
-               call MUMPS_SORTPROCS(map_strat,
+               call MUMPS_398(map_strat,
      *                        cv_proc_workload,cv_proc_memused,
      *                        inode=inode,istat=ierr)
             else
-               call MUMPS_SORTPROCS(map_strat,
+               call MUMPS_398(map_strat,
      *                        cv_proc_workload,cv_proc_memused,
      *                        inode,istat=ierr)
             endif
@@ -2767,8 +2767,8 @@ cDEC$ NOOPTIMIZE
       enddo
       istat=0
       return
-      end subroutine MUMPS_MAP_LAYER
-      recursive subroutine MUMPS_MAPBELOW(inode,procnmb,
+      end subroutine MUMPS_387
+      recursive subroutine MUMPS_385(inode,procnmb,
      *                                       procnode)
       integer,intent(in)::inode,procnmb
       integer,intent(inout)::procnode(cv_n)
@@ -2782,12 +2782,12 @@ cDEC$ NOOPTIMIZE
       end do
       in=-in
       do while(in>0)
-         call MUMPS_MAPBELOW(in,procnmb,procnode)
+         call MUMPS_385(in,procnmb,procnode)
          in=cv_frere(in)
       end do
       return
-      end subroutine MUMPS_MAPBELOW
-      subroutine MUMPS_MAPSUBTREE(procnode)
+      end subroutine MUMPS_385
+      subroutine MUMPS_386(procnode)
       implicit none
       integer,intent(inout)::procnode(cv_n)
       integer i,inode,procnmb
@@ -2796,12 +2796,12 @@ cDEC$ NOOPTIMIZE
          inode=cv_layerl0_array(i)
          if(inode.gt.0) then
             procnmb=procnode(inode)
-            call MUMPS_MAPBELOW(inode,procnmb,procnode)
+            call MUMPS_385(inode,procnmb,procnode)
          endif
       enddo
       return
-      end subroutine MUMPS_MAPSUBTREE
-      subroutine MUMPS_MAX_TCOST_L0(map_strat,inode,istat)
+      end subroutine MUMPS_386
+      subroutine MUMPS_389(map_strat,inode,istat)
       implicit none
       integer, intent(in)::map_strat
       integer,intent(out)::inode,istat
@@ -2821,8 +2821,8 @@ cDEC$ NOOPTIMIZE
       inode=cv_layerl0_array(cv_layerl0_start)
       istat=0
       return
-      end subroutine MUMPS_MAX_TCOST_L0
-      subroutine MUMPS_POSTPROCESS_MEM()
+      end subroutine MUMPS_389
+      subroutine MUMPS_431()
       implicit none
       integer candid,inode,index,i,j,layernmb,master,nmbcand,swapper,
      *        totalnmb,node_of_master,node_of_candid,node_of_swapper
@@ -2837,7 +2837,7 @@ cDEC$ NOOPTIMIZE
             master=cv_procnode(inode)
             if(ke69 .gt. 1) then
                allowed_nodes = .FALSE.
-               call MUMPS_FIX_ACCEPTED_MASTER(layernmb,i)
+               call MUMPS_476(layernmb,i)
                node_of_master = mem_distribmpi(master-1)
                if (node_of_master .lt. 0 ) then
                 if(cv_mp.gt.0) write(cv_mp,*)'node_of_master_not found'
@@ -2929,8 +2929,8 @@ cDEC$ NOOPTIMIZE
             endif
          enddo
       enddo
-      end subroutine MUMPS_POSTPROCESS_MEM
-      subroutine MUMPS_PROCINIT(maxwork,maxmem,istat)
+      end subroutine MUMPS_431
+      subroutine MUMPS_391(maxwork,maxmem,istat)
       implicit none
       DOUBLE PRECISION,intent(in),OPTIONAL::maxwork(cv_slavef),
      *                                      maxmem(cv_slavef)
@@ -2991,8 +2991,8 @@ cDEC$ NOOPTIMIZE
       cv_proc_sorted=(/(i,i=1,cv_slavef)/)
       istat=0
       return
-      end subroutine MUMPS_PROCINIT
-      recursive subroutine MUMPS_MOD_PROPMAP
+      end subroutine MUMPS_391
+      recursive subroutine MUMPS_517
      *                    (inode,ctr,istat)
       implicit none
       integer, intent(in)::inode,ctr
@@ -3019,19 +3019,19 @@ cDEC$ NOOPTIMIZE
       if(.NOT.associated(cv_prop_map(inode)%ind_proc)) return
       nmb_procs_inode = 0
       do j=1,cv_slavef
-         if( MUMPS_BIT_GET4PROC(inode,j))then
+         if( MUMPS_481(inode,j))then
             nmb_procs_inode = nmb_procs_inode + 1
          endif
       end do
       i=0
       do j=1,cv_slavef
             if(ke69 .gt.1) then
-               call MUMPS_GET_IDP1_PROC(j-1,
+               call MUMPS_493(j-1,
      $              k69onid,ierr)
             else
                k69onid = j
             endif
-            if(MUMPS_BIT_GET4PROC(inode,k69onid))then
+            if(MUMPS_481(inode,k69onid))then
                i = i + 1
                procs_inode(i)=k69onid
             endif
@@ -3108,9 +3108,9 @@ cDEC$ NOOPTIMIZE
             end do
             nmb_propmap_strict=0
             do k=1,cv_slavef
-               if( MUMPS_BIT_GET4PROC(in,k)) then
+               if( MUMPS_481(in,k)) then
                   nmb_propmap_strict=nmb_propmap_strict+1
-                  call MUMPS_BIT_SET(procs4son,k,ierr)
+                  call MUMPS_482(procs4son,k,ierr)
                end if
             end do
             if(costs_sons.gt.0) then
@@ -3132,10 +3132,10 @@ cDEC$ NOOPTIMIZE
                do j=1,nmb_procs_inode
                   if(share2.le.0) exit
                   k69onid = procs_inode(j)
-                  if(( MUMPS_BIT_GET4PROC(inode,k69onid)).AND.
-     *                 (.NOT.MUMPS_BIT_GET(procs4son,k69onid))) then
+                  if(( MUMPS_481(inode,k69onid)).AND.
+     *                 (.NOT.MUMPS_480(procs4son,k69onid))) then
                      if(k.ge.current2)then
-                        call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+                        call MUMPS_482(procs4son,k69onid,ierr)
                         if(ierr.ne.0) then
                            if(cv_lp.gt.0)write(cv_lp,*)
      *                          'BIT_SET signalled error to',subname
@@ -3158,7 +3158,7 @@ cDEC$ NOOPTIMIZE
          ierr=0
          in1=in
          cv_prop_map(in1)%ind_proc=procs4son
-         call MUMPS_MOD_PROPMAP(in1,ctr-1,ierr)
+         call MUMPS_517(in1,ctr-1,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0) write(cv_lp,*)
      *           'Error reported in ',subname
@@ -3169,8 +3169,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat = 0
       return
-      end subroutine MUMPS_MOD_PROPMAP
-      recursive subroutine MUMPS_PROPMAP(inode,ctr,istat)
+      end subroutine MUMPS_517
+      recursive subroutine MUMPS_433(inode,ctr,istat)
       implicit none
       integer, intent(in)::inode,ctr
       integer, intent(inout)::istat
@@ -3182,8 +3182,8 @@ cDEC$ NOOPTIMIZE
       DOUBLE PRECISION :: relative_weight,costs_sons, shtemp
       DOUBLE PRECISION :: loc_relax, depth
       logical force_cand
-      integer MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN
-      external MUMPS_REG_GETKMAX, MUMPS_BLOC2_GET_NSLAVESMIN
+      integer MUMPS_497, MUMPS_50
+      external MUMPS_497, MUMPS_50
       DOUBLE PRECISION Y
       intrinsic random_number
       integer nmb_propmap_strict,share2,procsrest,current2
@@ -3200,7 +3200,7 @@ cDEC$ NOOPTIMIZE
       subname='PROPMAP'
       nmb_procs_inode = 0
       do j=1,cv_slavef
-         if( MUMPS_BIT_GET4PROC(inode,j))
+         if( MUMPS_481(inode,j))
      *        nmb_procs_inode = nmb_procs_inode + 1
       end do
       if(nmb_procs_inode.eq.0) then
@@ -3308,12 +3308,12 @@ cDEC$ NOOPTIMIZE
             offset=1
             do j=current,cv_slavef
                if(ke69 .gt.1) then
-                  call MUMPS_GET_IDP1_PROC(j-1,k69onid,ierr)
+                  call MUMPS_493(j-1,k69onid,ierr)
                else
                   k69onid = j
                endif
-               if( MUMPS_BIT_GET4PROC(inode,k69onid)) then
-                  call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+               if( MUMPS_481(inode,k69onid)) then
+                  call MUMPS_482(procs4son,k69onid,ierr)
                   if(ierr.ne.0) then
                      if(cv_lp.gt.0)write(cv_lp,*)
      *               'BIT_SET signalled error to',subname
@@ -3331,12 +3331,12 @@ cDEC$ NOOPTIMIZE
             if(share.gt.0) then
                do j=1,current-1
                   if(ke69 .gt.1) then
-                     call MUMPS_GET_IDP1_PROC(j-1,k69onid,ierr)
+                     call MUMPS_493(j-1,k69onid,ierr)
                   else
                      k69onid = j
                   endif
-                  if( MUMPS_BIT_GET4PROC(inode,k69onid)) then
-                     call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+                  if( MUMPS_481(inode,k69onid)) then
+                     call MUMPS_482(procs4son,k69onid,ierr)
                      if(ierr.ne.0) then
                         if(cv_lp.gt.0)write(cv_lp,*)
      *                  'BIT_SET signalled error to',subname
@@ -3364,7 +3364,7 @@ cDEC$ NOOPTIMIZE
      $                 dble(nmb_propmap_strict)
                   local_son_indice=local_son_indice+1
                   if(local_son_indice.eq.cv_slavef)then
-                     CALL MUMPS_SORT_MSORT(cv_slavef,id_son,
+                     CALL MUMPS_459(cv_slavef,id_son,
      $                    work_per_proc)
                   endif
                else
@@ -3390,7 +3390,7 @@ cDEC$ NOOPTIMIZE
             upper_round_off=.FALSE.
          endif
          if(.NOT.associated(cv_prop_map(in)%ind_proc)) then
-            call MUMPS_PROPMAP_INIT(in,ierr)
+            call MUMPS_434(in,ierr)
             if(ierr.ne.0) then
                if(cv_lp.gt.0)
      *              write(cv_lp,*)'PROPMAP_INIT signalled error to'
@@ -3408,17 +3408,17 @@ cDEC$ NOOPTIMIZE
                procs4son=cv_prop_map(id_son(j))%ind_proc
                do while(current.le.cv_slavef)
                   if(ke69 .gt.1) then
-                     call MUMPS_GET_IDP1_PROC(current-1,k69onid,ierr)
+                     call MUMPS_493(current-1,k69onid,ierr)
                   else
                      k69onid = current
                   endif
-                  if(.NOT.MUMPS_BIT_GET4PROC(inode,k69onid)) then
+                  if(.NOT.MUMPS_481(inode,k69onid)) then
                      current=current+1
                   else
                      exit  
                   endif
                enddo
-               call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+               call MUMPS_482(procs4son,k69onid,ierr)
                cv_prop_map(id_son(j))%ind_proc=procs4son
             enddo
             ptr_upper_ro_procs=min(j,nmb_procs_inode-nb_procs_for_sons)
@@ -3451,7 +3451,7 @@ cDEC$ NOOPTIMIZE
                endif
                if (cv_keep(48).EQ.5) keep48_loc = 5
                min_cand_needed=
-     *              MUMPS_BLOC2_GET_NSLAVESMIN
+     *              MUMPS_50
      *              (cv_slavef, keep48_loc,cv_keep(10),
      *              cv_keep(50),
      *              nfront,ncb)
@@ -3467,7 +3467,7 @@ cDEC$ NOOPTIMIZE
             endif
             nmb_propmap_strict=0
             do k=1,cv_slavef
-               if( MUMPS_BIT_GET(procs4son,k)) then
+               if( MUMPS_480(procs4son,k)) then
                   nmb_propmap_strict=nmb_propmap_strict+1
                end if
             end do
@@ -3485,14 +3485,14 @@ cDEC$ NOOPTIMIZE
             do j=1,cv_slavef
                if(share2.le.0) exit
                if(ke69 .gt.1) then
-                     call MUMPS_GET_IDP1_PROC(j-1,k69onid,ierr)
+                     call MUMPS_493(j-1,k69onid,ierr)
                   else
                      k69onid = j
                   endif
-               if(( MUMPS_BIT_GET4PROC(inode,k69onid)).AND.
-     *           (.NOT.MUMPS_BIT_GET(procs4son,k69onid))) then
+               if(( MUMPS_481(inode,k69onid)).AND.
+     *           (.NOT.MUMPS_480(procs4son,k69onid))) then
                   if(nb_free_procs.ge.current2)then
-                     call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+                     call MUMPS_482(procs4son,k69onid,ierr)
                      if(ierr.ne.0) then
                         if(cv_lp.gt.0)write(cv_lp,*)
      *                       'BIT_SET signalled error to',subname
@@ -3508,13 +3508,13 @@ cDEC$ NOOPTIMIZE
                do j=1,cv_slavef
                   if(share2.le.0) exit
                   if(ke69 .gt.1) then
-                     call MUMPS_GET_IDP1_PROC(j-1,k69onid,ierr)
+                     call MUMPS_493(j-1,k69onid,ierr)
                   else
                      k69onid = j
                   endif
-                  if(( MUMPS_BIT_GET4PROC(inode,k69onid)).AND.
-     *              (.NOT.MUMPS_BIT_GET(procs4son,k69onid))) then
-                        call MUMPS_BIT_SET(procs4son,k69onid,ierr)
+                  if(( MUMPS_481(inode,k69onid)).AND.
+     *              (.NOT.MUMPS_480(procs4son,k69onid))) then
+                        call MUMPS_482(procs4son,k69onid,ierr)
                         if(ierr.ne.0) then
                            if(cv_lp.gt.0)write(cv_lp,*)
      *                          'BIT_SET signalled error to',subname
@@ -3534,7 +3534,7 @@ cDEC$ NOOPTIMIZE
          ierr=0
          in1=in
          cv_prop_map(in1)%ind_proc = procs4son
-         call MUMPS_PROPMAP(in1,ctr-1,ierr)
+         call MUMPS_433(in1,ctr-1,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0) write(cv_lp,*)
      *         'Error reported in ',subname
@@ -3545,8 +3545,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat = 0
       return
-      end subroutine MUMPS_PROPMAP
-      subroutine MUMPS_PROPMAP_INIT(inode,istat)
+      end subroutine MUMPS_433
+      subroutine MUMPS_434(inode,istat)
       implicit none
       integer, intent(in)::inode
       integer, intent(out)::istat
@@ -3577,8 +3577,8 @@ cDEC$ NOOPTIMIZE
       end do
       istat = 0
       return
-      end subroutine MUMPS_PROPMAP_INIT
-      subroutine MUMPS_PROPMAP_TERM(inode,istat)
+      end subroutine MUMPS_434
+      subroutine MUMPS_435(inode,istat)
       integer,intent(in)::inode
       integer,intent(out)::istat
       integer ierr
@@ -3597,15 +3597,15 @@ cDEC$ NOOPTIMIZE
       end if
       istat =0
       return
-      end subroutine MUMPS_PROPMAP_TERM
-      subroutine MUMPS_PROPMAP4AMALG(ison,ifather,istat)
+      end subroutine MUMPS_435
+      subroutine MUMPS_436(ison,ifather,istat)
       implicit none
       integer,intent(in)::ison,ifather
       integer,intent(out)::istat
       character (len=48):: subname
       istat= -1
       subname='PROPMAP4AMALG'
-      call MUMPS_PROPMAP_TERM(ison,ierr)
+      call MUMPS_435(ison,ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *        write(cv_lp,*)'PROPMAP_TERM signalled error in ',
@@ -3615,8 +3615,8 @@ cDEC$ NOOPTIMIZE
       end if
       istat = 0
       return
-      end subroutine MUMPS_PROPMAP4AMALG
-      subroutine MUMPS_PROPMAP4SPLIT(inode,ifather,istat)
+      end subroutine MUMPS_436
+      subroutine MUMPS_437(inode,ifather,istat)
       implicit none
       integer,intent(in)::inode,ifather
       integer,intent(out)::istat
@@ -3631,7 +3631,7 @@ cDEC$ NOOPTIMIZE
          return
       endif
       if(.NOT.associated(cv_prop_map(ifather)%ind_proc)) then
-         call MUMPS_PROPMAP_INIT(ifather,ierr)
+         call MUMPS_434(ifather,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
      *           write(cv_lp,*)'PROPMAP_INIT signalled error to '
@@ -3644,8 +3644,8 @@ cDEC$ NOOPTIMIZE
      *                    cv_prop_map(inode)%ind_proc
       istat=0
       return
-      end subroutine MUMPS_PROPMAP4SPLIT
-      subroutine MUMPS_ROOTLIST(istat)
+      end subroutine MUMPS_437
+      subroutine MUMPS_394(istat)
       implicit none
       integer,intent(out)::istat
       integer i,ierr,allocok
@@ -3696,21 +3696,21 @@ cDEC$ NOOPTIMIZE
      *        write(cv_lp,*)'Error:no root nodes in ',subname
          return
       end if
-      call MUMPS_SORT_MSORT(cv_layerl0_end-cv_layerl0_start+1,
+      call MUMPS_459(cv_layerl0_end-cv_layerl0_start+1,
      *            cv_layerl0_array(cv_layerl0_start:cv_layerl0_end),
      *     cv_layerl0_sorted_costw(cv_layerl0_start:cv_layerl0_end))
       cv_costw_total=cv_costw_layer0
       cv_costm_total=cv_costm_layer0
       istat=0
       return
-      end subroutine MUMPS_ROOTLIST
-      subroutine MUMPS_SELECT_TYPE3(istat)
+      end subroutine MUMPS_394
+      subroutine MUMPS_396(istat)
       implicit none
       integer,intent(out)::istat
       integer i,nfront
       character (len=48):: subname
       subname='SELECT_TYPE3'
-      CALL MUMPS_SELECT_K38K20(cv_n, slavef, cv_mp, cv_icntl(13),
+      CALL MUMPS_712(cv_n, slavef, cv_mp, cv_icntl(13),
      &     cv_keep(1), cv_frere, cv_nfsiz, istat)
       IF (istat .NE. 0) THEN
             if(cv_lp.gt.0)
@@ -3724,8 +3724,8 @@ cDEC$ NOOPTIMIZE
         ENDIF
       ENDIF
       RETURN
-      end subroutine MUMPS_SELECT_TYPE3
-      subroutine MUMPS_SETUP_CAND(istat)
+      end subroutine MUMPS_396
+      subroutine MUMPS_397(istat)
       integer,intent(out)::istat
       integer i,dummy,layernmb,allocok
       character (len=48):: subname
@@ -3767,8 +3767,8 @@ cDEC$ NOOPTIMIZE
       endif
       istat=0
       return
-      end subroutine MUMPS_SETUP_CAND
-      subroutine MUMPS_SORTPROCS(map_strat,workload,memused,
+      end subroutine MUMPS_397
+      subroutine MUMPS_398(map_strat,workload,memused,
      *                       inode,istat)
       implicit none
       integer,intent(in)::map_strat
@@ -3819,7 +3819,7 @@ cDEC$ NOOPTIMIZE
             end if
             nmb_procs=0
             do pos=1,cv_slavef
-               if( MUMPS_BIT_GET4PROC(inode,pos)) then
+               if( MUMPS_481(inode,pos)) then
                   if (pos.le.nmb_procs) then
                      exit
                   else
@@ -3891,8 +3891,8 @@ cDEC$ NOOPTIMIZE
       endif
       if(present(istat))istat=0
       return
-      end subroutine MUMPS_SORTPROCS
-      subroutine MUMPS_SPLIT2HALVES(inode,
+      end subroutine MUMPS_398
+      subroutine MUMPS_400(inode,
      *                                 doit,npiv,nfront,npiv_son,istat)
       implicit none
       integer,intent(in)::inode
@@ -3921,12 +3921,12 @@ cDEC$ NOOPTIMIZE
       if(.NOT.any(cv_potsplit.eq.inode)) doit=.FALSE.
       npiv_son2 = max(npiv2/2,1)  
       if(npiv2.le.npiv_son2) doit=.FALSE.
-      if(.NOT.( MUMPS_ISTYPE2BYSIZE(nfront2,npiv_son2)))
+      if(.NOT.( MUMPS_359(nfront2,npiv_son2)))
      *   doit=.FALSE.
       nfr_ifather=nfront2-npiv_son2
       npiv_ifather=npiv2-npiv_son2
       if(.NOT.
-     &     ( MUMPS_ISTYPE2BYSIZE(nfr_ifather,npiv_ifather)))then
+     &     ( MUMPS_359(nfr_ifather,npiv_ifather)))then
          doit=.FALSE.
       endif
       if ((dble(nfront2)-dble(npiv2)/dble(2)).le.cv_keep(9))
@@ -3942,8 +3942,8 @@ cDEC$ NOOPTIMIZE
          if(present(npiv_son)) npiv_son=npiv_son2
       endif
       if(present(istat)) istat=0
-      end subroutine MUMPS_SPLIT2HALVES
-      subroutine MUMPS_SPLITNODE(inode,nfront,npiv,npiv_son,
+      end subroutine MUMPS_400
+      subroutine MUMPS_401(inode,nfront,npiv,npiv_son,
      *                              ison,ifather,istat)
       implicit none
       integer, intent(in)::inode,nfront,npiv,npiv_son
@@ -4012,9 +4012,9 @@ cDEC$ NOOPTIMIZE
       cv_keep(2)=max(cv_keep(2),nfront-npiv_son)
       cv_ne(ifather)=1
       cv_keep(61)=cv_keep(61)+1 
-      call MUMPS_CALCNODECOSTS(npiv_son,nfront,
+      call MUMPS_418(npiv_son,nfront,
      *                            ncostw_ison,ncostm_ison)
-      call MUMPS_CALCNODECOSTS(npiv-npiv_son,nfront-npiv_son,
+      call MUMPS_418(npiv-npiv_son,nfront-npiv_son,
      *                            ncostw_ifather,ncostm_ifather)
       cv_ncostw(ison)=ncostw_ison
       cv_ncostm(ison)=ncostm_ison
@@ -4029,7 +4029,7 @@ cDEC$ NOOPTIMIZE
       if(associated(cv_tcostm))
      *   cv_tcostm(ifather) = cv_tcostm(ison)+cv_ncostm(ifather)
       cv_total_split=cv_total_split+1
-      call MUMPS_PROPMAP4SPLIT(inode,ifather,ierr)
+      call MUMPS_437(inode,ifather,ierr)
       if(ierr.ne.0) then
          if(cv_lp.gt.0)
      *   write(cv_lp,*)'PROPMAP4SPLIT error in ',subname
@@ -4038,8 +4038,8 @@ cDEC$ NOOPTIMIZE
       end if
       istat = 0
       return
-      end subroutine MUMPS_SPLITNODE
-      subroutine MUMPS_STORE_GLOBALS(ne,nfsiz,frere,fils,keep,KEEP8,
+      end subroutine MUMPS_401
+      subroutine MUMPS_402(ne,nfsiz,frere,fils,keep,KEEP8,
      *                                info,procnode,ssarbr,nbsa)
       implicit none
       integer,dimension(cv_n),intent(inout)::ne,nfsiz,frere,fils,
@@ -4061,8 +4061,8 @@ cDEC$ NOOPTIMIZE
       procnode=cv_procnode
       ssarbr=cv_ssarbr
       nbsa=cv_nbsa
-      end subroutine MUMPS_STORE_GLOBALS
-      subroutine MUMPS_TERMGLOB(istat)
+      end subroutine MUMPS_402
+      subroutine MUMPS_403(istat)
       implicit none
       integer,intent(out)::istat
       integer i,ierr,layernmb
@@ -4125,7 +4125,7 @@ cDEC$ NOOPTIMIZE
          end if
       end if
       do i=1,cv_n
-         call MUMPS_PROPMAP_TERM(i,ierr)
+         call MUMPS_435(i,ierr)
          if(ierr.ne.0) then
             if(cv_lp.gt.0)
      *           write(cv_lp,*)'PROPMAP_TERM signalled error in ',
@@ -4143,8 +4143,8 @@ cDEC$ NOOPTIMIZE
       end if
       istat=0
       return
-      end subroutine MUMPS_TERMGLOB
-      recursive subroutine MUMPS_TREECOSTS(pos,istat)
+      end subroutine MUMPS_403
+      recursive subroutine MUMPS_404(pos,istat)
       implicit none
       integer,intent(in)::pos
       integer, intent(out)::istat
@@ -4170,7 +4170,7 @@ cDEC$ NOOPTIMIZE
             nextpos=cv_fils(nextpos)
          end if
       end do
-      call MUMPS_CALCNODECOSTS(npiv,nfront,costw,costm)
+      call MUMPS_418(npiv,nfront,costw,costm)
       cv_ncostw(pos)=costw
       cv_ncostm(pos)=costm
       if (cv_ne(pos).ne.0) then
@@ -4181,7 +4181,7 @@ cDEC$ NOOPTIMIZE
          nextpos=-nextpos
          do i=1,cv_ne(pos)
             cv_depth(nextpos)=cv_depth(pos)+1
-            call MUMPS_TREECOSTS(nextpos,ierr)
+            call MUMPS_404(nextpos,ierr)
             if (ierr.ne.0) then
                if(cv_lp.gt.0)
      *         write(cv_lp,*)'Failure in recursive call to ',subname
@@ -4195,8 +4195,8 @@ cDEC$ NOOPTIMIZE
       cv_tcostw(pos) = costw
       cv_tcostm(pos) = costm
       istat = 0
-      end subroutine MUMPS_TREECOSTS
-      recursive subroutine MUMPS_TYPEINSSARBR(inode)
+      end subroutine MUMPS_404
+      recursive subroutine MUMPS_406(inode)
       implicit none
       integer, intent(in)::inode
       integer in
@@ -4207,11 +4207,11 @@ cDEC$ NOOPTIMIZE
       end do
       in=-in
       do while(in.gt.0)
-         call MUMPS_TYPEINSSARBR(in)
+         call MUMPS_406(in)
          in=cv_frere(in)
       enddo
-      end subroutine MUMPS_TYPEINSSARBR
-      subroutine MUMPS_WORKMEM_IMBALANCE(workload,memused,
+      end subroutine MUMPS_406
+      subroutine MUMPS_408(workload,memused,
      *                                    maxwork,minwork,maxmem,minmem)
       implicit none
       DOUBLE PRECISION,dimension(cv_slavef),intent(in)::workload,
@@ -4222,8 +4222,8 @@ cDEC$ NOOPTIMIZE
       minwork=minval(workload, mask= workload > dble(0))
       maxmem=maxval(memused)
       minmem=minval(memused, mask= memused > dble(0))
-      end subroutine MUMPS_WORKMEM_IMBALANCE
-      subroutine MUMPS_FIX_ACCEPTED_MASTER(layernumber,nodenumber)
+      end subroutine MUMPS_408
+      subroutine MUMPS_476(layernumber,nodenumber)
       implicit none
       integer layernumber,nodenumber
       integer i
@@ -4256,15 +4256,15 @@ cDEC$ NOOPTIMIZE
          endif
       enddo
       return
-      end subroutine MUMPS_FIX_ACCEPTED_MASTER
-      end subroutine MUMPS_DISTRIBUTE
-      subroutine MUMPS_RETURN_CANDIDATES(par2_nodes,cand,istat)
+      end subroutine MUMPS_476
+      end subroutine MUMPS_369
+      subroutine MUMPS_393(par2_nodes,cand,istat)
       integer, intent(out)::par2_nodes(cv_nb_niv2),
      *                      cand(cv_slavef+1,cv_nb_niv2),istat
       character (len=48):: subname
       integer iloop
       istat=-1
-      subname='MUMPS_RETURN_CANDIDATES'
+      subname='MUMPS_393'
       par2_nodes=cv_par2_nodes
       do iloop=1, cv_slavef+1
         cand(iloop,:)=cv_cand(:,iloop)
@@ -4278,8 +4278,8 @@ cDEC$ NOOPTIMIZE
       end if
       istat = 0
       return
-      end subroutine MUMPS_RETURN_CANDIDATES
-      subroutine MUMPS_INIT_ARCH_PARAMETERS(
+      end subroutine MUMPS_393
+      subroutine MUMPS_427(
      *     total_comm,working_comm,keep69,par,
      *     nbslaves,mem_distrib,informerr)
       implicit none
@@ -4312,7 +4312,7 @@ cDEC$ NOOPTIMIZE
       call mpi_comm_rank( total_comm, host, ierr )
       if ((par .eq. 1) .or. (host .ne. 0)) then
          call mpi_comm_rank( working_comm, myrank, ierr )
-         call MUMPS_COMPUTE_DISTRIB(ierr,myrank,
+         call MUMPS_430(ierr,myrank,
      *        working_comm,mem_distrib(0))
          if ( ierr .ne. 0 ) then
             if(cv_mp.gt.0)
@@ -4322,7 +4322,7 @@ cDEC$ NOOPTIMIZE
             return
          end if
          mem_distribtmp = mem_distrib
-         call MUMPS_FIX_NODE_MASTER(ierr)
+         call MUMPS_429(ierr)
          if ( ierr .ne. 0 ) then
             if(cv_mp.gt.0) write(cv_mp,*)
      *'pb in mumps_init_arch_parameters'
@@ -4341,7 +4341,7 @@ cDEC$ NOOPTIMIZE
      *     MPI_MAX,total_comm,ierr)
       mem_distribtmp = buffer_memdistrib
       deallocate (buffer_memdistrib)
-      call MUMPS_COMPUTE_NB_ARCH_NODES()
+      call MUMPS_492()
         if((cv_slavef/nb_arch_nodes) .le. 4) then
           do i = 0, cv_slavef-1
             if ( mem_distrib(i) .NE. 1 ) then
@@ -4365,12 +4365,12 @@ cDEC$ NOOPTIMIZE
             informerr(2) = cv_slavef
             return
          endif
-         call MUMPS_ALLOC_ALLOW_MASTER(ierr)
+         call MUMPS_495(ierr)
          if(ierr .ne. 0 ) then
             return
          endif
          mem_distribmpi = mem_distribtmp
-         call MUMPS_FIX_TABLE_OF_PROCESS(ierr)
+         call MUMPS_428(ierr)
          if ( ierr .ne. 0 ) then
             if(cv_mp.gt.0)
      *      write(cv_mp,*) 'pb in mumps_init_arch_parameters'
@@ -4382,8 +4382,8 @@ cDEC$ NOOPTIMIZE
          deallocate(mem_distribtmp)
       endif
       return
-      end subroutine MUMPS_INIT_ARCH_PARAMETERS
-      subroutine MUMPS_COMPUTE_NB_ARCH_NODES()
+      end subroutine MUMPS_427
+      subroutine MUMPS_492()
       implicit none
       integer i
       nb_arch_nodes = 0
@@ -4393,8 +4393,8 @@ cDEC$ NOOPTIMIZE
          endif
       enddo
       return
-      end subroutine MUMPS_COMPUTE_NB_ARCH_NODES
-      subroutine MUMPS_FIX_TABLE_OF_PROCESS(ierr)
+      end subroutine MUMPS_492
+      subroutine MUMPS_428(ierr)
       implicit none
       external MUMPS_463
       integer i,precnode,nodecount
@@ -4407,7 +4407,7 @@ cDEC$ NOOPTIMIZE
       allocate( table_of_process(0:cv_slavef-1), stat=ierr )
       if ( ierr .gt. 0 ) then
          if(cv_mp.gt.0) write(cv_mp,*)
-     *   'pb allocation in MUMPS_FIX_TABLE_OF_PROCESS'
+     *   'pb allocation in MUMPS_428'
          return
       end if
       do i=0,cv_slavef - 1
@@ -4439,8 +4439,8 @@ cDEC$ NOOPTIMIZE
      *     table_of_process(0))
       ierr = 0
       return
-      end subroutine MUMPS_FIX_TABLE_OF_PROCESS
-      subroutine MUMPS_FIX_NODE_MASTER(ierr)
+      end subroutine MUMPS_428
+      subroutine MUMPS_429(ierr)
       implicit none
       integer i,j,ierr
       integer idmaster
@@ -4461,12 +4461,12 @@ cDEC$ NOOPTIMIZE
             mem_distribtmp(i) = 0
          endif
       enddo
-      if(cv_mp.gt.0) write(cv_mp,*)'problem in MUMPS_FIX_NODE_MASTER:
+      if(cv_mp.gt.0) write(cv_mp,*)'problem in MUMPS_429:
      *     cannot find a master'
       ierr = 1
       return
-      end subroutine MUMPS_FIX_NODE_MASTER
-      subroutine MUMPS_COMPUTE_DISTRIB(ierr,myrank,working_comm,
+      end subroutine MUMPS_429
+      subroutine MUMPS_430(ierr,myrank,working_comm,
      *     mem_distrib)
       implicit none
       include 'mpif.h'
@@ -4522,8 +4522,8 @@ cDEC$ NOOPTIMIZE
       deallocate(myname)
       ierr = 0
       return
-      end subroutine MUMPS_COMPUTE_DISTRIB
-      subroutine MUMPS_GET_IDP1_PROC(current_proc,idarch,ierr)
+      end subroutine MUMPS_430
+      subroutine MUMPS_493(current_proc,idarch,ierr)
       implicit none
       integer current_proc
       integer idarch,ierr
@@ -4539,23 +4539,23 @@ cDEC$ NOOPTIMIZE
          idarch = table_of_process(current_proc) + 1
       endif
       return
-      end subroutine MUMPS_GET_IDP1_PROC
-      subroutine MUMPS_END_ARCH_CV()
+      end subroutine MUMPS_493
+      subroutine MUMPS_494()
       if (allocated(table_of_process)) deallocate(table_of_process)
       if (allocated(allowed_nodes)) deallocate(allowed_nodes)
       if (allocated(score)) deallocate(score)
       if (allocated(mem_distribtmp)) deallocate(mem_distribtmp)
       if (allocated(mem_distribmpi)) deallocate(mem_distribmpi)
       return
-      end subroutine MUMPS_END_ARCH_CV
-      subroutine MUMPS_ALLOC_ALLOW_MASTER(ierr)
+      end subroutine MUMPS_494
+      subroutine MUMPS_495(ierr)
       integer ierr
       ierr = 0
       if (allocated(allowed_nodes)) deallocate(allowed_nodes)
       allocate( allowed_nodes(0:nb_arch_nodes-1),stat=ierr)
       if ( ierr .gt. 0 ) then
          if(cv_mp.gt.0) write(cv_mp,*)
-     *   'pb allocation MUMPS_ALLOC_ALLOW_MASTER'
+     *   'pb allocation MUMPS_495'
          ierr = -13
          return
       end if
@@ -4564,21 +4564,21 @@ cDEC$ NOOPTIMIZE
       allocate( score(0:nb_arch_nodes-1),stat=ierr)
       if ( ierr .gt. 0 ) then
          if(cv_mp.gt.0) write(cv_mp,*)
-     *   'pb allocation MUMPS_ALLOC_ALLOW_MASTER'
+     *   'pb allocation MUMPS_495'
          ierr = -13
          return
       end if
       score = 0
       ierr = 0
       return
-      end subroutine MUMPS_ALLOC_ALLOW_MASTER
-      subroutine MUMPS_FIND_ARCH_NODE(idproc,thenode)
+      end subroutine MUMPS_495
+      subroutine MUMPS_496(idproc,thenode)
       implicit none
       integer idproc,thenode
       thenode = mem_distribmpi(idproc)
       return
-      end subroutine MUMPS_FIND_ARCH_NODE
-      SUBROUTINE MUMPS_SORT_MMERGE(start1st,end1st,dim1,
+      end subroutine MUMPS_496
+      SUBROUTINE MUMPS_516(start1st,end1st,dim1,
      *                             start2nd,end2nd,dim2,
      *                             indx,
      *                             val)
@@ -4624,8 +4624,8 @@ cDEC$ NOOPTIMIZE
       val(start1st:end1st)=dummy1(1:dim1)
       indx(start2nd:end2nd)=index(dim1+1:dim1+dim2)
       val(start2nd:end2nd)=dummy1(dim1+1:dim1+dim2)
-      end SUBROUTINE MUMPS_SORT_MMERGE
-      SUBROUTINE MUMPS_SORT_MSORT(dim,indx,val1,val2)
+      end SUBROUTINE MUMPS_516
+      SUBROUTINE MUMPS_459(dim,indx,val1,val2)
       implicit none
       integer, intent(in):: dim
       integer, intent(inout):: indx(dim)
@@ -4708,9 +4708,9 @@ cDEC$ NOOPTIMIZE
          val2=dummy2
       endif
       return
-      end subroutine MUMPS_SORT_MSORT
+      end subroutine MUMPS_459
       END MODULE MUMPS_STATIC_MAPPING
-      SUBROUTINE MUMPS_SELECT_K38K20(N, SLAVEF, MP,
+      SUBROUTINE MUMPS_712(N, SLAVEF, MP,
      &                   ICNTL13, KEEP, FRERE, ND, ISTAT)
       IMPLICIT NONE
       INTEGER, intent(in) :: N, SLAVEF, ICNTL13, MP
@@ -4764,4 +4764,4 @@ cDEC$ NOOPTIMIZE
        ENDIF
       ENDIF
       RETURN
-      END SUBROUTINE MUMPS_SELECT_K38K20
+      END SUBROUTINE MUMPS_712

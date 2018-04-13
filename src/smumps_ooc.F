@@ -1,5 +1,5 @@
 C
-C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+C  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -260,6 +260,7 @@ C
       IF(STRAT_IO_ASYNC)THEN
          ASYNC=1
       ENDIF
+      DIM_ERR_STR_OOC = ERR_STR_OOC_MAX_LEN
       CALL MUMPS_LOW_LEVEL_INIT_ERR_STR(DIM_ERR_STR_OOC,ERR_STR_OOC)
       DIM_DIR=len(trim(id%OOC_TMPDIR))
       DIM_PREFIX=len(trim(id%OOC_PREFIX))
@@ -571,10 +572,11 @@ C
                ENDDO
                CALL MUMPS_OOC_REMOVE_FILE_C(IERR, TMP_NAME(1))
                IF(IERR.LT.0)THEN
-                  IF (ICNTL1.GT.0)
-     *            WRITE(ICNTL1,*)MYID_OOC,': ',
-     *            ERR_STR_OOC(1:DIM_ERR_STR_OOC)
-                  RETURN
+                  IF (ICNTL1.GT.0)THEN
+                     WRITE(ICNTL1,*)MYID_OOC,': ',
+     *                    ERR_STR_OOC(1:DIM_ERR_STR_OOC)
+                     RETURN
+                  ENDIF
                ENDIF
                K=K+1
             ENDDO
@@ -711,6 +713,7 @@ C
       IF(associated(OOC_INODE_SEQUENCE))THEN
          NULLIFY(OOC_VADDR)
       ENDIF
+      DIM_ERR_STR_OOC = ERR_STR_OOC_MAX_LEN
       CALL MUMPS_LOW_LEVEL_INIT_ERR_STR(DIM_ERR_STR_OOC,ERR_STR_OOC)
       CALL SMUMPS_614(id)
       IF(id%INFO(1).LT.0)THEN
@@ -1603,8 +1606,6 @@ C
          IF((POS_IN_MEM(I).LT.0).AND.(POS_IN_MEM(I).GT.
      $        -(N_OOC+1)*NB_Z))THEN
             TMP_NODE=-POS_IN_MEM(I)
-            FREE_SIZE=FREE_SIZE+SIZE_OF_BLOCK(STEP_OOC(TMP_NODE),
-     $           OOC_FCT_TYPE)
          ELSEIF(POS_IN_MEM(I).NE.0)THEN
             EXIT
          ENDIF
@@ -3022,7 +3023,8 @@ C
                LNextPiv2beWritten = 1 
             ENDIF
          ENDIF
-         IF (MonBloc%LastPiv.GE.LNextPiv2beWritten) THEN
+         IF (MonBloc%LastPiv.GE.LNextPiv2beWritten
+     &       .OR. MonBloc%Last) THEN
            TempFTYPE    = TYPEF_L
            CALL SMUMPS_695( STRAT, FIRSTL,
      &        TempFTYPE, AFAC, LAFAC, MonBloc,
@@ -3053,21 +3055,24 @@ C
             U_AddVirtNode (1) = max(IW(XXVADDRU),0)
             U_AddVirtNode (2) = max(IW(XXVADDRU+1),0)
          ENDIF
-         TempFTYPE  = TYPEF_U
-         CALL SMUMPS_695( STRAT, FIRSTU,
+         IF (MonBloc%LastPiv.GE.UNextPiv2beWritten .OR.
+     &       MonBloc%Last) THEN
+           TempFTYPE  = TYPEF_U
+           CALL SMUMPS_695( STRAT, FIRSTU,
      &        TempFTYPE, AFAC, LAFAC, MonBloc,
      &        IERR,
      &        UNextPiv2beWritten, 
      &        U_AddVirtNode, 
      &        U_TailleEcrite) 
-         IF (IERR .LT. 0) RETURN
-         IF (U_TailleEcrite.GT.0) THEN
-            IW(XXVADDRU)   = U_AddVirtNode (1)
-            IW(XXVADDRU+1) = U_AddVirtNode (2)
-            IW(XXWRITTENU) = U_TailleEcrite
-            IF ( STRAT.EQ.STRAT_WRITE_MAX .AND. MonBloc%last ) THEN
-              FILESIZE = FILESIZE + U_TailleEcrite
+            IF (IERR .LT. 0) RETURN
+            IF (U_TailleEcrite.GT.0) THEN
+              IW(XXVADDRU)   = U_AddVirtNode (1)
+              IW(XXVADDRU+1) = U_AddVirtNode (2)
+              IW(XXWRITTENU) = U_TailleEcrite
             ENDIF
+         ENDIF
+         IF ( STRAT.EQ.STRAT_WRITE_MAX .AND. MonBloc%last ) THEN
+           FILESIZE = FILESIZE + U_TailleEcrite
          ENDIF
          IF (DO_U_FIRST) GOTO 100
       ENDIF
@@ -3212,6 +3217,9 @@ C
       TailleEcrite = 0
       AddVirtDeb   = AddVirtCour
       I = NextPiv2beWritten
+      IF ( NextPiv2beWritten .GT. MonBloc%LastPiv ) THEN
+        RETURN
+      ENDIF
  10   CONTINUE
       NBeff  = min(SIZE_PANEL,MonBloc%LastPiv-I+1 )
       IF ((NBeff.NE.SIZE_PANEL) .AND. (.NOT.MonBloc%Last)) THEN

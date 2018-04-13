@@ -1,6 +1,6 @@
 /*
  *
- *  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
+ *  This file is part of MUMPS 4.8.3, built on Wed Sep 24 17:11:30 UTC 2008
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
@@ -43,7 +43,7 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-/* $Id: mumps_c.h 5052 2008-07-20 08:02:13Z pcombes $ */
+
 /* Mostly written in march 2002 (JYL) */
 
 #ifndef CMUMPS_C_H
@@ -57,7 +57,7 @@ extern "C" {
 /* Next line defines MUMPS_INT, CMUMPS_COMPLEX and CMUMPS_REAL */
 #include "mumps_c_types.h"
 
-#define MUMPS_VERSION "4.8.0"
+#define MUMPS_VERSION "4.8.3"
 #define MUMPS_VERSION_MAX_LEN 14
 
 /*
@@ -71,7 +71,7 @@ typedef struct {
     MUMPS_INT      icntl[40];
     CMUMPS_REAL    cntl[15];
     MUMPS_INT      n;
-   
+
     MUMPS_INT      nz_alloc; /* used in matlab interface to decide if we
                                 free + malloc when we have large variation */
 
@@ -103,7 +103,7 @@ typedef struct {
     /* Scaling (input only in this version) */
     CMUMPS_REAL    *colsca;
     CMUMPS_REAL    *rowsca;
-    
+
     /* RHS, solution, ouptput data and statistics */
     CMUMPS_COMPLEX *rhs, *redrhs, *rhs_sparse, *sol_loc;
     MUMPS_INT      *irhs_sparse, *irhs_ptr, *isol_loc;
