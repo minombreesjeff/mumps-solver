@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -72,7 +80,7 @@ void*  mumps_async_thread_function_with_sem (void* arg){
    for (;;){      
      gettimeofday(&start_time,NULL);
        if(with_sem==2){
-	 mumps_wait_sem(&int_sem_io,&cond_io);
+         mumps_wait_sem(&int_sem_io,&cond_io);
        }
      /*     sem_wait(&sem_io);  */
      gettimeofday(&end_time,NULL);
@@ -87,7 +95,7 @@ void*  mumps_async_thread_function_with_sem (void* arg){
      /* Check if the main thread ordered to stop this slave thread */
      /*     sem_getvalue(&sem_stop,&_sem_stop); */
        if(with_sem==2){
-	 mumps_get_sem(&int_sem_stop,&_sem_stop);
+         mumps_get_sem(&int_sem_stop,&_sem_stop);
        }
      if(_sem_stop==IO_FLAG_STOP){
        /* The thread must stop */
@@ -95,36 +103,36 @@ void*  mumps_async_thread_function_with_sem (void* arg){
      }
       current_io_request=&io_queue[first_active];
       switch(current_io_request->io_type)
-	{
-	 case IO_WRITE:
-	   ret_code=mumps_io_do_write_block(current_io_request->addr,
-				     current_io_request->size,
+        {
+         case IO_WRITE:
+           ret_code=mumps_io_do_write_block(current_io_request->addr,
+                                     current_io_request->size,
                                      &(current_io_request->file_type),
-				     current_io_request->vaddr,
-				     &ierr);
-	   if(ret_code<0){
-	     goto end;
-	   }
-	   break;
-	case IO_READ:
-	  ret_code=mumps_io_do_read_block(current_io_request->addr,
-				   current_io_request->size,
-                                   &(current_io_request->file_type),
-              			   current_io_request->vaddr,
-				   &ierr);
-	   if(ret_code<0){
-	     goto end;
-	   }	  
-	   break;
-	 default:
-	   printf("Error : Mumps_IO : Operation %d is neither READ nor WRITE\n",current_io_request->io_type);
-	   exit (-3);
-	}
+                                     current_io_request->vaddr,
+                                     &ierr);
+           if(ret_code<0){
+             goto end;
+           }
+           break;
+         case IO_READ:
+           ret_code=mumps_io_do_read_block(current_io_request->addr,
+           current_io_request->size,
+           &(current_io_request->file_type),
+           current_io_request->vaddr,
+           &ierr);
+           if(ret_code<0){
+             goto end;
+           }
+           break;
+         default:
+           printf("Error : Mumps_IO : Operation %d is neither READ nor WRITE\n",current_io_request->io_type);
+           exit (-3);
+         }
       /* Notify that the IO was performed */
       /* Wait that finished_requests queue could register 
        the notification */
        if(with_sem==2){
-	 mumps_wait_sem(&int_sem_nb_free_finished_requests,&cond_nb_free_finished_requests);
+         mumps_wait_sem(&int_sem_nb_free_finished_requests,&cond_nb_free_finished_requests);
        }
       pthread_mutex_lock(&io_mutex);
       /* Updates active queue bounds */
@@ -137,18 +145,18 @@ void*  mumps_async_thread_function_with_sem (void* arg){
       /* Realeases the lock : ***UNLOCK*** */
       nb_active--;      
       if(first_active<MAX_IO-1){
-	 first_active++; 
+        first_active++; 
       }
       else{
-	 first_active=0;
+        first_active=0;
       }
       if(with_sem==2){
-	mumps_post_sem(&(current_io_request->int_local_cond),&(current_io_request->local_cond));
+        mumps_post_sem(&(current_io_request->int_local_cond),&(current_io_request->local_cond));
       }
       pthread_mutex_unlock(&io_mutex);  
       /* Finally increases the number of free active requests.*/
       /*      sem_post(&sem_nb_free_active_requests); */
-	  mumps_post_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
+          mumps_post_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
    }
  end:
    /* The main thread ordered the end of the IO thread (it changed sem_stop).
@@ -177,36 +185,36 @@ int mumps_test_request_th(int* request_id,int *flag){
     }else{
       request_pos=(first_finished_requests+nb_finished_requests-1)%(MAX_IO*2);    
       if(*request_id > finished_requests_id[request_pos]){
-	/*the request has not been treated yet since it is not in 
-	the list of treated requests*/
-	i=0;
-	/*this loop is only for checking (no special treatment is done*/
-	while(i<nb_active){
-	  request_pos=(first_active+i)%(MAX_IO);
-	  if(io_queue[request_pos].req_num==*request_id){
-	    break;
-	  }
-	  i++;
-	}
-	if(i==nb_active){
-	  return mumps_io_error(-91,"Internal error in OOC Management layer (mumps_test_request_th (1))\n");
-	}
-	*flag=0;
+        /*the request has not been treated yet since it is not in 
+        the list of treated requests*/
+        i=0;
+        /*this loop is only for checking (no special treatment is done*/
+        while(i<nb_active){
+          request_pos=(first_active+i)%(MAX_IO);
+          if(io_queue[request_pos].req_num==*request_id){
+            break;
+          }
+          i++;
+        }
+        if(i==nb_active){
+          return mumps_io_error(-91,"Internal error in OOC Management layer (mumps_test_request_th (1))\n");
+        }
+        *flag=0;
       }else{
-	/*the request has been treated yet since it is the list of
-	  treated requests*/
-	i=0;
-	while(i<nb_finished_requests){
-	  request_pos=(first_finished_requests+i)%(MAX_IO*2);
-	  if(finished_requests_id[request_pos]==*request_id){
-	    break;
-	  }
-	  i++;
-	}
-	if(i==nb_finished_requests){
-	  return mumps_io_error(-91,"Internal error in OOC Management layer (mumps_test_request_th (2))\n");
-	}      
-	*flag=1;
+        /*the request has been treated yet since it is the list of
+          treated requests*/
+        i=0;
+        while(i<nb_finished_requests){
+          request_pos=(first_finished_requests+i)%(MAX_IO*2);
+          if(finished_requests_id[request_pos]==*request_id){
+            break;
+          }
+          i++;
+        }
+        if(i==nb_finished_requests){
+          return mumps_io_error(-91,"Internal error in OOC Management layer (mumps_test_request_th (2))\n");
+        }      
+        *flag=1;
       }
     }
   }
@@ -308,7 +316,7 @@ int mumps_clean_request_th(int* request_id){
   if(!mumps_owns_mutex) pthread_mutex_unlock(&io_mutex);
   if(with_sem) {
       if(with_sem==2){
-	mumps_post_sem(&int_sem_nb_free_finished_requests,&cond_nb_free_finished_requests);
+        mumps_post_sem(&int_sem_nb_free_finished_requests,&cond_nb_free_finished_requests);
       }
   }
   return 0;
@@ -317,6 +325,7 @@ int mumps_low_level_init_ooc_c_th(int* async, int* ierr){
   int i, ret_code;    
   char buf[64];
   /* Computes the number of files needed. Uses ceil value. */
+  *ierr=0;
   current_req_num=0;
   with_sem=2;
   first_active=0;
@@ -345,8 +354,8 @@ int mumps_low_level_init_ooc_c_th(int* async, int* ierr){
     io_queue=(struct request_io *)malloc(MAX_IO*sizeof(struct request_io));
     if(with_sem==2){
       for(i=0;i<MAX_IO;i++){
-	pthread_cond_init(&(io_queue[i].local_cond),NULL);
-	io_queue[i].int_local_cond=0;
+        pthread_cond_init(&(io_queue[i].local_cond),NULL);
+        io_queue[i].int_local_cond=0;
       }
     }
     finished_requests_id=(int *)malloc(MAX_IO*2*sizeof(int));
@@ -358,16 +367,16 @@ int mumps_low_level_init_ooc_c_th(int* async, int* ierr){
     if(with_sem){
       switch(with_sem){
       case 2:
-	int_sem_io=0;
-	int_sem_stop=0;
-	int_sem_nb_free_finished_requests=MAX_FINISH_REQ;
-	int_sem_nb_free_active_requests=MAX_IO;
-	pthread_cond_init(&cond_stop,NULL);
-	pthread_cond_init(&cond_io,NULL);
-	pthread_cond_init(&cond_nb_free_active_requests,NULL);
-	pthread_cond_init(&cond_nb_free_finished_requests,NULL);
-	pthread_mutex_init(&io_mutex_cond,NULL);
-	break;
+        int_sem_io=0;
+        int_sem_stop=0;
+        int_sem_nb_free_finished_requests=MAX_FINISH_REQ;
+        int_sem_nb_free_active_requests=MAX_IO;
+        pthread_cond_init(&cond_stop,NULL);
+        pthread_cond_init(&cond_io,NULL);
+        pthread_cond_init(&cond_nb_free_active_requests,NULL);
+        pthread_cond_init(&cond_nb_free_finished_requests,NULL);
+        pthread_mutex_init(&io_mutex_cond,NULL);
+        break;
       default:
         *ierr = -92;
         sprintf(buf,"Internal error: mumps_low_level_init_ooc_c_th should not to be called with strat_IO=%d\n",*async);
@@ -384,13 +393,13 @@ int mumps_low_level_init_ooc_c_th(int* async, int* ierr){
   return 0;
 }
 int mumps_async_write_th(const int * strat_IO, 
-			void * address_block,
+                        void * address_block,
                         long long block_size,
-			int * inode,
-			int * request_arg,
-		        int * type,
-			long long vaddr,
-			int * ierr){
+                        int * inode,
+                        int * request_arg,
+                        int * type,
+                        long long vaddr,
+                        int * ierr){
   int cur_req;
   *ierr=mumps_check_error_th();
   if(*ierr!=0){
@@ -399,7 +408,7 @@ int mumps_async_write_th(const int * strat_IO,
   if(with_sem){ 
     mumps_clean_finished_queue_th();
       if(with_sem==2){
-	mumps_wait_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
+        mumps_wait_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
       }
     /*    sem_wait(&sem_nb_free_active_requests); */
     pthread_mutex_lock(&io_mutex);
@@ -434,19 +443,19 @@ int mumps_async_write_th(const int * strat_IO,
   if(with_sem){
     /*    sem_post(&sem_io); */
       if(with_sem==2){
-	mumps_post_sem(&int_sem_io,&cond_io);
+        mumps_post_sem(&int_sem_io,&cond_io);
       }
   }
   return 0;
 }
 int mumps_async_read_th(const int * strat_IO, 
-		       void * address_block,
-		       long long  block_size,
-		       int * inode,
-		       int * request_arg,
-         	       int * type,
-		       long long vaddr,
-		       int * ierr){
+                       void * address_block,
+                       long long  block_size,
+                       int * inode,
+                       int * request_arg,
+                        int * type,
+                       long long vaddr,
+                       int * ierr){
   int cur_req;  
   *ierr=mumps_check_error_th();
   if(*ierr!=0){
@@ -456,7 +465,7 @@ int mumps_async_read_th(const int * strat_IO,
     mumps_clean_finished_queue_th();
     /* end of the block*/
       if(with_sem==2){
-	mumps_wait_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
+        mumps_wait_sem(&int_sem_nb_free_active_requests,&cond_nb_free_active_requests);
       }
     /*    sem_wait(&sem_nb_free_active_requests); */
     pthread_mutex_lock(&io_mutex);
@@ -466,13 +475,13 @@ int mumps_async_read_th(const int * strat_IO,
       first_active=last_active;
     }else{
       last_active=(last_active+1)%MAX_IO;
-      /*	if(last_active<MAX_IO-1){
-		cur_req=last_active+1;
-		last_active++;
-		}else{
-		cur_req=0;
-		last_active=0;
-		}*/
+      /*        if(last_active<MAX_IO-1){
+                cur_req=last_active+1;
+                last_active++;
+                }else{
+                cur_req=0;
+                last_active=0;
+                }*/
     }
     cur_req=last_active;
     nb_active++;
@@ -495,7 +504,7 @@ int mumps_async_read_th(const int * strat_IO,
   if(with_sem){
     /*    sem_post(&sem_io); */
       if(with_sem==2){
-	mumps_post_sem(&int_sem_io,&cond_io);
+        mumps_post_sem(&int_sem_io,&cond_io);
       }
   }
   pthread_mutex_unlock(&io_mutex);
@@ -507,10 +516,10 @@ int mumps_clean_io_data_c_th(int *myid){
   if(mumps_io_flag_async){
     /*we can use either signals or mutexes for this step */
     if(with_sem){
-	if(with_sem==2){
-	  mumps_post_sem(&int_sem_stop,&cond_stop);
-	  mumps_post_sem(&int_sem_io,&cond_io);
-	}
+        if(with_sem==2){
+          mumps_post_sem(&int_sem_stop,&cond_stop);
+          mumps_post_sem(&int_sem_io,&cond_io);
+        }
     }else{
       pthread_mutex_lock(&io_mutex);
       io_flag_stop=1;
@@ -523,13 +532,13 @@ int mumps_clean_io_data_c_th(int *myid){
     mumps_io_destroy_pointers_lock();
 #endif
     if(with_sem){
-	if(with_sem==2){
-	  pthread_cond_destroy(&cond_stop);
-	  pthread_cond_destroy(&cond_io);
-	  pthread_cond_destroy(&cond_nb_free_active_requests);
-	  pthread_cond_destroy(&cond_nb_free_finished_requests);
-	  pthread_mutex_destroy(&io_mutex_cond);
-	}
+        if(with_sem==2){
+          pthread_cond_destroy(&cond_stop);
+          pthread_cond_destroy(&cond_io);
+          pthread_cond_destroy(&cond_nb_free_active_requests);
+          pthread_cond_destroy(&cond_nb_free_finished_requests);
+          pthread_mutex_destroy(&io_mutex_cond);
+        }
     }
   }
   if(with_sem==2){

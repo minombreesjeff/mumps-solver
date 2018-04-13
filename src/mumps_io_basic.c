@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -113,8 +121,8 @@ int mumps_set_file(int type,int file_number_arg){
      and might be removed before the end of the processus.
   */
   if(fd < 0) {
-    sprintf(buf,"mkstemp(%s) failed\n", mumps_ooc_file_prefix);
-    return mumps_io_sys_error(-99,buf);
+    sprintf(buf,"File creation failure");
+    return mumps_io_sys_error(-90,buf);
   } else {
     close(fd); 
   }
@@ -204,10 +212,10 @@ int mumps_compute_nb_concerned_files(long long block_size, int * nb_concerned_fi
   return 0;
 }
 int mumps_io_do_write_block(void * address_block,
-              		     long long block_size,
-         	             int * type_arg,
-		             long long vaddr,
-		             int * ierr){   
+                            long long block_size,
+                            int * type_arg,
+                            long long vaddr,
+                            int * ierr){   
   /* Type of fwrite : size_t fwrite(const void *ptr, size_t size, 
                                     *size_t nmemb, FILE *stream); */
   size_t write_size;
@@ -313,9 +321,9 @@ int mumps_io_do_write_block(void * address_block,
   return 0;
 }
 int mumps_io_do_read_block(void * address_block,
-	            long long block_size,
+                    long long block_size,
                     int * type_arg,
-         	    long long vaddr,
+                     long long vaddr,
                     int * ierr){
   size_t size;
 #if ! defined( MUMPS_WIN32 )
@@ -405,12 +413,12 @@ int mumps_free_file_pointers(int *step){
 #if ! defined( MUMPS_WIN32 )
       ierr=close((((mumps_files+j)->mumps_io_pfile_pointer_array)+i)->file);
       if(ierr==-1){
-	return mumps_io_sys_error(-90,"Problem while closing OOC file");
+        return mumps_io_sys_error(-90,"Problem while closing OOC file");
       }
 #else
       ierr=fclose((((mumps_files+j)->mumps_io_pfile_pointer_array)+i)->file);
       if(ierr==-1){
-	return mumps_io_error(-90,"Problem while closing OOC file\n");
+        return mumps_io_error(-90,"Problem while closing OOC file\n");
       }    
 #endif
       /*     free(*(mumps_io_pfile_name+i)); */
@@ -447,7 +455,8 @@ int mumps_io_alloc_file_struct(int* nb,int which)
   }
   return 0;
 }
-int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,int nb_file_type,int * flag_tab){
+int mumps_init_file_structure(int* _myid, long long *total_size_io,int *size_element,int *nb_file_type,int *flag_tab)
+{
   /* Computes the number of files needed. Uses ceil value. */
   int ierr;
 #if ! defined( MUMPS_WIN32 )
@@ -457,7 +466,7 @@ int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,i
   int i,nb;
   int mumps_io_nb_file;
   mumps_io_max_file_size=MAX_FILE_SIZE;
-  mumps_io_nb_file_type=nb_file_type;
+  mumps_io_nb_file_type=*nb_file_type;
   mumps_io_nb_file=(int)((((double)(*total_size_io)*1000000)*((double)(*size_element)))/(double)mumps_io_max_file_size)+1;
   mumps_directio_flag=0;
 #if ! defined( MUMPS_WIN32 )
@@ -515,7 +524,7 @@ int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,i
   return 0;
 }
 int mumps_init_file_name(char* mumps_dir,char* mumps_file,
-			 int* mumps_dim_dir,int* mumps_dim_file,int* _myid){
+                         int* mumps_dim_dir,int* mumps_dim_file,int* _myid){
   int i;
   char *tmp_dir,*tmp_fname;
   char base_name[20];
@@ -542,11 +551,11 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
     free(tmp_dir);
     tmp_dir=getenv("MUMPS_OOC_TMPDIR");
     if(tmp_dir==NULL){
-#ifdef SP_
+#ifdef _AIX
 # ifndef CINES_
       tmp_dir=getenv("TMPDIR");
       if(tmp_dir==NULL){
-	tmp_dir=MUMPS_OOC_DEFAULT_DIR;
+        tmp_dir=MUMPS_OOC_DEFAULT_DIR;
       }
 # else
       tmp_dir=MUMPS_OOC_DEFAULT_DIR;       
@@ -569,7 +578,7 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
 #endif
       mumps_ooc_file_prefix=(char *)malloc((strlen(SEPARATOR)+strlen(tmp_dir)+strlen(tmp_fname)+strlen(base_name)+1+1)*sizeof(char));
       if(mumps_ooc_file_prefix==NULL){
-	return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
+        return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
       }
       sprintf(mumps_ooc_file_prefix,"%s%s%s%s",tmp_dir,SEPARATOR,tmp_fname,base_name);
   }else{
@@ -580,7 +589,7 @@ int mumps_init_file_name(char* mumps_dir,char* mumps_file,
 #endif
       mumps_ooc_file_prefix=(char *)malloc((strlen(SEPARATOR)+strlen(tmp_dir)+strlen(base_name)+1)*sizeof(char));
       if(mumps_ooc_file_prefix==NULL){
-	return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
+        return mumps_io_error(-13,"Allocation problem in low-level OOC layer\n");
       }
       sprintf(mumps_ooc_file_prefix,"%s%s%s",tmp_dir,SEPARATOR,base_name);
   }  
@@ -659,7 +668,7 @@ int mumps_io_set_file_name(int* indice,char* name,int* length,int* type){
 int mumps_io_open_files_for_read(){
   int i,j;
   mumps_file_struct  *mumps_io_pfile_pointer_array;
-#ifdef IRIX64_
+#if defined (sgi) || defined (__sgi)
   struct dioattr dio;
 #endif
   for(j=0;j<mumps_io_nb_file_type;j++){
@@ -668,12 +677,12 @@ int mumps_io_open_files_for_read(){
 #if ! defined( MUMPS_WIN32 )
       (mumps_io_pfile_pointer_array+i)->file=open((mumps_io_pfile_pointer_array+i)->name,(mumps_files+j)->mumps_flag_open);
       if((mumps_io_pfile_pointer_array+i)->file==-1){
-	return mumps_io_sys_error(-90,"Problem while opening OOC file");
+        return mumps_io_sys_error(-90,"Problem while opening OOC file");
       }
 #else
       (mumps_io_pfile_pointer_array+i)->file=fopen((mumps_io_pfile_pointer_array+i)->name,(mumps_files+j)->mumps_flag_open);      
       if((mumps_io_pfile_pointer_array+i)->file==NULL){
-	return mumps_io_error(-90,"Problem while opening OOC file");
+        return mumps_io_error(-90,"Problem while opening OOC file");
       }
       (mumps_io_pfile_pointer_array+i)->is_opened=1;
 #endif

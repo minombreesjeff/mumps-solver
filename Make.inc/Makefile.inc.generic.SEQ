@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+#  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 #
 ################################################################################
 #
@@ -58,7 +58,7 @@ IPORD    = -I$(topdir)/PORD/include/
 LPORD    = -L$(LPORDDIR) -lpord
 
 #LMETISDIR = /local/metis/
-#IMETIS    = # Metis doesn't need include files (Fortran interface avail.)
+#IMETIS    = # Should be provided if you use parmetis
 
 # You have to choose one among the following two lines depending on
 # the type of analysis you want to perform. If you want to perform only
@@ -87,6 +87,11 @@ IORDERINGSC = $(IMETIS) $(IPORD) $(ISCOTCH)
 
 # PLAT : use it to add a default suffix to the generated libraries
 PLAT    = 
+# Library extension, + C and Fortran "-o" option
+# may be different under Windows
+LIBEXT  = .a
+OUTC    = -o 
+OUTF    = -o 
 # RM : remove files
 RM      = /bin/rm -f
 # CC : C compiler
@@ -96,7 +101,8 @@ FC      = f90
 # FL : Fortran linker
 FL      = f90
 # AR : Archive object in a library
-AR      = ar vr
+#      keep a space at the end if options have to be separated from lib name
+AR      = ar vr 
 # RANLIB : generate index of an archive file
 #   (optionnal use "RANLIB = echo" in case of problem)
 RANLIB  = ranlib
@@ -106,7 +112,7 @@ RANLIB  = ranlib
 # the sequential library provided by MUMPS, to use instead
 # of ScaLAPACK and MPI.
 INCSEQ  = -I$(topdir)/libseq
-LIBSEQ  = -L$(topdir)/libseq -lmpiseq
+LIBSEQ  = -Llibseq -lmpiseq
 
 # DEFINE HERE YOUR BLAS LIBRARY
 
@@ -136,6 +142,6 @@ OPTL    = -O
 
 #Sequential:
 
-INC = $(INCSEQ)
-LIB = $(LIBSEQ)
+INCS = $(INCSEQ)
+LIBS = $(LIBSEQ)
 LIBSEQNEEDED = libseqneeded

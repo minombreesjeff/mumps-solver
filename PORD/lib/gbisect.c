@@ -293,14 +293,13 @@ int
 smoothBy2Layers(gbisect_t *Gbisect, int *bipartvertex, int *pnX,
                 int black, int white)
 { gbipart_t *Gbipart;
-  int       *xadj, *adjncy, *vwght, *color, *cwght, *map;
+  int       *xadj, *adjncy, *color, *cwght, *map;
   int       *flow, *rc, *matching, *dmflag, dmwght[6];
   int       nvtx, smoothed, nX, nX2, nY, x, y, u, i, j, jstart, jstop;
 
   nvtx = Gbisect->G->nvtx;
   xadj = Gbisect->G->xadj;
   adjncy = Gbisect->G->adjncy;
-  vwght = Gbisect->G->vwght;
   color = Gbisect->color;
   cwght = Gbisect->cwght;
   nX = *pnX;

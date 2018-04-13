@@ -90,7 +90,6 @@ freeBucket(bucket_t *bucket)
 bucket_t*
 setupBucket(int maxbin, int maxitem, int offset)
 { bucket_t *bucket;
-  int      *bin, *next, *last, *key;
   int      i, u;
 
   if (offset < 0)
@@ -100,10 +99,6 @@ setupBucket(int maxbin, int maxitem, int offset)
    }
 
   bucket = newBucket(maxbin, maxitem, offset);
-  bin = bucket->bin;
-  next = bucket->next;
-  last = bucket->last;
-  key = bucket->key;
 
   for (i = 0; i <= maxbin; i++)
     bucket->bin[i] = -1;

@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -45,7 +53,7 @@
 #if ! defined(WITHOUT_PTHREAD) && defined(MUMPS_WIN32)
 # define WITHOUT_PTHREAD 1
 #endif
-#if defined(SP_)
+#if defined(_AIX)
 # if ! defined(_ALL_SOURCE)
 /* Macro needed for direct I/O on IBM AIX */
 #  define _ALL_SOURCE 1
@@ -82,7 +90,7 @@
 # define MUMPS_IO_FLAG_O_DIRECT 0
 #endif
 /* Force WITH_PFUNC on architectures where we know that it should work */
-#if defined(IRIX64_) | defined(SP_) | defined(SUN_) | defined(_GNU_SOURCE)
+#if (defined (sgi) || defined (__sgi)) || defined(_AIX) || (defined(sun) || defined(__sun)) || defined(_GNU_SOURCE)
 # undef WITH_PFUNC
 # define WITH_PFUNC
 #endif
@@ -168,8 +176,9 @@ int mumps_io_do_read_block(void * address_block,long long block_size,int * type,
 int mumps_compute_nb_concerned_files(long long block_size,int * nb_concerned_files,long long vaddr);
 MUMPS_INLINE int mumps_gen_file_info(long long vaddr, int * pos, int * file);
 int mumps_free_file_pointers(int* step);
-int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,int nb_file_type,int *flag_tab);
+int mumps_init_file_structure(int *_myid, long long *total_size_io,int *size_element,int *nb_file_type,int *flag_tab);
 int mumps_init_file_name(char* mumps_dir,char* mumps_file,int* mumps_dim_dir,int* mumps_dim_file,int* _myid);
+void mumps_io_init_file_struct(int* nb,int which);
 int mumps_io_alloc_file_struct(int* nb,int which);
 int mumps_io_get_nb_files(int* nb_files, const int* type);
 int mumps_io_get_file_name(int* indice,char* name,int* length,int* type);

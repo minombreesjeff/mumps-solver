@@ -1,5 +1,6 @@
 #include "mex.h"
 #include "stack-c.h"
+#include "sci_gateway.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -191,7 +192,7 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
   /* LhsVar parameters */
   int linfog, lrinfog, lrhsout,lrhsouti, linstout, lschurout, lschurouti, ldef;
   int lpivnul_list, lmapp, lsymperm, lunsperm;
-  int one=1, temp1=40, temp2=20, temp3, temp4; 
+  int one=1, temp1=40, temp2=40, temp3, temp4; 
   int it, itRHS, itREDRHS; /* parameter for real/complex types */
   
   int i,j,k1,k2, nb_in_row,netrue;
@@ -208,7 +209,7 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
   int stkptr, stkptri;
 
   /* C pointer for input parameters */
-  int inst_adress;
+  int inst_address;
   int ne,inst;
   int *irn_in,*jcn_in; 
  
@@ -252,8 +253,8 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
   }else{
     /* Obtain pointer on instance */ 
     GetRhsVar(10,"i",&mint,&nint,&lint);
-    inst_adress=*istk(lint); /* EXTRACT_FROM_SCILAB_TOVAL(INST,inst_address); */
-    ptr_int = (int *) inst_adress;
+    inst_address=*istk(lint); /* EXTRACT_FROM_SCILAB_TOVAL(INST,inst_address); */
+    ptr_int = (int *) inst_address;
     
     dmumps_par = (DMUMPS_STRUC_C *) ptr_int;
     if(*istk(ljob) == -2){
@@ -550,8 +551,8 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
       }
 
       ptr_int = (int *)dmumps_par;
-      inst_adress = (int) ptr_int;
-      EXTRACT_INT_FROM_C_TO_SCILAB(4,linstout,&inst_adress,one,one,one);
+      inst_address = (int) ptr_int;
+      EXTRACT_INT_FROM_C_TO_SCILAB(4,linstout,&inst_address,one,one,one);
       
 
       temp4=dmumps_par->size_schur;

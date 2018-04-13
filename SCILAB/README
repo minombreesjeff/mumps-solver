@@ -50,7 +50,7 @@ CONTENT OF THE DIRECTORY:
 INSTALLATION for Scilab:
 
 You need:
-        1- scilab version 3.0 or greater
+        1- scilab version 3.x or 4.x (not tested with scilab 5.x)
 	2- to have compiled/linked a sequential version of MUMPS with both double precision
 	   and double complex arithmetics ("make d" and "make z", or "make all")
 	3- to modify the paths in the builder.sce. In particular you will need to give 

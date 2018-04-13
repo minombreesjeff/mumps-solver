@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -53,8 +61,13 @@ extern "C" {
 /* Next line defines MUMPS_INT, DMUMPS_COMPLEX and DMUMPS_REAL */
 #include "mumps_c_types.h"
 
-#define MUMPS_VERSION "4.9.2"
+#ifndef MUMPS_VERSION
+/* Protected in case headers of other arithmetics are included */
+#define MUMPS_VERSION "4.10.0"
+#endif
+#ifndef MUMPS_VERSION_MAX_LEN
 #define MUMPS_VERSION_MAX_LEN 14
+#endif
 
 /*
  * Definition of the (simplified) MUMPS C structure.
@@ -107,7 +120,7 @@ typedef struct {
     MUMPS_INT      schur_mloc, schur_nloc, schur_lld;
     MUMPS_INT      mblock, nblock, nprow, npcol;
     MUMPS_INT      info[40],infog[40];
-    DMUMPS_REAL    rinfo[20], rinfog[20];
+    DMUMPS_REAL    rinfo[40], rinfog[40];
 
     /* Null space */
     MUMPS_INT      deficiency;
@@ -137,7 +150,6 @@ typedef struct {
 
 void MUMPS_CALL
 dmumps_c( DMUMPS_STRUC_C * dmumps_par );
-
 
 #ifdef __cplusplus
 }

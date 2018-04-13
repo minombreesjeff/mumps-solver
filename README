@@ -1,8 +1,14 @@
 ===========================================
-MUMPS version 4.9.2
+MUMPS version 4.10.0
 ===========================================
 
-MUMPS 4.9.2 solves a sparse system of linear equations A x = b
+(Quick note on upgrading from a previous version: please
+ check if Makefiles have changed (see old and new Makefiles
+ in Make.inc/ and be aware that all codes that use MUMPS
+ include files must be recompiled).
+
+
+MUMPS 4.10.0 solves a sparse system of linear equations A x = b
 using Gaussian elimination. Please read this README file and
 the documentation (in ./doc/) for a complete list of
 functionalities. Documentation and publications related to
@@ -13,28 +19,58 @@ For installation problems, bug reports, and to report your
 experience/feedback with the package, please subscribe the
 MUMPS Users's mailing list.
 
-This version of MUMPS is provided to you free of charge. It is public
-domain, based on public domain software developed during the Esprit IV
-european project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-Since this first public domain version in 1999, the developments are supported
-by the following institutions CERFACS, INRIA and IRIT.
 
-Current development team includes Patrick Amestoy, Alfredo Buttari,
-Philippe Combes, Abdou Guermouche, Jean-Yves L'Excellent, Stéphane Pralet
-and Bora Ucar.
+  This version of MUMPS is provided to you free of charge. It is public
+  domain, based on public domain software developed during the Esprit IV
+  European project PARASOL (1996-1999). Since this first public domain
+  version in 1999, research and developments have been supported by the
+  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+  INRIA, and University of Bordeaux.
 
-We are also grateful to C. Bousquet, C. Daniel, V. Espirat, A. Fèvre,
-C. Puglisi, G. Richard, M. Tuma, X. Vasseur and C. Voemel 
-who have been contributing to this work. 
+  The MUMPS team at the moment of releasing this version includes
+  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+  Ucar and Clement Weisbecker.
+
+  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+  have been contributing to this project.
+
+  Up-to-date copies of the MUMPS package can be obtained
+  from the Web pages:
+  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
+
+
+   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
+   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
+
+
+  User documentation of any code that uses this software can
+  include this complete notice. You can acknowledge (using
+  references [1] and [2]) the contribution of this package
+  in any scientific publication dependent upon the use of the
+  package. You shall use reasonable endeavours to notify
+  the authors of the package of this publication.
+
+   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+   A fully asynchronous multifrontal solver using distributed dynamic
+   scheduling, SIAM Journal of Matrix Analysis and Applications,
+   Vol 23, No 1, pp 15-41 (2001).
+
+   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+   S. Pralet, Hybrid scheduling for the parallel solution of linear
+   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
+
 
 
 Contents of the distribution :
 ----------------------------
 
-COPYRIGHT  Makefile  README   doc/      lib/     src/
-Make.inc/  PORD/     VERSION  include/  libseq/  examples/
-
-Make.inc contains some template Makefiles
+ChangeLog  LICENSE    README     VERSION    Makefile    Make.inc/
+doc/       src/       lib/       include/   libseq/     examples/
+PORD/      MATLAB/    SCILAB/
 
 doc      contains the users' guide in postscript and pdf formats.
 
@@ -44,19 +80,23 @@ src      contains the source files (for all arithmetics 's','d','c' or 'z')
 lib      is the place where the MUMPS libraries libxmumps.a
          (x='s','d','c' or 'z') are generated.
 
-libseq   contains a sequential MPI library used by the purely sequential
-         version of MUMPS.
-
 include  contains xmumps_struc.h, xmumps_root.h and xmumps_c.h (where x is one
          of 'd','c','s','z' depending on the arithmetic desired),
          mumps_c_types.h and mumps_compat.h. The first two files must be
          available at compile time in order to use MUMPS from external FORTRAN
          programs. The three others for C programs.
 
+libseq   contains a sequential MPI library used by the purely sequential
+         version of MUMPS.
+
 examples contains illustrative test programs showing how MUMPS can be used.
 
 PORD     contains the PORD package (not part of MUMPS) from University
          of Paderborn. See PORD/README for more info.
+
+MATLAB   contains a MATLAB interface to the sequential version of MUMPS
+
+SCILAB   contains a SCILAB interface to the sequential version of MUMPS
 
 
 Pre-requisites
@@ -81,8 +121,8 @@ Installation
 
 The following steps can be applied.
 
-% tar zxvf MUMPS_4.9.2.tar.gz
-% cd MUMPS_4.9.2
+% tar zxvf MUMPS_4.10.0.tar.gz
+% cd MUMPS_4.10.0
 
 You then need to build a file called Makefile.inc corresponding
 to your achitecture. Various examples are available in the
@@ -102,11 +142,14 @@ directory Make.inc :
  Makefile.ALPHA_linux.PAR : default for ALPHA linux (compiler:fort), parallel.
  Makefile.ALPHA_true64.SEQ : default for ALPHA true 64 (compiler:f90), sequential.
  Makefile.ALPHA_true64.PAR : default for ALPHA true 64 (compiler:f90), parallel.
+ Makefile.WIN.MS-Intel.SEQ : default for Windows with Intel compiler, sequential, with GNU make.
+ Makefile.WIN.MS-G95.SEQ : default for Windows with g95 compiler, sequential, with GNU make.
 
-For a parallel version of MUMPS on an IBM SP machine, copy
-Make.inc/Makefile.SP.PAR into Makefile.inc
 
-% cp Make.inc/Makefile.SP.PAR ./Makefile.inc
+For a parallel version of MUMPS on a 64-bit IBM SP machine, copy
+Make.inc/Makefile.SP64.PAR into Makefile.inc
+
+% cp Make.inc/Makefile.SP64.PAR ./Makefile.inc
 
 In most cases, Makefile.inc should be adapted to fit with your
 architecture, libraries and compiler (see comments in the
@@ -130,8 +173,8 @@ also be compiled as well as an example of using MUMPS from a C main
 program.
 
 
-Preprocessing options
----------------------
+Preprocessing constants (Makefile.inc)
+--------------------------------------
 
 -DMAIN_COMP:
 Note that some Fortran runtime libraries define the "main" symbol.

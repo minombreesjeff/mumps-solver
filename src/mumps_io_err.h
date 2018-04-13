@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -51,7 +59,7 @@ extern pthread_mutex_t err_mutex;
 #define MUMPS_LOW_LEVEL_INIT_ERR_STR \
     F_SYMBOL(low_level_init_err_str,LOW_LEVEL_INIT_ERR_STR)
 void MUMPS_CALL
-MUMPS_LOW_LEVEL_INIT_ERR_STR( int* dim, char* err_str, mumps_ftnlen l1 );
+MUMPS_LOW_LEVEL_INIT_ERR_STR( MUMPS_INT *dim, char *err_str, mumps_ftnlen l1 );
 /* Export an error to the Fortran layer
    Returns mumps_errno for convenience */
 int mumps_io_error(int mumps_errno, const char* desc);
@@ -62,4 +70,6 @@ int mumps_io_sys_error(int mumps_errno, const char* desc);
 int mumps_io_init_err_lock();
 int mumps_io_destroy_err_lock();
 int mumps_check_error_th();
+MUMPS_INLINE int mumps_io_protect_err();
+MUMPS_INLINE int mumps_io_unprotect_err();
 #endif /* ! ( MUMPS_WIN32 || WITHOUT_PTHREAD ) */

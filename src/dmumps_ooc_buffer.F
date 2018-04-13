@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -44,8 +52,6 @@ C
       INTEGER FIRST_HBUF,SECOND_HBUF
       PARAMETER (FIRST_HBUF=0, SECOND_HBUF=1)
       INTEGER,SAVE :: OOC_FCT_TYPE_LOC
-      INTEGER TYPEF_L_LOC,TYPEF_U_LOC
-      PARAMETER ( TYPEF_L_LOC=1, TYPEF_U_LOC=2 )
       INTEGER IO_STRAT
       DOUBLE PRECISION, DIMENSION(:),ALLOCATABLE :: BUF_IO
       LOGICAL,SAVE :: PANEL_FLAG
@@ -60,8 +66,8 @@ C
      &  I_SUB_HBUF_FSTPOS
       INTEGER(8) :: BufferEmpty
       PARAMETER (BufferEmpty=-1_8)
-      INTEGER*8, DIMENSION(:),ALLOCATABLE :: NextAddVirtBuffer
-      INTEGER*8, DIMENSION(:),ALLOCATABLE :: FIRST_VADDR_IN_BUF
+      INTEGER(8), DIMENSION(:),ALLOCATABLE :: NextAddVirtBuffer
+      INTEGER(8), DIMENSION(:),ALLOCATABLE :: FIRST_VADDR_IN_BUF
       CONTAINS
       SUBROUTINE DMUMPS_689(TYPEF_ARG)
       IMPLICIT NONE
@@ -114,8 +120,8 @@ C
       INTEGER TYPEF_LAST        
       INTEGER TYPEF_LOC
       IERR = 0 
-      TYPEF_LAST = OOC_FCT_TYPE_LOC
-      DO TYPEF_LOC = 1, OOC_FCT_TYPE_LOC
+      TYPEF_LAST = OOC_NB_FILE_TYPE
+      DO TYPEF_LOC = 1, TYPEF_LAST
          IERR=0
          CALL  DMUMPS_707(TYPEF_LOC,IERR)
          IF(IERR.LT.0)THEN
@@ -134,11 +140,11 @@ C
       IMPLICIT NONE
       INTEGER IOREQUEST,IERR
       INTEGER TYPEF_ARG
-      INTEGER TOTAL_SIZE,FIRST_INODE
+      INTEGER FIRST_INODE
       INTEGER(8) :: FROM_BUFIO_POS, SIZE
       INTEGER TYPE
       INTEGER ADDR_INT1,ADDR_INT2
-      INTEGER*8 TMP_VADDR
+      INTEGER(8) TMP_VADDR
       INTEGER SIZE_INT1,SIZE_INT2
       IERR=0
       IF (I_REL_POS_CUR_HBUF(TYPEF_ARG) == 1_8) THEN
@@ -369,7 +375,6 @@ C
       IMPLICIT NONE
       INTEGER(8) :: SIZE_OF_BLOCK
       DOUBLE PRECISION BLOCK(SIZE_OF_BLOCK)
-      INTEGER SIZE
       INTEGER, intent(out) :: IERR
       INTEGER(8) :: I
       IERR=0
@@ -395,15 +400,10 @@ C
       INTEGER(8) :: DIM_BUF_IO_L_OR_U
       INTEGER TYPEF, TYPEF_LAST
       INTEGER NB_DOUBLE_BUFFERS
-      IF (KEEP_OOC(50) .EQ.0) THEN
-        NB_DOUBLE_BUFFERS = 2
-        TYPEF_LAST = 2
-      ELSE
-        NB_DOUBLE_BUFFERS = 1
-        TYPEF_LAST = 1
-      ENDIF
+      TYPEF_LAST = OOC_NB_FILE_TYPE
+      NB_DOUBLE_BUFFERS = OOC_NB_FILE_TYPE
       DIM_BUF_IO_L_OR_U = DIM_BUF_IO /
-     & int(NB_DOUBLE_BUFFERS,KIND=kind(DIM_BUF_IO_L_OR_U))
+     & int(NB_DOUBLE_BUFFERS,kind=kind(DIM_BUF_IO_L_OR_U))
       IF(.NOT.STRAT_IO_ASYNC)THEN
          HBUF_SIZE = DIM_BUF_IO_L_OR_U
       ELSE
@@ -457,14 +457,11 @@ C
          RETURN
       ENDIF
       END SUBROUTINE DMUMPS_706
-      SUBROUTINE DMUMPS_709(TYPEF,VADDR)
+      SUBROUTINE DMUMPS_709 (TYPEF,VADDR)
       IMPLICIT NONE
-      INTEGER*8, INTENT(in) :: VADDR
+      INTEGER(8), INTENT(in) :: VADDR
       INTEGER, INTENT(in) :: TYPEF
       IF(I_REL_POS_CUR_HBUF(TYPEF).EQ.1_8)THEN
-#if defined(check_vaddr)
-         write(*,*) MYID_OOC, "Setting FIRST_VADDR_IN_BUF=",VADDR
-#endif
          FIRST_VADDR_IN_BUF(TYPEF)=VADDR
       ENDIF
       RETURN
@@ -477,7 +474,7 @@ C
       INTEGER,          INTENT(IN) :: TYPEF, IPIVBEG, IPIVEND, STRAT
       INTEGER(8),       INTENT(IN) :: LAFAC
       DOUBLE PRECISION, INTENT(IN) :: AFAC(LAFAC)
-      INTEGER*8,        INTENT(IN) :: AddVirtCour
+      INTEGER(8),        INTENT(IN) :: AddVirtCour
       TYPE(IO_BLOCK),   INTENT(IN) :: MonBloc   
       INTEGER,          INTENT(OUT):: LPANELeff
       INTEGER,          INTENT(OUT):: IERR
@@ -491,7 +488,7 @@ C
          CALL MUMPS_ABORT()
       ENDIF
       NBPIVeff = IPIVEND - IPIVBEG + 1
-      IF (MonBloc%MASTER .AND. MonBloc%TYPENODE .NE. 3) THEN
+      IF (MonBloc%MASTER .AND. MonBloc%Typenode .NE. 3) THEN
         IF (TYPEF.EQ.TYPEF_L) THEN
           LPANELeff = (MonBloc%NROW-IPIVBEG+1)*NBPIVeff
         ELSE
@@ -520,20 +517,17 @@ C
         RETURN
       ENDIF
       IF (NextAddVirtBuffer(TYPEF).EQ. BufferEmpty) THEN
-#if defined(check_vaddr)
-         WRITE(*,*) MYID_OOC,": Call UPDATE_VADDR",AddVirtCour
-#endif
-         CALL DMUMPS_709(TYPEF,AddVirtCour)
+         CALL DMUMPS_709 (TYPEF,AddVirtCour)
          NextAddVirtBuffer(TYPEF) = AddVirtCour
       ENDIF
-      IF (MonBloc%MASTER .AND. MonBloc%TYPENODE .NE. 3) THEN
+      IF (MonBloc%MASTER .AND. MonBloc%Typenode .NE. 3) THEN
          IDIAG =  int(IPIVBEG-1,8)*int(MonBloc%NCOL,8) + int(IPIVBEG,8)
          IPOS   = IDIAG
          IDEST = I_SHIFT_CUR_HBUF(TYPEF) +
      &        I_REL_POS_CUR_HBUF(TYPEF)
          IF (TYPEF.EQ.TYPEF_L) THEN
             DO II = IPIVBEG, IPIVEND
-               CALL DCOPY(MonBloc%NROW-IPIVBEG+1, 
+               CALL dcopy(MonBloc%NROW-IPIVBEG+1, 
      &              AFAC(IPOS), MonBloc%NCOL,
      &              BUF_IO(IDEST), 1)
                IDEST = IDEST + int(MonBloc%NROW-IPIVBEG+1,8)
@@ -541,7 +535,7 @@ C
             ENDDO
          ELSE
             DO II = IPIVBEG, IPIVEND
-               CALL DCOPY(MonBloc%NCOL-IPIVBEG+1, 
+               CALL dcopy(MonBloc%NCOL-IPIVBEG+1, 
      &              AFAC(IPOS), 1,
      &              BUF_IO(IDEST), 1)
                IDEST = IDEST + int(MonBloc%NCOL-IPIVBEG+1,8)
@@ -560,7 +554,7 @@ C
          ENDIF
          IPOS  = 1_8 + int(IPIVBEG - 1,8) * DeltaIPOS
          DO II = IPIVBEG, IPIVEND
-            CALL DCOPY(MonBloc%NROW, 
+            CALL dcopy(MonBloc%NROW, 
      &           AFAC(IPOS), StrideIPOS,
      &           BUF_IO(IDEST), 1)
             IDEST = IDEST+int(MonBloc%NROW,8)

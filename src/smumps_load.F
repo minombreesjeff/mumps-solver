@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -40,27 +48,22 @@ C
       MODULE SMUMPS_LOAD
       implicit none
       PUBLIC :: SMUMPS_188, SMUMPS_185,
-     &       SMUMPS_189,
-     &       SMUMPS_184, SMUMPS_190,
-     &       SMUMPS_183, SMUMPS_187, 
-     &       SMUMPS_186,
-     &       SMUMPS_409,
-     &       SMUMPS_384, SMUMPS_461,
-     &       SMUMPS_467, SMUMPS_471,
-     &       SMUMPS_472,
-     &       SMUMPS_500,
-     &       SMUMPS_501,
-     &       SMUMPS_520,
-     &       SMUMPS_513,
-     &       SMUMPS_514, SMUMPS_512
-     &       ,SMUMPS_533,
-     &       CLEAN_POOL_MEM_INFO,COMPUTE_MAX_MEM,
-     &       CHECK_MEM_CONST_FOR_POOL,SMUMPS_554,
-     &       SMUMPS_553,
-     &       SMUMPS_555
-#if  defined (DELTA_MD_STK)
-     &       ,SMUMPS_LOAD_UPDATE_MD_INFO
-#endif
+     &  SMUMPS_189, SMUMPS_190,
+     &  SMUMPS_183, SMUMPS_187, 
+     &  SMUMPS_186, SMUMPS_409,
+     &  SMUMPS_384, SMUMPS_461,
+     &  SMUMPS_467, SMUMPS_471,
+     &  SMUMPS_472,
+     &  SMUMPS_791, SMUMPS_790,
+     &  SMUMPS_792, SMUMPS_500,
+     &  SMUMPS_501, SMUMPS_520,
+     &  SMUMPS_513,
+     &  SMUMPS_514, SMUMPS_512
+     &  ,SMUMPS_533,
+     &  SMUMPS_819, SMUMPS_818,
+     &  SMUMPS_820, SMUMPS_554,
+     &  SMUMPS_553,
+     &  SMUMPS_555
       DOUBLE PRECISION, DIMENSION(:),
      &       ALLOCATABLE, SAVE, PRIVATE :: LOAD_FLOPS
       INTEGER, DIMENSION(:), ALLOCATABLE, SAVE, PRIVATE :: BUF_LOAD_RECV
@@ -77,7 +80,7 @@ C
       DOUBLE PRECISION, DIMENSION(:),
      &       ALLOCATABLE, TARGET, SAVE, PRIVATE :: WLOAD
 #if defined(OLD_LOAD_MECHANISM)
-#if defined (CHECK_COHERENCE) 
+#if defined(CHECK_COHERENCE) 
       INTEGER, SAVE, PRIVATE :: NB_LEVEL2
       LOGICAL, PRIVATE :: AMI_CHOSEN,IS_DISPLAYED
 #endif
@@ -138,8 +141,10 @@ C
      &      PRIVATE :: POOL_NIV2_COST, NIV2
       DOUBLE PRECISION, SAVE, PRIVATE  ::      CHK_LD
       INTEGER, DIMENSION(:),POINTER, SAVE, PRIVATE  :: 
-     &         KEEP_LOAD, PROCNODE_LOAD, STEP_TO_NIV2_LOAD
-      INTEGER*8, DIMENSION(:), POINTER, SAVE, PRIVATE:: KEEP8_LOAD
+     &         PROCNODE_LOAD, STEP_TO_NIV2_LOAD
+      INTEGER, DIMENSION(:),POINTER, SAVE, PRIVATE  :: KEEP_LOAD
+      INTEGER, SAVE, PRIVATE :: N_LOAD
+      INTEGER(8), DIMENSION(:), POINTER, SAVE, PRIVATE:: KEEP8_LOAD
       INTEGER, DIMENSION(:),POINTER, SAVE :: 
      &         FILS_LOAD, STEP_LOAD,
      &         FRERE_LOAD, ND_LOAD,
@@ -152,12 +157,12 @@ C
       DOUBLE PRECISION, DIMENSION(:),ALLOCATABLE,SAVE, 
      &         PRIVATE ::SBTR_PEAK_ARRAY,
      &     SBTR_CUR_ARRAY
-      INTEGER, SAVE, 
-     &         PRIVATE :: N_LOAD
       DOUBLE PRECISION,DIMENSION(:),POINTER, SAVE :: COST_TRAV
-      INTEGER, DIMENSION(:),POINTER, SAVE :: DEPTH_FIRST_LOAD
+      INTEGER, DIMENSION(:),POINTER, SAVE :: DEPTH_FIRST_LOAD,
+     &     DEPTH_FIRST_SEQ_LOAD,SBTR_ID_LOAD
       PUBLIC :: DEPTH_FIRST_LOAD,COST_TRAV, FILS_LOAD,STEP_LOAD,
-     &     FRERE_LOAD, ND_LOAD,NE_LOAD,DAD_LOAD
+     &     FRERE_LOAD, ND_LOAD,NE_LOAD,DAD_LOAD,
+     &     DEPTH_FIRST_SEQ_LOAD,SBTR_ID_LOAD
       INTEGER, SAVE     :: ROOT_CURRENT_SUBTREE,CURRENT_BEST,
      &     SECOND_CURRENT_BEST
       PUBLIC :: ROOT_CURRENT_SUBTREE,CURRENT_BEST,
@@ -178,6 +183,148 @@ C
       DM_THRES_MEM = dble(MAXS/1000_8)
       COST_SUBTREE = COST_SUBTREE_ARG
       END SUBROUTINE SMUMPS_188
+      SUBROUTINE SMUMPS_791 ( 
+     &      INODE, STEP, N, SLAVEF,
+     &      PROCNODE_STEPS, KEEP, DAD, FILS,
+     &      CAND, ICNTL, COPY_CAND,
+     &      NBSPLIT, NUMORG_SPLIT, SLAVES_LIST,
+     &      SIZE_SLAVES_LIST 
+     &                                    )
+      IMPLICIT NONE
+       INTEGER, intent(in) :: INODE, N, SIZE_SLAVES_LIST, SLAVEF, 
+     &                        KEEP(500)
+       INTEGER, intent(in) :: STEP(N), DAD (KEEP(28)), ICNTL(40),
+     &                        PROCNODE_STEPS(KEEP(28)), CAND(SLAVEF+1),
+     &                        FILS(N)
+       INTEGER, intent(out)   :: NBSPLIT, NUMORG_SPLIT
+       INTEGER, intent(inout) :: SLAVES_LIST(SIZE_SLAVES_LIST),
+     &                           COPY_CAND(SLAVEF+1)
+       INTEGER :: IN, LP, II
+       INTEGER  MUMPS_810
+       EXTERNAL MUMPS_810
+       LP = ICNTL(1) 
+       IN = INODE
+       NBSPLIT = 0
+       NUMORG_SPLIT = 0    
+       DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IN)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IN)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+           NBSPLIT = NBSPLIT + 1
+           IN = DAD(STEP(IN))
+           II = IN
+           DO WHILE (II.GT.0)
+             NUMORG_SPLIT = NUMORG_SPLIT + 1
+             II = FILS(II)
+           ENDDO
+       END DO
+      SLAVES_LIST(1:NBSPLIT) = CAND(1:NBSPLIT)
+      COPY_CAND(1:SIZE_SLAVES_LIST-NBSPLIT) = 
+     &                   CAND(1+NBSPLIT:SIZE_SLAVES_LIST)
+      COPY_CAND(SIZE_SLAVES_LIST-NBSPLIT+1:SLAVEF) = -1
+      COPY_CAND(SLAVEF+1) = SIZE_SLAVES_LIST-NBSPLIT
+      RETURN
+      END SUBROUTINE SMUMPS_791
+      SUBROUTINE SMUMPS_790 ( 
+     &      INODE, STEP, N, SLAVEF, NBSPLIT, NCB, 
+     &      PROCNODE_STEPS, KEEP, DAD, FILS, ICNTL,
+     &      TAB_POS, NSLAVES_NODE
+     &                                    )
+      IMPLICIT NONE
+       INTEGER, intent(in) :: INODE, N, SLAVEF, NCB, 
+     &                        KEEP(500), NBSPLIT
+       INTEGER, intent(in) :: STEP(N), DAD (KEEP(28)), ICNTL(40),
+     &                        PROCNODE_STEPS(KEEP(28)), 
+     &                        FILS(N)
+       INTEGER, intent(inout) :: TAB_POS ( SLAVEF+2 ), NSLAVES_NODE
+       INTEGER :: IN, LP, II, NUMORG, NBSPLIT_LOC, I
+       INTEGER  MUMPS_810
+       EXTERNAL MUMPS_810
+       DO I= NSLAVES_NODE+1, 1, -1
+          TAB_POS(I+NBSPLIT) = TAB_POS(I) 
+       END DO
+       LP = ICNTL(1) 
+       IN = INODE
+       NBSPLIT_LOC = 0
+       NUMORG = 0
+       TAB_POS(1) = 1
+       DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IN)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IN)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+           NBSPLIT_LOC = NBSPLIT_LOC + 1
+           IN = DAD(STEP(IN))
+           II = IN
+           DO WHILE (II.GT.0)
+             NUMORG = NUMORG + 1
+             II = FILS(II)
+           ENDDO
+           TAB_POS(NBSPLIT_LOC+1) = NUMORG + 1
+       END DO
+       DO I = NBSPLIT+2, NBSPLIT+NSLAVES_NODE+1
+         TAB_POS(I) = TAB_POS(I) + NUMORG
+       ENDDO
+      NSLAVES_NODE = NSLAVES_NODE + NBSPLIT
+      TAB_POS (NSLAVES_NODE+2:SLAVEF+1) = -9999
+      TAB_POS ( SLAVEF+2 ) =  NSLAVES_NODE
+      RETURN
+      END SUBROUTINE SMUMPS_790
+      SUBROUTINE SMUMPS_792 (
+     &      INODE, TYPESPLIT, IFSON, 
+     &      SON_SLAVE_LIST, NSLSON,
+     &      STEP, N, SLAVEF, NBSPLIT, NCB, 
+     &      PROCNODE_STEPS, KEEP, DAD, FILS, ICNTL,
+     &      ISTEP_TO_INIV2, INIV2,
+     &      TAB_POS_IN_PERE, NSLAVES_NODE,
+     &      SLAVES_LIST, SIZE_SLAVES_LIST
+     &                                    )
+      IMPLICIT NONE
+       INTEGER, intent(in) :: INODE, TYPESPLIT, IFSON, N, SLAVEF, 
+     &                        NCB, KEEP(500), NBSPLIT,
+     &                        NSLSON, SIZE_SLAVES_LIST
+       INTEGER, intent(in) :: STEP(N), DAD (KEEP(28)), ICNTL(40),
+     &                        PROCNODE_STEPS(KEEP(28)), 
+     &                        FILS(N), INIV2,
+     &                        SON_SLAVE_LIST (NSLSON),
+     &                        ISTEP_TO_INIV2(KEEP(71))
+       INTEGER, intent(out)   ::  NSLAVES_NODE
+       INTEGER, intent(inout) ::
+     &                   TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
+       INTEGER, intent(out)   :: SLAVES_LIST (SIZE_SLAVES_LIST)
+       INTEGER :: IN, LP, I, NSLAVES_SONS,
+     &            INIV2_FILS, ISHIFT
+       LP = ICNTL(1) 
+       IN = INODE
+      INIV2_FILS = ISTEP_TO_INIV2( STEP( IFSON ))
+      NSLAVES_SONS = TAB_POS_IN_PERE (SLAVEF+2, INIV2_FILS)
+      TAB_POS_IN_PERE (1,INIV2) = 1
+      ISHIFT  = TAB_POS_IN_PERE (2, INIV2_FILS) -1 
+      DO I = 2, NSLAVES_SONS
+         TAB_POS_IN_PERE (I,INIV2) = 
+     &            TAB_POS_IN_PERE (I+1,INIV2_FILS) - ISHIFT
+         SLAVES_LIST(I-1) =  SON_SLAVE_LIST (I)
+      END DO
+      TAB_POS_IN_PERE(NSLAVES_SONS+1:SLAVEF+1,INIV2) = -9999
+      NSLAVES_NODE = NSLAVES_SONS - 1
+      TAB_POS_IN_PERE (SLAVEF+2, INIV2) = NSLAVES_NODE
+      RETURN
+      END SUBROUTINE SMUMPS_792 
       SUBROUTINE SMUMPS_472(
      &  NCBSON_MAX, SLAVEF,
      &  KEEP,KEEP8,ICNTL,
@@ -186,9 +333,10 @@ C
      &  TAB_POS, SLAVES_LIST, SIZE_SLAVES_LIST,INODE)
        IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, intent(in) :: ICNTL(40)
-      INTEGER, intent(in) :: SLAVEF, NFRONT, NCB
+      INTEGER, intent(in) :: SLAVEF, NFRONT
+      INTEGER, intent (inout) ::NCB   
       INTEGER, intent(in) :: CAND_OF_NODE(SLAVEF+1)
       INTEGER, intent(in) :: MEM_DISTRIB(0:SLAVEF-1),INODE
       INTEGER, intent(in) :: NCBSON_MAX
@@ -250,7 +398,7 @@ C
      &  TAB_POS, SLAVES_LIST, SIZE_SLAVES_LIST)
       IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, intent(in) :: SLAVEF, NFRONT, NCB
       INTEGER, intent(in) :: CAND_OF_NODE(SLAVEF+1)
       INTEGER, intent(in) :: MEM_DISTRIB(0:SLAVEF-1)
@@ -278,7 +426,7 @@ C
       END IF
       IF (FORCE_CAND) THEN
         ITEMP=SMUMPS_409
-     &       (MEM_DISTRIB(0:SLAVEF-1),
+     &       (MEM_DISTRIB,
      &        CAND_OF_NODE,
      &
      &        KEEP(69), SLAVEF, MSG_SIZE,
@@ -341,6 +489,7 @@ C
       MAX_SURF_MASTER=id%MAX_SURF_MASTER+
      & (int(id%KEEP(12),8)*int(id%MAX_SURF_MASTER,8)/int(100,8))
       COMM_LD = id%COMM_LOAD
+      MAX_PEAK_STK = 0.0D0
       K69  = KEEP(69)
       IF ( KEEP(47) .le. 0 .OR. KEEP(47) .gt. 4 ) THEN
         write(*,*) "Internal error 1 in SMUMPS_185"
@@ -380,6 +529,11 @@ C
       IF(KEEP(76).EQ.5)THEN
          COST_TRAV=>id%COST_TRAV
       ENDIF
+      IF(KEEP(76).EQ.6)THEN
+         DEPTH_FIRST_LOAD=>id%DEPTH_FIRST
+         DEPTH_FIRST_SEQ_LOAD=>id%DEPTH_FIRST_SEQ
+         SBTR_ID_LOAD=>id%SBTR_ID
+      ENDIF
       IF (BDC_M2_MEM.OR.BDC_M2_FLOPS) THEN
          ALLOCATE(NIV2(id%NSLAVES), NB_SON(KEEP(28)),
      &            POOL_NIV2(100),POOL_NIV2_COST(100),
@@ -393,7 +547,7 @@ C
            RETURN
          ENDIF
       ENDIF
-      K50      = id%SYM
+      K50      = id%KEEP(50)
       CALL MPI_COMM_RANK( COMM_LD, MYID, IERR )
       NPROCS = id%NSLAVES
       DM_SUMLU=ZERO
@@ -470,7 +624,7 @@ C
 #endif
       CHECK_MEM=0_8
 #if defined(OLD_LOAD_MECHANISM)
-#if defined (CHECK_COHERENCE) 
+#if defined(CHECK_COHERENCE) 
       NB_LEVEL2=0
       AMI_CHOSEN=.FALSE.
       IS_DISPLAYED=.FALSE.
@@ -643,6 +797,7 @@ C
      &        MEMORY_SENT,
      &        dble(0),MYID, IERR  )
       ENDIF
+      RETURN
       END SUBROUTINE SMUMPS_185
       SUBROUTINE SMUMPS_190( CHECK_FLOPS,PROCESS_BANDE,
      &     INC_LOAD, KEEP,KEEP8 )
@@ -650,7 +805,7 @@ C
       IMPLICIT NONE
       DOUBLE PRECISION INC_LOAD
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       LOGICAL PROCESS_BANDE
       INTEGER CHECK_FLOPS
       INTEGER IERR
@@ -771,13 +926,15 @@ C
       INTEGER(8), INTENT(IN) :: MEM_VALUE, INC_MEM_ARG, NEW_LU,LRLU
       LOGICAL, INTENT(IN) :: PROCESS_BANDE_ARG, SSARBR
       INTEGER IERR, KEEP(500)
-      INTEGER*8 KEEP8(150)
-      DOUBLE PRECISION ZERO, SEND_MEM, TMP_MEM, SBTR_TMP
+      INTEGER(8) KEEP8(150)
+      DOUBLE PRECISION ZERO, SEND_MEM, SBTR_TMP
       PARAMETER( ZERO=0.0d0 )
       INTRINSIC max, abs
       INTEGER(8) :: INC_MEM
       LOGICAL PROCESS_BANDE
-      INTEGER i
+#if defined(OLD_LOAD_MECHANISM)
+      DOUBLE PRECISION TMP_MEM
+#endif
       PROCESS_BANDE=PROCESS_BANDE_ARG
       INC_MEM = INC_MEM_ARG
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -787,12 +944,38 @@ C
         CALL MUMPS_ABORT()
       ENDIF
 #endif
+#if defined(OLD_LOAD_MECHANISM)
+#if defined(CHECK_COHERENCE) 
+      IF(PROCESS_BANDE)THEN
+         PROCESS_BANDE=.FALSE.
+         NB_LEVEL2=NB_LEVEL2-1
+         IF(NB_LEVEL2.LT.0)THEN
+            WRITE(*,*)MYID,': problem with NB_LEVEL2'
+         ELSEIF(NB_LEVEL2.EQ.0)THEN
+            IF(IS_DISPLAYED)THEN
+#if defined(STATS_DYNAMIC_MEMORY)
+               WRITE(*,*)MYID,': end of Incoherent state at time=',
+     &              MPI_WTIME()-TIME_REF
+#endif
+               IS_DISPLAYED=.FALSE.
+            ENDIF
+            AMI_CHOSEN=.FALSE.
+         ENDIF
+      ENDIF
+      IF((KEEP(73).EQ.0).AND.(NB_LEVEL2.NE.0)
+     &     .AND.(.NOT.IS_DISPLAYED))THEN
+         IS_DISPLAYED=.TRUE.
+#if defined(STATS_DYNAMIC_MEMORY)
+         WRITE(*,*)MYID,': Begin of Incoherent state (1) at time=',
+     &        MPI_WTIME()-TIME_REF
+#endif
+      ENDIF
+#endif
+#endif
       DM_SUMLU = DM_SUMLU + dble(NEW_LU)
       IF(KEEP_LOAD(201).EQ.0)THEN
          CHECK_MEM = CHECK_MEM + INC_MEM
-      ELSEIF(KEEP_LOAD(201).EQ.1)THEN
-         CHECK_MEM = CHECK_MEM + INC_MEM - NEW_LU
-      ELSEIF(KEEP_LOAD(201).EQ.2)THEN
+      ELSE 
          CHECK_MEM = CHECK_MEM + INC_MEM - NEW_LU
       ENDIF
       IF ( MEM_VALUE .NE. CHECK_MEM ) THEN
@@ -990,13 +1173,6 @@ C
       ENDIF
       RETURN
       END SUBROUTINE SMUMPS_189
-      SUBROUTINE SMUMPS_184( IPROC, LOAD_IPROC )
-      IMPLICIT NONE
-      INTEGER, intent(in) :: IPROC
-      DOUBLE PRECISION, intent(out) :: LOAD_IPROC
-      LOAD_IPROC = LOAD_FLOPS( IPROC )
-      RETURN
-      END SUBROUTINE SMUMPS_184
       SUBROUTINE SMUMPS_183( INFO1, IERR )
       USE SMUMPS_COMM_BUFFER
       IMPLICIT NONE
@@ -1029,6 +1205,11 @@ C
       ENDIF
       IF(KEEP_LOAD(76).EQ.5)THEN
          NULLIFY(COST_TRAV)
+      ENDIF
+      IF((KEEP_LOAD(76).EQ.4).OR.(KEEP_LOAD(76).EQ.6))THEN
+         NULLIFY(DEPTH_FIRST_LOAD)
+         NULLIFY(DEPTH_FIRST_SEQ_LOAD)
+         NULLIFY(SBTR_ID_LOAD)
       ENDIF
       IF (BDC_M2_MEM.OR.BDC_M2_FLOPS) THEN
         DEALLOCATE(NB_SON,POOL_NIV2,POOL_NIV2_COST, NIV2)
@@ -1105,12 +1286,10 @@ C
       INCLUDE 'mpif.h'
       INTEGER POSITION, IERR, WHAT, NSLAVES, i
       DOUBLE PRECISION LOAD_RECEIVED
-      INTEGER INODE_RECEIVED,K,J,SON,NSLAVES_TEMP,POS_TEMP,
-     &     NCB_RECEIVED
+      INTEGER INODE_RECEIVED,NCB_RECEIVED
       DOUBLE PRECISION SURF
       INTEGER, POINTER, DIMENSION (:) :: LIST_SLAVES
       DOUBLE PRECISION, POINTER, DIMENSION (:) :: LOAD_INCR
-      LOGICAL FLAG_LEADER
       EXTERNAL MUMPS_330
       INTEGER MUMPS_330
       POSITION = 0
@@ -1165,11 +1344,33 @@ C
         LIST_SLAVES => IDWLOAD
         LOAD_INCR => WLOAD
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &     LIST_SLAVES, NSLAVES, MPI_INTEGER,
+     &     LIST_SLAVES(1), NSLAVES, MPI_INTEGER,
      &     COMM_LD, IERR)
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &     LOAD_INCR, NSLAVES, MPI_DOUBLE_PRECISION,
+     &     LOAD_INCR(1), NSLAVES, MPI_DOUBLE_PRECISION,
      &     COMM_LD, IERR)
+#if defined(OLD_LOAD_MECHANISM)
+#if defined(CHECK_COHERENCE) 
+        WRITE(*,*)MYID,':Receiving M2A from',MSGSOU
+        i=1
+        DO WHILE ((i.LE.NSLAVES).AND.(LIST_SLAVES(i).NE.MYID))
+           i=i+1
+        ENDDO
+        IF(i.LT.(NSLAVES+1))THEN
+           NB_LEVEL2=NB_LEVEL2+1
+           WRITE(*,*)MYID,':NB_LEVEL2=',NB_LEVEL2
+           AMI_CHOSEN=.TRUE.
+           IF(KEEP_LOAD(73).EQ.1)THEN
+              IF(.NOT.IS_DISPLAYED)THEN
+              WRITE(*,*)MYID,': Begin of Incoherent state (2) at time=',
+     &                MPI_WTIME()-TIME_REF
+              IS_DISPLAYED=.TRUE.
+              ENDIF
+            ENDIF
+        ENDIF
+        IF(KEEP_LOAD(73).EQ.1) GOTO 344
+#endif
+#endif
         DO i = 1, NSLAVES
 #if defined(OLD_LOAD_MECHANISM)
           IF ( LIST_SLAVES(i) /= MYID ) THEN
@@ -1183,7 +1384,7 @@ C
         END DO
         IF ( BDC_MEM ) THEN
           CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &     LOAD_INCR, NSLAVES, MPI_DOUBLE_PRECISION,
+     &     LOAD_INCR(1), NSLAVES, MPI_DOUBLE_PRECISION,
      &     COMM_LD, IERR)
           DO i = 1, NSLAVES
 #if defined(OLD_LOAD_MECHANISM)
@@ -1199,9 +1400,9 @@ C
         END IF
         IF(WHAT.EQ.19)THEN
            CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &          LOAD_INCR, NSLAVES, MPI_DOUBLE_PRECISION,
+     &          LOAD_INCR(1), NSLAVES, MPI_DOUBLE_PRECISION,
      &          COMM_LD, IERR)
-           CALL CLEAN_POOL_MEM_INFO(INODE_RECEIVED)
+           CALL SMUMPS_819(INODE_RECEIVED)
            CB_COST_ID(POS_ID)=INODE_RECEIVED
            CB_COST_ID(POS_ID+1)=NSLAVES
            CB_COST_ID(POS_ID+2)=POS_MEM
@@ -1215,7 +1416,7 @@ C
            ENDDO
         ENDIF
 #if defined(OLD_LOAD_MECHANISM)
-#if defined (CHECK_COHERENCE) 
+#if defined(CHECK_COHERENCE) 
  344    CONTINUE
 #endif
 #endif
@@ -1264,9 +1465,9 @@ C
      &     MPI_INTEGER,
      &     COMM_LD, IERR )
          IF(BDC_M2_MEM) THEN
-            CALL PROCESS_NIV2_MEM_MSG(INODE_RECEIVED)
+            CALL SMUMPS_816(INODE_RECEIVED)
          ELSEIF(BDC_M2_FLOPS) THEN
-            CALL PROCESS_NIV2_FLOPS_MSG(INODE_RECEIVED)
+            CALL SMUMPS_817(INODE_RECEIVED)
          ENDIF
          IF((KEEP_LOAD(81).EQ.2).OR.(KEEP_LOAD(81).EQ.3))THEN
             CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
@@ -1277,8 +1478,10 @@ C
      &              NCB_RECEIVED, 1,
      &              MPI_INTEGER,
      &              COMM_LD, IERR )   
-            IF(MUMPS_330(STEP_LOAD(INODE_RECEIVED),
-     &           PROCNODE_LOAD,NPROCS).EQ.1)THEN
+            IF(
+     &          MUMPS_330(PROCNODE_LOAD(STEP_LOAD(INODE_RECEIVED)),
+     &                         NPROCS).EQ.1
+     &        )THEN
                CB_COST_ID(POS_ID)=INODE_RECEIVED
                CB_COST_ID(POS_ID+1)=1
                CB_COST_ID(POS_ID+2)=POS_MEM
@@ -1366,10 +1569,10 @@ C
         LIST_SLAVES => IDWLOAD
         LOAD_INCR => WLOAD
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &     LIST_SLAVES, NSLAVES, MPI_INTEGER,
+     &     LIST_SLAVES(1), NSLAVES, MPI_INTEGER,
      &     COMM_LD, IERR)
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     &     LOAD_INCR, NSLAVES, MPI_DOUBLE_PRECISION,
+     &     LOAD_INCR(1), NSLAVES, MPI_DOUBLE_PRECISION,
      &     COMM_LD, IERR)
         DO i = 1, NSLAVES
 #if defined(OLD_LOAD_MECHANISM)
@@ -1462,8 +1665,7 @@ C
       integer, intent(in) :: CAND(SLAVEF+1)
       integer, dimension(0:NPROCS - 1), intent(in) :: MEM_DISTRIB
       integer, intent(out) :: DEST(CAND(SLAVEF+1))
-      integer i,j,NMB_OF_CAND,deficit,nextproc
-      DOUBLE PRECISION lref
+      integer i,j,NMB_OF_CAND
       external MUMPS_558
       NMB_OF_CAND = CAND(SLAVEF+1)
       if(nslaves_inode.ge.NPROCS .or.
@@ -1484,7 +1686,7 @@ C
                IDWLOAD(i)=i
         end do
         call MUMPS_558(NMB_OF_CAND,
-     &       WLOAD(1:NMB_OF_CAND),IDWLOAD(1:NMB_OF_CAND) )
+     &       WLOAD(1),IDWLOAD(1) )
         do i=1,nslaves_inode
            DEST(i)= CAND(IDWLOAD(i))
         end do
@@ -1550,7 +1752,7 @@ C
       END SUBROUTINE SMUMPS_425
       SUBROUTINE SMUMPS_426(MEM_DISTRIB,MSG_SIZE,ARRAY_ADM,LEN)
       IMPLICIT NONE
-      INTEGER i,J,LEN,COUNTMORE,COUNTLOCLESS
+      INTEGER i,LEN
       INTEGER, DIMENSION(0:NPROCS-1) :: MEM_DISTRIB
       DOUBLE PRECISION MSG_SIZE,FORBIGMSG
       INTEGER ARRAY_ADM(LEN)
@@ -1605,7 +1807,7 @@ C
       INTEGER, INTENT (IN) :: TAB_POS(SLAVEF+2)
       INTEGER, INTENT (IN) :: LIST_SLAVES( NSLAVES )
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER NCB, NFRONT, NBROWS_SLAVE
       INTEGER i, IERR,WHAT,INODE
       DOUBLE PRECISION MEM_INCREMENT ( NSLAVES )
@@ -1728,15 +1930,14 @@ C
       IMPLICIT NONE
       INTEGER LPOOL, SLAVEF, COMM, MYID 
       INTEGER N, KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER POOL( LPOOL ), PROCNODE( KEEP(28) ), STEP( N )
       INTEGER ND( KEEP(28) ), FILS( N )
       INTEGER i, INODE, NELIM, NFR, LEVEL, IERR, WHAT
       DOUBLE PRECISION COST
       INTEGER NBINSUBTREE,NBTOP,INSUBTREE
-      LOGICAL MUMPS_167
       INTEGER MUMPS_330
-      EXTERNAL MUMPS_167, MUMPS_330
+      EXTERNAL MUMPS_330
       NBINSUBTREE = POOL(LPOOL)
       NBTOP       = POOL(LPOOL - 1)
       INSUBTREE   = POOL(LPOOL - 2)
@@ -1800,7 +2001,7 @@ C
           GOTO 10
         ENDIF
         NFR = ND( STEP(INODE) )
-        LEVEL = MUMPS_330( STEP(INODE), PROCNODE, SLAVEF )
+        LEVEL = MUMPS_330( PROCNODE(STEP(INODE)), SLAVEF )
         IF (LEVEL .EQ. 1) THEN
           COST = dble( NFR ) * dble( NFR )
         ELSE
@@ -1839,22 +2040,22 @@ C
       IMPLICIT NONE
       INTEGER LPOOL,MYID,SLAVEF,COMM,INODE
       INTEGER POOL(LPOOL),KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER WHAT,IERR
       LOGICAL OK
-      DOUBLE PRECISION ZERO,COST
+      DOUBLE PRECISION COST
       LOGICAL FLAG
-      PARAMETER(ZERO = 0.0d0)
       EXTERNAL MUMPS_283,MUMPS_170
       LOGICAL MUMPS_283,MUMPS_170
       IF((INODE.LE.0).OR.(INODE.GT.N_LOAD)) THEN
          RETURN
       ENDIF
-      IF(.NOT.MUMPS_170(STEP_LOAD(INODE),
-     &     PROCNODE_LOAD,NPROCS))THEN
+      IF (.NOT.MUMPS_170(
+     &     PROCNODE_LOAD(STEP_LOAD(INODE)), NPROCS)
+     &   ) THEN
          RETURN         
       ENDIF
-      IF(MUMPS_283(STEP_LOAD(INODE),PROCNODE_LOAD,NPROCS))THEN
+      IF(MUMPS_283(PROCNODE_LOAD(STEP_LOAD(INODE)),NPROCS))THEN
          IF(NE_LOAD(STEP_LOAD(INODE)).EQ.0)THEN
             RETURN
          ENDIF
@@ -1926,7 +2127,7 @@ C
             ENDIF
          ENDIF
          ENDIF 
- 666  CONTINUE
+         CONTINUE
       END SUBROUTINE SMUMPS_501
       SUBROUTINE SMUMPS_504
      &      (SLAVEF,KEEP,KEEP8,PROCS,MEM_DISTRIB,NCB,NFRONT,
@@ -1934,7 +2135,7 @@ C
      &       SLAVES_LIST,SIZE_SLAVES_LIST,MYID)
       IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, intent(in) :: SLAVEF, NFRONT, NCB,MYID
       INTEGER, intent(in) :: PROCS(SLAVEF+1)
       INTEGER, intent(in) :: MEM_DISTRIB(0:SLAVEF-1)
@@ -1944,18 +2145,16 @@ C
       INTEGER NUMBER_OF_PROCS,K47, K48, K50
       INTEGER(8) :: K821
       DOUBLE PRECISION DK821
-      INTEGER J, NSLAVES, NSLAVES_REAL, ISLAVE
-      INTEGER KMIN, KMAX, BLSIZE, NPIV,
-     &        KMINSURF, NSLAVES_max
-      DOUBLE PRECISION WK_MASTER, WK_SLAVE
+      INTEGER J
+      INTEGER KMIN, KMAX
       INTEGER OTHERS,CHOSEN,SMALL_SET,ACC
       DOUBLE PRECISION SOMME,TMP_SUM
       INTEGER AFFECTED
-      INTEGER ADDITIONNAL_ROWS,BLOCK_SIZE,i,X,REF,POS
+      INTEGER ADDITIONNAL_ROWS,i,X,REF,POS
       INTEGER(8)::TOTAL_MEM
       LOGICAL FORCE_CAND
-      DOUBLE PRECISION TEMP(SLAVEF),SUB(SLAVEF),PEAK,MAX_TEMP
-      INTEGER TEMP_ID(SLAVEF),NB_ROWS(SLAVEF),SUB_ID(SLAVEF),M2(SLAVEF)
+      DOUBLE PRECISION TEMP(SLAVEF),PEAK
+      INTEGER TEMP_ID(SLAVEF),NB_ROWS(SLAVEF)
       EXTERNAL MPI_WTIME
       DOUBLE PRECISION MPI_WTIME
       IF (KEEP8(21) .GT. 0_8) THEN
@@ -2042,7 +2241,9 @@ C
             SOMME=SOMME+TEMP(OTHERS)-TEMP(i)
          ENDDO
          IF(dble(TOTAL_MEM).GE.SOMME) THEN
- 887        CONTINUE     
+#if defined (OLD_PART)
+ 887        CONTINUE
+#endif
             AFFECTED=0
             CHOSEN=0
             ACC=0
@@ -2322,7 +2523,7 @@ C
                     ENDDO
                     CHOSEN=i-2
                  ENDIF
- 049             CONTINUE
+                 CONTINUE
 #else
                  DO i=CHOSEN,1,-1
                     IF(int(dble(ADDITIONNAL_ROWS)/
@@ -2509,7 +2710,7 @@ C
      &       SLAVES_LIST,SIZE_SLAVES_LIST,MYID,INODE,MP,LP)
       IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, intent(in) :: SLAVEF, NFRONT, NCB,MYID
       INTEGER, intent(in) :: NCBSON_MAX
       INTEGER, intent(in) :: PROCS(SLAVEF+1)
@@ -2520,22 +2721,18 @@ C
       INTEGER, intent(out):: NSLAVES_NODE
       INTEGER NUMBER_OF_PROCS,K47,K48, K50,K83,K69
       INTEGER(8) :: K821
-      INTEGER J, NSLAVES, NSLAVES_REAL, ISLAVE
-      INTEGER KMIN, KMAX, BLSIZE, NPIV,
-     &        KMINSURF, NSLAVES_max
-      DOUBLE PRECISION WK_MASTER, WK_SLAVE
+      INTEGER J
+      INTEGER KMIN, KMAX
       INTEGER OTHERS,CHOSEN,SMALL_SET,ACC
       DOUBLE PRECISION SOMME,TMP_SUM,DELTA,A,B,C,MASTER_WORK
       INTEGER AFFECTED
-      INTEGER ADDITIONNAL_ROWS,BLOCK_SIZE,i,X,REF,POS,NELIM,NB_DIFF
-      INTEGER*8 X8
+      INTEGER ADDITIONNAL_ROWS,i,X,REF,POS,NELIM
+      INTEGER(8) X8
       LOGICAL FORCE_CAND,SMP
       DOUBLE PRECISION BANDE_K821
       INTEGER NB_SAT,NB_ZERO
-      DOUBLE PRECISION TEMP(SLAVEF),SUB(SLAVEF),PEAK,TOTAL_COST,
-     &     MAX_MEM_ALLOW,MAX_FLOPS_ALLOW
-      INTEGER TEMP_ID(SLAVEF),NB_ROWS(SLAVEF),M2(SLAVEF),
-     &     NB_ROWS_SMP(SLAVEF)
+      DOUBLE PRECISION TEMP(SLAVEF),TOTAL_COST, MAX_MEM_ALLOW
+      INTEGER TEMP_ID(SLAVEF),NB_ROWS(SLAVEF)
       INTEGER NSLAVES_REF,NCB_FILS
       EXTERNAL MPI_WTIME,MUMPS_442
       INTEGER MUMPS_442
@@ -2545,8 +2742,6 @@ C
       DOUBLE PRECISION MPI_WTIME
       DOUBLE PRECISION BUF_SIZE,NELIM_MEM_SIZE
       DOUBLE PRECISION MEM_SIZE_STRONG(SLAVEF),MEM_SIZE_WEAK(SLAVEF)
-      INTEGER MUMPS_330
-      EXTERNAL MUMPS_330
       K821=abs(KEEP8(21))
       TEMP_MAX_LOAD=dble(0)
       K50=KEEP(50)
@@ -2697,8 +2892,10 @@ C
      &                dble(NFRONT)
               ELSE
                  WHAT = 5 
+#if ! defined (OOC_PAR_MEM_SLAVE_SELECT) && ! defined (OOC_PAR_MEM2)
                  CALL MUMPS_503(WHAT, KEEP,KEEP8, NCB,
      &                NFRONT, min(NCB,OTHERS), J, X8)
+#endif
                  B=dble(X8)+(dble(J)*dble(NELIM))
               ENDIF
               NELIM_MEM_SIZE=A+B
@@ -4586,7 +4783,6 @@ C
                     ENDDO
                     ADDITIONNAL_ROWS=NCB-ACC
                  ENDIF
- 993             CONTINUE
                  ACC=0
                  CHOSEN=0
                  DO i=1,OTHERS
@@ -4686,15 +4882,15 @@ C
       IMPLICIT NONE
       INTEGER INODE, LPOOL, SLAVEF, N
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER STEP(KEEP(28)), POOL(LPOOL), PROCNODE(KEEP(28))
       LOGICAL UPPER
       INTEGER J
       DOUBLE PRECISION MEM_COST
       INTEGER NBINSUBTREE,i,NBTOP
-      EXTERNAL MUMPS_167, MUMPS_283, SMUMPS_508,
+      EXTERNAL SMUMPS_508,
      & MUMPS_170
-      LOGICAL MUMPS_167, MUMPS_283, SMUMPS_508,
+      LOGICAL SMUMPS_508,
      & MUMPS_170
       NBINSUBTREE = POOL(LPOOL)
       NBTOP       = POOL(LPOOL - 1)
@@ -4730,8 +4926,8 @@ C
             ENDDO
             IF(NBINSUBTREE.NE.0)THEN
                INODE = POOL( NBINSUBTREE )
-               IF(.NOT.MUMPS_170(STEP(INODE),
-     &              PROCNODE,SLAVEF))THEN
+               IF(.NOT.MUMPS_170(PROCNODE(STEP(INODE)),
+     &              SLAVEF))THEN
                   WRITE(*,*)
      &        'Internal error 1 in SMUMPS_520'
                   CALL MUMPS_ABORT()
@@ -4776,8 +4972,8 @@ C
         i = FILS_LOAD(i)
         GOTO 10
       ENDIF
-      NFR = ND_LOAD( STEP_LOAD(INODE) )
-      LEVEL = MUMPS_330( STEP_LOAD(INODE), PROCNODE_LOAD, NPROCS )
+      NFR = ND_LOAD( STEP_LOAD(INODE) ) + KEEP_LOAD(253)
+      LEVEL = MUMPS_330( PROCNODE_LOAD(STEP_LOAD(INODE)), NPROCS )
       IF (LEVEL .EQ. 1) THEN
         COST =  dble(NFR) * dble(NFR)
       ELSE
@@ -4854,7 +5050,7 @@ C
       IMPLICIT NONE
       INTEGER INODE,NSTEPS,MYID,SLAVEF,COMM,N
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER FRERE(NSTEPS),NE(NSTEPS),STEP(N),PROCNODE(NSTEPS)
       EXTERNAL MUMPS_170,MUMPS_275
       LOGICAL MUMPS_170
@@ -4863,7 +5059,6 @@ C
       INTEGER FATHER_NODE,FATHER,WHAT,IERR
       EXTERNAL MUMPS_330
       INTEGER MUMPS_330
-      DOUBLE PRECISION ID
       IF((.NOT.BDC_M2_MEM).AND.(.NOT.BDC_M2_FLOPS))THEN
          WRITE(*,*)MYID,': Problem in SMUMPS_512'
          CALL MUMPS_ABORT()
@@ -4879,7 +5074,7 @@ C
          i = FILS_LOAD(i)
          GOTO 10
       ENDIF
-      NCB=ND_LOAD(STEP_LOAD(INODE))-NELIM
+      NCB=ND_LOAD(STEP_LOAD(INODE))-NELIM + KEEP_LOAD(253)
       WHAT=5
       FATHER_NODE=DAD_LOAD(STEP_LOAD(INODE))
       IF (FATHER_NODE.EQ.0) THEN
@@ -4890,20 +5085,20 @@ C
      &     (FATHER_NODE.EQ.KEEP(20))))THEN
          RETURN 
       ENDIF
-      IF(MUMPS_170(STEP(FATHER_NODE),
-     &   PROCNODE,SLAVEF)) THEN
+      IF(MUMPS_170(PROCNODE(STEP(FATHER_NODE)),
+     &            SLAVEF)) THEN
          RETURN
       ENDIF
-      FATHER=MUMPS_275(STEP(FATHER_NODE),PROCNODE,SLAVEF)
+      FATHER=MUMPS_275(PROCNODE(STEP(FATHER_NODE)),SLAVEF)
       IF(FATHER.EQ.MYID)THEN
         IF(BDC_M2_MEM)THEN
-           CALL PROCESS_NIV2_MEM_MSG(FATHER_NODE)
+           CALL SMUMPS_816(FATHER_NODE)
         ELSEIF(BDC_M2_FLOPS)THEN
-           CALL PROCESS_NIV2_FLOPS_MSG(FATHER_NODE)
+           CALL SMUMPS_817(FATHER_NODE)
         ENDIF
         IF((KEEP(81).EQ.2).OR.(KEEP(81).EQ.3))THEN
-           IF(MUMPS_330(STEP_LOAD(INODE),
-     &          PROCNODE_LOAD,NPROCS).EQ.1)THEN
+           IF(MUMPS_330(PROCNODE_LOAD(STEP_LOAD(INODE)),
+     &          NPROCS).EQ.1)THEN
               CB_COST_ID(POS_ID)=INODE
               CB_COST_ID(POS_ID+1)=1
               CB_COST_ID(POS_ID+2)=POS_MEM
@@ -4935,7 +5130,6 @@ C
       DOUBLE PRECISION MAXI
       INTEGER i,J,IND_MAXI
       INTEGER INODE,NUM_CALL
-      DOUBLE PRECISION MAX_ALL_M2
       IF(BDC_M2_MEM)THEN
          IF(((NUM_CALL.EQ.1).AND.(BDC_MD)).OR.
      &       ((NUM_CALL.EQ.2).AND.(.NOT.BDC_MD)))THEN
@@ -4986,12 +5180,11 @@ C
       ENDDO
       POOL_SIZE=POOL_SIZE-1
       END SUBROUTINE SMUMPS_514
-      RECURSIVE SUBROUTINE PROCESS_NIV2_MEM_MSG(INODE)
+      RECURSIVE SUBROUTINE SMUMPS_816(INODE)
       IMPLICIT NONE
       INTEGER INODE
       EXTERNAL MUMPS_330
       INTEGER MUMPS_330
-      INTEGER NBTOP, i
       IF((INODE.EQ.KEEP_LOAD(20)).OR.
      &     (INODE.EQ.KEEP_LOAD(38)))THEN
          RETURN
@@ -5001,7 +5194,7 @@ C
       ELSE
          IF(NB_SON(STEP_LOAD(INODE)).LT.0)THEN
             WRITE(*,*)
-     &        'Internal error 1 in PROCESS_NIV2_MEM_MSG'
+     &        'Internal error 1 in SMUMPS_816'
             CALL MUMPS_ABORT()
          ENDIF
       ENDIF
@@ -5020,8 +5213,8 @@ C
          ENDIF
       ENDIF
       RETURN
-      END SUBROUTINE PROCESS_NIV2_MEM_MSG      
-      RECURSIVE SUBROUTINE PROCESS_NIV2_FLOPS_MSG(INODE)
+      END SUBROUTINE SMUMPS_816    
+      RECURSIVE SUBROUTINE SMUMPS_817(INODE)
       IMPLICIT NONE
       INTEGER INODE
       EXTERNAL MUMPS_330
@@ -5035,7 +5228,7 @@ C
       ELSE
          IF(NB_SON(STEP_LOAD(INODE)).LT.0)THEN
             WRITE(*,*)
-     &        'Internal error 1 in PROCESS_NIV2_FLOPS_MSG'
+     &        'Internal error 1 in SMUMPS_817'
             CALL MUMPS_ABORT()
          ENDIF
       ENDIF
@@ -5054,7 +5247,7 @@ C
          NIV2(MYID+1)=POOL_NIV2_COST(POOL_SIZE)+NIV2(MYID+1)
       ENDIF
       RETURN
-      END SUBROUTINE PROCESS_NIV2_FLOPS_MSG
+      END SUBROUTINE SMUMPS_817
       DOUBLE PRECISION FUNCTION SMUMPS_542(INODE)
       INTEGER INODE
       INTEGER NFRONT,NELIM,i,LEVEL
@@ -5069,8 +5262,8 @@ C
         i = FILS_LOAD(i)
         GOTO 10
       ENDIF
-      NFRONT = ND_LOAD( STEP_LOAD(INODE) )
-      LEVEL = MUMPS_330( STEP_LOAD(INODE), PROCNODE_LOAD, NPROCS )
+      NFRONT = ND_LOAD( STEP_LOAD(INODE) ) + KEEP_LOAD(253)
+      LEVEL = MUMPS_330( PROCNODE_LOAD(STEP_LOAD(INODE)), NPROCS )
       COST=dble(0)
       CALL MUMPS_511(NFRONT,NELIM,NELIM,
      &                          KEEP_LOAD(50),LEVEL,COST)
@@ -5081,8 +5274,6 @@ C
       IMPLICIT NONE
       INTEGER INODE,NELIM,NFR,SON,IN,i
       INTEGER COST_CB
-      EXTERNAL MUMPS_330
-      INTEGER MUMPS_330
       COST_CB=0
       i = INODE
  10   CONTINUE
@@ -5092,7 +5283,7 @@ C
       ENDIF
       SON=-i
       DO i=1, NE_LOAD(STEP_LOAD(INODE))
-         NFR = ND_LOAD( STEP_LOAD(SON) )
+         NFR = ND_LOAD( STEP_LOAD(SON) ) + KEEP_LOAD(253)
          IN=SON
          NELIM = 0
  20      CONTINUE
@@ -5116,14 +5307,13 @@ C
       INTEGER, INTENT (IN) :: TAB_POS(SLAVEF+2)
       INTEGER, intent(in) :: NMB_OF_CAND
       INTEGER, INTENT (IN) :: LIST_SLAVES( NMB_OF_CAND )
-      INTEGER KEEP(500),INODE,NELIM
-      INTEGER*8 KEEP8(150)
+      INTEGER KEEP(500),INODE
+      INTEGER(8) KEEP8(150)
       INTEGER allocok
       DOUBLE PRECISION MEM_COST,FCT_COST
       DOUBLE PRECISION, DIMENSION(:),ALLOCATABLE ::EMPTY_ARRAY,
      &     DELTA_MD,EMPTY_ARRAY2
-      INTEGER, DIMENSION(:),ALLOCATABLE ::PROCS
-      INTEGER NBROWS_SLAVE,i,WHAT,IERR,NFRONT,NPROCS_LOC
+      INTEGER NBROWS_SLAVE,i,WHAT,IERR,NPROCS_LOC
       LOGICAL FORCE_CAND
       MEM_COST=dble(0)
       FCT_COST=dble(0)
@@ -5147,25 +5337,11 @@ C
       ALLOCATE(EMPTY_ARRAY(NPROCS_LOC),DELTA_MD(NPROCS_LOC),
      &     EMPTY_ARRAY2(NPROCS_LOC),
      &    stat=allocok)
-#if ! defined (DELTA_MD_STK)
       DO i = 1, NSLAVES
          NBROWS_SLAVE = TAB_POS(i+1) - TAB_POS(i)
          DELTA_MD( i ) = FCT_COST - dble(NBROWS_SLAVE)*
      &        dble(NASS)
       END DO
-#else
-      NFRONT=ND_LOAD(STEP_LOAD(INODE))
-      DO i = 1, NSLAVES
-         NBROWS_SLAVE = TAB_POS(i+1) - TAB_POS(i)
-         IF ( KEEP(50) == 0 ) THEN
-            DELTA_MD( i ) = FCT_COST - dble(NBROWS_SLAVE)*
-     &           dble(NFRONT)
-         ELSE
-            DELTA_MD ( i ) = FCT_COST - dble(NBROWS_SLAVE) *
-     &           dble( NASS + TAB_POS(i+1) - 1 )
-         END IF
-      END DO
-#endif
       IF(FORCE_CAND)THEN
          DO i=NSLAVES+1,NPROCS_LOC
             DELTA_MD( i ) = FCT_COST
@@ -5215,14 +5391,14 @@ C
       IMPLICIT NONE
       INTEGER INODE,NSLAVES,NFR,NELIM,IN
       DOUBLE PRECISION MEM_COST,FCT_COST
-      NFR=ND_LOAD(STEP_LOAD(INODE))
+      NFR=ND_LOAD(STEP_LOAD(INODE)) + KEEP_LOAD(253)
       IN = INODE
       FCT_COST=dble(int(dble(NFR-NELIM)/dble(NSLAVES))+1)*
      &     dble(NELIM)
       MEM_COST=dble(int(dble(NFR-NELIM)/dble(NSLAVES))+1)*
      &     dble(NFR)
       END SUBROUTINE SMUMPS_540
-      SUBROUTINE CLEAN_POOL_MEM_INFO(INODE)
+      SUBROUTINE SMUMPS_819(INODE)
       IMPLICIT NONE
       INTEGER INODE
       INTEGER i,J,SON,NSLAVES_TEMP,POS_TEMP,K
@@ -5251,7 +5427,7 @@ C
  295        CONTINUE
             IF(J.GE.POS_ID)THEN
                IF(MUMPS_275(
-     &            STEP_LOAD(INODE),PROCNODE_LOAD,NPROCS).EQ.MYID)THEN
+     &            PROCNODE_LOAD(STEP_LOAD(INODE)),NPROCS).EQ.MYID)THEN
                   IF(INODE.EQ.KEEP_LOAD(38))THEN
                      GOTO 666
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -5287,8 +5463,8 @@ C
             SON=FRERE_LOAD(STEP_LOAD(SON))
          ENDDO
       ENDIF
-      END SUBROUTINE CLEAN_POOL_MEM_INFO
-      SUBROUTINE CHECK_MEM_CONST_FOR_POOL(FLAG)
+      END SUBROUTINE SMUMPS_819
+      SUBROUTINE SMUMPS_820(FLAG)
       IMPLICIT NONE
       LOGICAL FLAG
       INTEGER i
@@ -5305,7 +5481,7 @@ C
          ENDIF
       ENDDO
  666  CONTINUE
-      END SUBROUTINE CHECK_MEM_CONST_FOR_POOL
+      END SUBROUTINE SMUMPS_820
       SUBROUTINE SMUMPS_554(NBINSUBTREE,INSUBTREE,NBTOP,
      &           MIN_COST,SBTR)
       IMPLICIT NONE
@@ -5340,18 +5516,21 @@ C
       IF(TMP_MIN.GT.MIN_COST) SBTR=.TRUE.
  777  CONTINUE
       END SUBROUTINE SMUMPS_554
-      SUBROUTINE COMPUTE_MAX_MEM(INODE,MAX_MEM,PROC)
+      SUBROUTINE SMUMPS_818(INODE,MAX_MEM,PROC)
       IMPLICIT NONE
       INTEGER INODE,PROC
       INTEGER i,POS,NSLAVES,SLAVE,NCAND,J,NELIM,NCB,NFRONT,SON,K
       INTEGER allocok
       EXTERNAL MUMPS_330
       INTEGER  MUMPS_330
-      DOUBLE PRECISION MAX_MEM,TMP
+      DOUBLE PRECISION MAX_MEM
       DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: MEM_ON_PROCS,
      &     RECV_BUF
       LOGICAL, DIMENSION(:), ALLOCATABLE :: CONCERNED
       DOUBLE PRECISION MAX_SENT_MSG
+#if  defined(NOT_ATM_POOL_SPECIAL)
+     DOUBLE PRECISION TMP
+#endif
       IF((FRERE_LOAD(STEP_LOAD(INODE)).EQ.0)
      &           .AND.(INODE.EQ.KEEP_LOAD(38)))THEN
          RETURN
@@ -5371,17 +5550,17 @@ C
 #endif
       ALLOCATE( MEM_ON_PROCS(0:NPROCS-1), stat=allocok)
       IF ( allocok > 0 ) THEN
-        WRITE(*,*) 'PB allocation in COMPUTE_MAX_MEM'
+        WRITE(*,*) 'PB allocation in SMUMPS_818'
         CALL MUMPS_ABORT()
       ENDIF 
       ALLOCATE( CONCERNED(0:NPROCS-1), stat=allocok)
       IF ( allocok > 0 ) THEN
-        WRITE(*,*) 'PB allocation in COMPUTE_MAX_MEM'
+        WRITE(*,*) 'PB allocation in SMUMPS_818'
         CALL MUMPS_ABORT()
       ENDIF 
       ALLOCATE( RECV_BUF(0:NPROCS-1), stat=allocok)
       IF ( allocok > 0 ) THEN
-        WRITE(*,*) 'PB allocation in COMPUTE_MAX_MEM'
+        WRITE(*,*) 'PB allocation in SMUMPS_818'
         CALL MUMPS_ABORT()
       ENDIF 
       RECV_BUF=dble(0)
@@ -5395,10 +5574,10 @@ C
         GOTO 10
       ENDIF
       SON=-i
-      NFRONT=ND_LOAD(STEP_LOAD(INODE))
+      NFRONT=ND_LOAD(STEP_LOAD(INODE)) + KEEP_LOAD(253)
       NCB=NFRONT-NELIM
-      IF(MUMPS_330(STEP_LOAD(INODE)
-     &     ,PROCNODE_LOAD,NPROCS).EQ.2)THEN
+      IF(MUMPS_330(PROCNODE_LOAD(STEP_LOAD(INODE)),
+     &     NPROCS).EQ.2)THEN
          NCAND=CAND_LOAD(NPROCS+1, STEP_TO_NIV2_LOAD(STEP_LOAD(INODE)))
       ENDIF
       DO i=0,NPROCS-1
@@ -5419,8 +5598,8 @@ C
                MEM_ON_PROCS(i)=MEM_ON_PROCS(i)-NIV2(i+1)
             ENDIF
          ENDIF
-         IF(MUMPS_330(STEP_LOAD(INODE)
-     &        ,PROCNODE_LOAD,NPROCS).EQ.2)THEN
+         IF(MUMPS_330(PROCNODE_LOAD(STEP_LOAD(INODE)),
+     &        NPROCS).EQ.2)THEN
             IF(BDC_MD.AND.(KEEP_LOAD(48).EQ.5))THEN
                DO J=1,NCAND
                   IF(CAND_LOAD(J, STEP_TO_NIV2_LOAD(STEP_LOAD(INODE)))
@@ -5446,7 +5625,7 @@ C
 #if ! defined(OLD_LOAD_MECHANISM)
             IF(FUTURE_NIV2(MYID+1).NE.0)THEN
                WRITE(*,*)MYID,': ',SON,'has not been found
-     &              in COMPUTE_MAX_MEM'
+     & in SMUMPS_818'
                CALL MUMPS_ABORT()
             ENDIF
 #endif
@@ -5484,7 +5663,7 @@ C
       DEALLOCATE(MEM_ON_PROCS)
       DEALLOCATE(CONCERNED)
       DEALLOCATE(RECV_BUF)
-      END SUBROUTINE COMPUTE_MAX_MEM
+      END SUBROUTINE SMUMPS_818
       SUBROUTINE SMUMPS_553(MIN_PROC,POOL,
      &                      LPOOL,INODE)
       IMPLICIT NONE
@@ -5493,7 +5672,7 @@ C
       EXTERNAL MUMPS_275
       INTEGER MUMPS_275
       INTEGER i,NBTOP,INSUBTREE,NBINSUBTREE,NODE,FATHER,SON,J
-      INTEGER FIRST_LEAF,SBTR_NB_LEAF,POS,K,allocok,L
+      INTEGER SBTR_NB_LEAF,POS,K,allocok,L
       INTEGER, ALLOCATABLE, DIMENSION (:) ::  TMP_SBTR
       NBINSUBTREE = POOL(LPOOL)
       NBTOP       = POOL(LPOOL - 1)
@@ -5513,7 +5692,7 @@ C
             i=SON
  120        CONTINUE
             IF ( i > 0 ) THEN
-               IF(MUMPS_275(STEP_LOAD(i),PROCNODE_LOAD,NPROCS).EQ.
+               IF(MUMPS_275(PROCNODE_LOAD(STEP_LOAD(i)),NPROCS).EQ.
      &              MIN_PROC)THEN
                   SBTR_NB_LEAF=MY_NB_LEAF(J)
                   POS=SBTR_FIRST_POS_IN_POOL(J)
@@ -5584,7 +5763,7 @@ C
          i=SON
  12      CONTINUE
          IF ( i > 0 ) THEN
-            IF(MUMPS_275(STEP_LOAD(i),PROCNODE_LOAD,NPROCS).EQ.
+            IF(MUMPS_275(PROCNODE_LOAD(STEP_LOAD(i)),NPROCS).EQ.
      &           MIN_PROC)THEN
                INODE=NODE
                RETURN
@@ -5597,15 +5776,16 @@ C
       SUBROUTINE SMUMPS_555(POOL, LPOOL,KEEP,KEEP8)
       IMPLICIT NONE
       INTEGER LPOOL,POOL(LPOOL),KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER i,POS
       EXTERNAL MUMPS_283
       LOGICAL MUMPS_283
       IF(.NOT.BDC_SBTR) RETURN
       POS=0
       DO i=NB_SUBTREES,1,-1
-         DO WHILE(MUMPS_283(STEP_LOAD(POOL(POS+1)),
-     &        PROCNODE_LOAD,NPROCS))
+         DO WHILE(MUMPS_283(
+     &            PROCNODE_LOAD(STEP_LOAD(POOL(POS+1))),
+     &            NPROCS))
             POS=POS+1
          ENDDO
          SBTR_FIRST_POS_IN_POOL(i)=POS+1

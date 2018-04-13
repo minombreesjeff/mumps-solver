@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -43,13 +51,12 @@
  * This file contains interfaces to external ordering packages.
  * At the moment, PORD (J. Schulze) and SCOTCH are interfaced.
  */
-#include "mumps_common.h"
+#include "mumps_orderings.h"
 #if defined(pord)
-#include <space.h>
 /* Interface to PORD */
-int mumps_pord( int, int, int *, int *, int * );
-#define MUMPS_PORDF \
-    F_SYMBOL(pordf,PORDF)
+/*int mumps_pord( int, int, int *, int *, int * );
+#define MUMPS_PORDF   \
+F_SYMBOL(pordf,PORDF)*/
 void MUMPS_CALL
 MUMPS_PORDF( int *nvtx, int *nedges,
              int *xadj, int *adjncy,
@@ -57,10 +64,10 @@ MUMPS_PORDF( int *nvtx, int *nedges,
 {
     *ncmpa = mumps_pord( *nvtx, *nedges, xadj, adjncy, nv );
 }
-/* Interface to PORD with weighted graph */
-int mumps_pord_wnd( int, int, int *, int *, int *, int * );
-#define MUMPS_PORDF_WND \
-    F_SYMBOL(pordf_wnd,PORDF_WND)
+/* Interface to PORD with weighted graph*/
+/*int mumps_pord_wnd( int, int, int *, int *, int *, int * );
+#define MUMPS_PORDF_WND           \
+    F_SYMBOL(pordf_wnd,PORDF_WND)*/
 void MUMPS_CALL
 MUMPS_PORDF_WND( int *nvtx, int *nedges,
                  int *xadj, int *adjncy,
@@ -317,12 +324,12 @@ ouput:
 #endif /* pord */
 /************************************************************/
 #if defined(scotch) || defined(ptscotch)
-int esmumps( const int n, const int iwlen, int * const pe, const int pfree,
+/*int esmumps( const int n, const int iwlen, int * const pe, const int pfree,
              int * const len, int * const iw, int * const nv, int * const elen,
-             int * const last);
+             int * const last);*/
 /* Fortran interface to SCOTCH */
-#define MUMPS_SCOTCH \
-    F_SYMBOL(scotch,SCOTCH)
+/*#define MUMPS_SCOTCH    \
+  F_SYMBOL(scotch,SCOTCH)*/
 void MUMPS_CALL
 MUMPS_SCOTCH( const int * const  n,
               const int * const  iwlen,
@@ -340,14 +347,15 @@ MUMPS_SCOTCH( const int * const  n,
 }
 #endif /* scotch */
 #if defined(ptscotch)
-#include "mpi.h"
+/*#include "mpi.h"
 #include <stdio.h>
 #include "ptscotch.h"
 int mumps_dgraphinit( SCOTCH_Dgraph *, MPI_Fint *, MPI_Fint *);
-#define MUMPS_DGRAPHINIT \
-  F_SYMBOL(dgraphinit,DGRAPHINIT)
+#define MUMPS_DGRAPHINIT        \
+F_SYMBOL(dgraphinit,DGRAPHINIT)*/
 void MUMPS_CALL
-MUMPS_DGRAPHINIT(SCOTCH_Dgraph *graphptr, MPI_Fint *comm, MPI_Fint *ierr){
+MUMPS_DGRAPHINIT(SCOTCH_Dgraph *graphptr, MPI_Fint *comm, MPI_Fint *ierr)
+{
   MPI_Comm  int_comm;
   int_comm = MPI_Comm_f2c(*comm);
   *ierr = SCOTCH_dgraphInit(graphptr, int_comm);
@@ -355,18 +363,12 @@ MUMPS_DGRAPHINIT(SCOTCH_Dgraph *graphptr, MPI_Fint *comm, MPI_Fint *ierr){
 }
 #endif
 #if defined(parmetis)
-#include "mpi.h"
-void mumps_parmetis(int *first,      int *vertloctab, 
-		   int *edgeloctab, int *numflag, 
-		   int *options,    int *order, 
-		   int *sizes,      int *comm);
-#define MUMPS_PARMETIS \
-  F_SYMBOL(parmetis,PARMETIS)
 void MUMPS_CALL
 MUMPS_PARMETIS(int *first,      int *vertloctab, 
-		   int *edgeloctab, int *numflag, 
-		   int *options,    int *order, 
-		   int *sizes,      int *comm){
+               int *edgeloctab, int *numflag, 
+               int *options,    int *order, 
+               int *sizes,      int *comm)
+{
   MPI_Comm  int_comm;
   int_comm = MPI_Comm_f2c(*comm);
   ParMETIS_V3_NodeND(first, vertloctab, edgeloctab, numflag, options, order, sizes, &int_comm);

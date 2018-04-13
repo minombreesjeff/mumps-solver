@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -43,31 +51,37 @@ C
           KEEP(19)=0
           RETURN
       END SUBROUTINE DMUMPS_635
-      SUBROUTINE DMUMPS_634(KEEP,ICNTL,MPG)
+      SUBROUTINE DMUMPS_634(ICNTL,KEEP,MPG,INFO)
       IMPLICIT NONE
-      INTEGER ICNTL(40), KEEP(500), MPG
-      KEEP(111)=ICNTL(25)
-      IF (KEEP(111) < -1 .OR.
-     &      KEEP(111).GT.KEEP(112)+KEEP(17)) THEN
-          KEEP(111)=0
-      ENDIF
+      INTEGER KEEP(500), MPG, INFO(40), ICNTL(40)
       IF (KEEP(19).EQ.0.AND.KEEP(110).EQ.0) THEN
-        IF(KEEP(111).NE.0.AND.MPG.GT.0) THEN
+        IF (KEEP(111).NE.0) THEN
+         INFO(1) = -37
+         INFO(2) = 16  
+         IF (KEEP(110).EQ.0) INFO(2) = 24 
+          IF(MPG.GT.0) THEN
+           WRITE( MPG,'(A)')
+     &'** ERROR  : Null space computation requirement'
           WRITE( MPG,'(A)')
-     &'** Warning: ICNTL(25) option disabled because'
-          WRITE( MPG,'(A)')
-     &'** null space was not required during factorization'
+     &'** not consistent with factorization options'
+         ENDIF
+         GOTO 333
         ENDIF
-        KEEP(111)=0
       ENDIF
       IF (ICNTL(9).NE.1) THEN
-        IF (KEEP(111).NE.0.AND. MPG.GT.0) THEN
+        IF (KEEP(111).NE.0) THEN
+         INFO(1) = -37
+         INFO(2) = 9  
+         IF (MPG.GT.0) THEN
           WRITE(MPG,'(A)')
-     &'** Warning: ICNTL(25) option disabled because'
+     &'** ERROR  ICNTL(25) incompatible with '
           WRITE( MPG,'(A)')
-     &'** it is not available for the transposed system'
+     &'** option transposed system (ICNLT(9)=1) '
+         ENDIF
         ENDIF
+        GOTO 333
       ENDIF
+ 333  CONTINUE
       RETURN
       END SUBROUTINE DMUMPS_634
       SUBROUTINE DMUMPS_637(id)
@@ -87,111 +101,22 @@ C
       ENDIF
       RETURN
       END SUBROUTINE DMUMPS_636
-      SUBROUTINE DMUMPS_279( PHASE, MBLOCK, NBLOCK, 
-     &           SIZE_ROOT_ARG,
-     &           LOCAL_M, LOCAL_N, ROOT_OWNER, KEEP,KEEP8,
-     &           LIWK_RR, LWK_RR )
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: PHASE, SIZE_ROOT_ARG
-      INTEGER, INTENT(IN) :: MBLOCK, NBLOCK, LOCAL_M, LOCAL_N
-      LOGICAL, INTENT(IN) :: ROOT_OWNER
-      INTEGER, INTENT(IN) :: KEEP(500)
-      INTEGER*8, INTENT(IN) :: KEEP8(150)
-      INTEGER, INTENT(OUT):: LIWK_RR, LWK_RR
-      INTEGER SIZE_ROOT
-      INTEGER NBPOSPONED_ESTIM
-      PARAMETER (NBPOSPONED_ESTIM=2000)
-      INTEGER QR,PAR_ROOT
-      QR      =KEEP(19)
-      PAR_ROOT=KEEP(38)
-      LIWK_RR = 0
-      LWK_RR = 0
-      IF (PAR_ROOT.EQ.0) THEN
-        IF(ROOT_OWNER) THEN
-          IF(QR.EQ.1) THEN
-            IF (PHASE.EQ.0) THEN
-              SIZE_ROOT=SIZE_ROOT_ARG+NBPOSPONED_ESTIM
-            ELSE
-              SIZE_ROOT=SIZE_ROOT_ARG
-            ENDIF
-              LWK_RR=5*SIZE_ROOT+1
-          END IF
-        END IF
-      ENDIF
-      RETURN
-      END SUBROUTINE DMUMPS_279
-      SUBROUTINE DMUMPS_333(N,PERM,X,RN01)
-      INTEGER N,PERM(N),I
-      DOUBLE PRECISION RN01(N),X(N)
-      DO 100 I=1,N
-      RN01(PERM(I))=X(I)
-100   CONTINUE
-      DO 200 I=1,N
-      X(I)=RN01(I)
-200   CONTINUE
-      RETURN
-      END SUBROUTINE DMUMPS_333
-      SUBROUTINE DMUMPS_334(N,PERM,X,RN01)
-      INTEGER N,PERM(N),I
-      DOUBLE PRECISION RN01(N),X(N)
-      DO 100 I=1,N
-      RN01(I)=X(PERM(I))
-100   CONTINUE
-      DO 200 I=1,N
-      X(I)=RN01(I)
-200   CONTINUE
-      RETURN
-      END SUBROUTINE DMUMPS_334
-      SUBROUTINE DMUMPS_117(N,ALPHA,DX,INCX)
-      INTEGER N,INCX
-      DOUBLE PRECISION ALPHA,DX(*)
-      INTEGER I,IX,M,MP1
-      INTRINSIC MOD
-      IF(N.LE.0) RETURN
-      IF(INCX.NE.1) THEN
-        IX=1
-        IF(INCX.LT.0) IX=(-N+1)*INCX+1
-        DO I=1,N
-          DX(IX)=ALPHA
-          IX=IX+INCX
-        END DO
-        RETURN
-      ELSE
-        M=MOD(N,7)
-        IF(M.NE.0) THEN
-          DO I=1,M
-            DX(I)=ALPHA
-          END DO
-          IF(N.LT.7) RETURN
-        END IF
-        MP1=M+1
-        DO I=MP1,N,7
-          DX(I)=ALPHA
-          DX(I+1)=ALPHA
-          DX(I+2)=ALPHA
-          DX(I+3)=ALPHA
-          DX(I+4)=ALPHA
-          DX(I+5)=ALPHA
-          DX(I+6)=ALPHA
-        END DO
-        RETURN
-      END IF
-      END SUBROUTINE DMUMPS_117
       SUBROUTINE DMUMPS_146( MYID, root, N, IROOT,
      &           COMM, IW, LIW, IFREE,
      &           A, LA, PTRAST, PTLUST_S, PTRFAC,
      &           STEP, INFO, LDLT, QR,
-     &           WK, LWK, KEEP,KEEP8)
+     &           WK, LWK, KEEP,KEEP8,DKEEP)
       IMPLICIT NONE
       INCLUDE 'dmumps_root.h'
       INCLUDE 'mpif.h'
       TYPE ( DMUMPS_ROOT_STRUC ) :: root
-      INTEGER N, IROOT, COMM, LIW, MYID, LIWK, IFREE
+      INTEGER N, IROOT, COMM, LIW, MYID, IFREE
       INTEGER(8) :: LA
       INTEGER(8) :: LWK
       DOUBLE PRECISION WK( LWK )
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      DOUBLE PRECISION    DKEEP(30)
+      INTEGER(8) KEEP8(150)
       INTEGER(8) :: PTRAST(KEEP(28))
       INTEGER(8) :: PTRFAC(KEEP(28))
       INTEGER PTLUST_S(KEEP(28)), STEP(N), IW( LIW )
@@ -199,8 +124,11 @@ C
       DOUBLE PRECISION A( LA )
       INTEGER IOLDPS
       INTEGER(8) :: IAPOS
-      INTEGER LOCAL_M, LOCAL_N, LPIV, IERR, allocok,i
+      INTEGER LOCAL_M, LOCAL_N, LPIV, IERR, allocok
+      INTEGER FWD_LOCAL_N_RHS, FWD_MTYPE 
       INCLUDE 'mumps_headers.h'
+      EXTERNAL numroc
+      INTEGER numroc
         IF ( .NOT. root%yes ) RETURN
         IF ( KEEP(60) .NE. 0 ) THEN
           IF ((LDLT == 1 .OR. LDLT == 2) .AND. KEEP(60) == 3 ) THEN
@@ -231,7 +159,7 @@ C
           WRITE(*,*) MYID,': problem allocating IPIV(',LPIV,') in root'
           CALL MUMPS_ABORT()
         END IF
-        CALL DESCINIT( root%DESCRIPTOR, root%TOT_ROOT_SIZE,
+        CALL DESCINIT( root%DESCRIPTOR(1), root%TOT_ROOT_SIZE,
      &      root%TOT_ROOT_SIZE, root%MBLOCK, root%NBLOCK,
      &      0, 0, root%CNTXT_BLACS, LOCAL_M, IERR )
         IF ( LDLT.EQ.2 ) THEN
@@ -254,21 +182,50 @@ C
      &      root%TOT_ROOT_SIZE, MYID, COMM )
         END IF
         IF (LDLT.EQ.0.OR.LDLT.EQ.2) THEN
-          CALL PDGETRF( root%TOT_ROOT_SIZE, root%TOT_ROOT_SIZE,
+          CALL pdgetrf( root%TOT_ROOT_SIZE, root%TOT_ROOT_SIZE,
      &      A( IAPOS ),
-     &      1, 1, root%DESCRIPTOR, root%IPIV(1), IERR )
+     &      1, 1, root%DESCRIPTOR(1), root%IPIV(1), IERR )
           IF ( IERR .GT. 0 ) THEN
               INFO(1)=-10
               INFO(2)=IERR-1
           END IF
         ELSE
-          CALL PDPOTRF('L',root%TOT_ROOT_SIZE,A(IAPOS),
-     &      1,1,root%DESCRIPTOR,IERR)
+          CALL pdpotrf('L',root%TOT_ROOT_SIZE,A(IAPOS),
+     &      1,1,root%DESCRIPTOR(1),IERR)
             IF ( IERR .GT. 0 ) THEN
               INFO(1)=-40
               INFO(2)=IERR-1
             END IF
         END IF
+        IF (KEEP(258).NE.0) THEN
+          IF (root%MBLOCK.NE.root%NBLOCK) THEN
+            write(*,*) "Internal error in DMUMPS_146:",
+     &      "Block size different for rows and columns",
+     &      root%MBLOCK, root%NBLOCK
+            CALL MUMPS_ABORT() 
+          ENDIF
+          CALL DMUMPS_763(root%MBLOCK, root%IPIV(1),root%MYROW,
+     &         root%MYCOL, root%NPROW, root%NPCOL, A(IAPOS), LOCAL_M,
+     &         LOCAL_N, root%TOT_ROOT_SIZE, MYID, DKEEP(6), KEEP(259),
+     &         LDLT)
+        ENDIF
+        IF (KEEP(252) .NE. 0) THEN
+          FWD_LOCAL_N_RHS = numroc(KEEP(253), root%NBLOCK,
+     &                      root%MYCOL, 0, root%NPCOL)
+          FWD_LOCAL_N_RHS = max(1,FWD_LOCAL_N_RHS)
+          FWD_MTYPE       = 1 
+          CALL DMUMPS_768(
+     &         root%TOT_ROOT_SIZE,
+     &         KEEP(253),          
+     &         FWD_MTYPE,
+     &         A(IAPOS),
+     &         root%DESCRIPTOR(1),
+     &         LOCAL_M, LOCAL_N, FWD_LOCAL_N_RHS,
+     &         root%IPIV(1), LPIV,
+     &         root%RHS_ROOT(1,1), LDLT,
+     &         root%MBLOCK, root%NBLOCK,
+     &         root%CNTXT_BLACS, IERR)
+        ENDIF
         RETURN
       END SUBROUTINE DMUMPS_146
       SUBROUTINE DMUMPS_556(
@@ -280,7 +237,7 @@ C
       INTEGER N,NCST
       INTEGER PIV(N),FRERE(N),FILS(N),NFSIZ(N),IKEEP(N,3)
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER I,P11,P1,P2,K1,K2,NLOCKED
       LOGICAL V1,V2
       NCST = 0
@@ -385,7 +342,7 @@ C
       IMPLICIT NONE
       INTEGER N,NZ,NCMP,LW,IWFR,IERROR
       INTEGER ICNTL(40),KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER IRN(NZ),ICN(NZ),IW(LW),PIV(N),IPE(N+1)
       INTEGER LEN(N),IQ(N),FLAG(N),ICMP(N) 
       INTEGER MP,N11,N22,NDUP
@@ -524,23 +481,20 @@ C
      &     ICNTL, WEIGHT,MARKED,FLAG,
      &     PIV_OUT, INFO)
       IMPLICIT NONE
-      INTEGER N, NE, ICNTL(10), INFO(10),LSC,LWEIGHT
+      INTEGER N, NE, ICNTL(10), INFO(10),LSC
       INTEGER CPERM(N),PIV_OUT(N),IP(N+1),IRN(NE), DIAG(N)
       DOUBLE PRECISION SCALING(LSC),WEIGHT(N+2)
       INTEGER MARKED(N),FLAG(N)
       INTEGER NUM1,NUM2,NUMTOT,PATH_LENGTH,NLAST
-      INTEGER I,J,K,L,CUR_EL,CUR_EL_PATH,CUR_EL_PATH_NEXT,BEST_BEG
-      INTEGER L1,L2,PTR_SET1,PTR_SET2,TUP,T22,INTER,MERGE
+      INTEGER I,CUR_EL,CUR_EL_PATH,CUR_EL_PATH_NEXT,BEST_BEG
+      INTEGER L1,L2,PTR_SET1,PTR_SET2,TUP,T22
       DOUBLE PRECISION BEST_SCORE,CUR_VAL,TMP,VAL
       DOUBLE PRECISION INITSCORE, DMUMPS_739, 
      &     DMUMPS_740, DMUMPS_741
       LOGICAL VRAI,FAUX,MAX_CARD_DIAG,USE_SCALING
-      INTEGER JOB_DEF,DONE
-      INTEGER SUM,PROD,STRUCT,MA47,MAGNITUDE
+      INTEGER SUM
       DOUBLE PRECISION ZERO,ONE
-      PARAMETER (JOB_DEF = 5, DONE = -1,
-     &     SUM = 1, PROD = 2, STRUCT=1, MA47=2, MAGNITUDE=3,
-     &     VRAI = .TRUE., FAUX = .FALSE.)
+      PARAMETER (SUM = 1, VRAI = .TRUE., FAUX = .FALSE.)
       PARAMETER(ZERO = 0.0D0, ONE = 1.0D0)
       MAX_CARD_DIAG = .TRUE.
       NUM1 = 0
@@ -714,8 +668,8 @@ C
       DOUBLE PRECISION DMUMPS_739
       DOUBLE PRECISION A,B
       INTEGER T
-      INTEGER SUM,PROD
-      PARAMETER(SUM = 1,PROD = 2)
+      INTEGER SUM
+      PARAMETER(SUM = 1)
       IF(T .EQ. SUM) THEN
          DMUMPS_739 = A+B
       ELSE
@@ -727,8 +681,8 @@ C
       DOUBLE PRECISION DMUMPS_740
       DOUBLE PRECISION A,B
       INTEGER T
-      INTEGER SUM,PROD
-      PARAMETER(SUM = 1,PROD = 2)
+      INTEGER SUM
+      PARAMETER(SUM = 1)
       IF(T .EQ. SUM) THEN
          DMUMPS_740 = A-B
       ELSE
@@ -745,8 +699,8 @@ C
       LOGICAL FLAGON
       INTEGER T
       INTEGER I,INTER,MERGE
-      INTEGER STRUCT,MA47,MAGNITUDE
-      PARAMETER(STRUCT=0,MA47=1,MAGNITUDE=2)
+      INTEGER STRUCT,MA47
+      PARAMETER(STRUCT=0,MA47=1)
       IF(T .EQ. STRUCT) THEN
          IF(.NOT. FLAGON) THEN
             DO I=1,L1
@@ -821,7 +775,7 @@ C
       INTEGER, INTENT(OUT) :: symmetry, 
      &                        MedDens, NBQD, AvgDens
       INTEGER, INTENT(OUT)  :: FLAG(N), IW(LW), IQ(N)
-      INTEGER MP, MPG, NAO
+      INTEGER MP, MPG
       INTEGER I,K,J,N1,LAST,NDUP,K1,K2,L
       INTEGER NBERR, THRESH, IAO
       INTEGER NZOFFA, NDIAGA
@@ -1060,7 +1014,7 @@ C
       IMPLICIT NONE
       INTEGER N
       INTEGER PE(N),NV(N),WORK(N)
-      INTEGER I,FATHER,LEN,K,NEWSON,NEWFATHER
+      INTEGER I,FATHER,LEN,NEWSON,NEWFATHER
       DO I=1,N
          IF(NV(I) .GT. 0) CYCLE
          LEN = 1

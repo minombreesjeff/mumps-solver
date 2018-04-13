@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+#  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 #
 #Begin orderings
 
@@ -35,7 +35,7 @@ IPORD    = -I$(topdir)/PORD/include/
 LPORD    = -L$(LPORDDIR) -lpord
 
 #LMETISDIR = /local/metis/
-#IMETIS    = # Metis doesn't need include files (Fortran interface avail.)
+#IMETIS    = # Should be provided if you use parmetis
 
 # You have to choose one among the following two lines depending on
 # the type of analysis you want to perform. If you want to perform only
@@ -61,12 +61,15 @@ IORDERINGSC = $(IMETIS) $(IPORD) $(ISCOTCH)
 ########################################################################
 
 PLAT    =
+LIBEXT  = .a
+OUTC    = -o 
+OUTF    = -o 
 CPP     = /lib/cpp -P -C 
 RM      = /bin/rm -f
 CC      = cc
 FC = f90
 FL = f90
-AR = ar vr
+AR = ar vr 
 RANLIB = echo
 
 SCALAP  = -ls3l -lhpcshm
@@ -84,6 +87,6 @@ OPTF    = -O -DALLOW_NON_INIT -DSUN_
 OPTL    = -O
 OPTC    = -O
 #End Optimized options
-INC = $(INCPAR)
-LIB = $(LIBPAR)
+INCS = $(INCPAR)
+LIBS = $(LIBPAR)
 LIBSEQNEEDED =

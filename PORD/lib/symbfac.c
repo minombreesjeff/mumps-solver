@@ -221,7 +221,7 @@ css_t*
 setupCSSFromFrontSubscripts(frontsub_t *frontsub)
 { elimtree_t *PTP;
   css_t      *css;
-  int        *xnzf, *nzfsub, *ncolfactor, *xnzl, *nzlsub, *xnzlsub;
+  int        *xnzf, *nzfsub, *ncolfactor, *xnzl, *xnzlsub;
   int        nind, nvtx, K, beg, knz, firstcol, col;
 
   PTP = frontsub->PTP;
@@ -239,7 +239,6 @@ setupCSSFromFrontSubscripts(frontsub_t *frontsub)
   css->nzlsub = nzfsub;
 
   xnzl = css->xnzl;
-  nzlsub = css->nzlsub;
   xnzlsub = css->xnzlsub;
  
   /* ---------------------------------------
@@ -337,7 +336,7 @@ setupFrontSubscripts(elimtree_t *PTP, inputMtx_t *PAP)
   int        *ncolfactor, *ncolupdate, *firstchild, *silbings, *vtx2front;
   int        *xnza, *nzasub, *xnzf, *nzfsub;
   int        *marker, *tmp, *first, *indices;
-  int        nvtx, nfronts, neqs, col, firstcol, knz;
+  int        nvtx, nfronts, col, firstcol, knz;
   int        u, i, istart, istop, K, J;
 
   nvtx = PTP->nvtx;
@@ -348,7 +347,6 @@ setupFrontSubscripts(elimtree_t *PTP, inputMtx_t *PAP)
   silbings = PTP->silbings;
   vtx2front = PTP->vtx2front;
 
-  neqs = PAP->neqs;
   xnza = PAP->xnza;
   nzasub = PAP->nzasub;
 
@@ -516,7 +514,7 @@ initFactorMtx(factorMtx_t *L, inputMtx_t *PAP)
   int        *ncolfactor;
   FLOAT      *nzl, *nza, *diag;
   int        *xnzl, *nzlsub, *xnzlsub, *xnza, *nzasub, *xnzf, *nzfsub;
-  int        neqs, nelem, K, k, kstart, h, hstart, dis, i, istart, istop;
+  int        nelem, K, k, kstart, h, hstart, dis, i, istart, istop;
   int        firstcol, lastcol;
  
   nelem = L->nelem; 
@@ -532,7 +530,6 @@ initFactorMtx(factorMtx_t *L, inputMtx_t *PAP)
   xnzf = frontsub->xnzf;
   nzfsub = frontsub->nzfsub;
 
-  neqs = PAP->neqs;
   diag = PAP->diag;
   nza = PAP->nza;
   xnza = PAP->xnza;
@@ -576,7 +573,7 @@ initFactorMtxNEW(factorMtx_t *L, inputMtx_t *PAP)
   css_t      *css;
   int        *ncolfactor;
   FLOAT      *nzl, *nza, *diag, *entriesL;
-  int        *xnzl, *nzlsub, *xnzlsub, *xnza, *nzasub, *xnzf, *nzfsub;
+  int        *xnzl, *xnza, *nzasub, *xnzf, *nzfsub;
   int        *tmp, neqs, nelem, K, k, len, row, i, istart, istop;
   int        firstcol, lastcol;
 
@@ -584,8 +581,6 @@ initFactorMtxNEW(factorMtx_t *L, inputMtx_t *PAP)
   nzl = L->nzl;
   css = L->css;
   xnzl = css->xnzl;
-  nzlsub = css->nzlsub;
-  xnzlsub = css->xnzlsub;
 
   frontsub = L->frontsub;
   PTP = frontsub->PTP;

@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+#  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 #
 all: libmpiseq
 
@@ -7,15 +7,15 @@ all: libmpiseq
 
 include ../Makefile.inc
 
-libmpiseq: libmpiseq$(PLAT).a
+libmpiseq: libmpiseq$(PLAT)$(LIBEXT)
 
-libmpiseq$(PLAT).a: mpi.o mpic.o elapse.o
-	$(AR) $@ mpi.o mpic.o elapse.o
+libmpiseq$(PLAT)$(LIBEXT): mpi.o mpic.o elapse.o
+	$(AR)$@ mpi.o mpic.o elapse.o
 	$(RANLIB) $@
 .f.o:
-	$(FC) $(OPTF) -c $*.f
+	$(FC) $(OPTF)              -c $*.f $(OUTF)$*.o
 .c.o:
-	$(CC) $(OPTC) $(CDEFS) -I. -c $*.c
+	$(CC) $(OPTC) $(CDEFS) -I. -c $*.c $(OUTC)$*.o
 
 clean:
-	$(RM) *.o *.a
+	$(RM) *.o *$(LIBEXT)

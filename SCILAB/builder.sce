@@ -1,11 +1,11 @@
-// $Id: builder_source.sce 5057 2008-07-22 00:59:39Z pcombes $
+// $Id: builder_source.sce 7139 2011-03-22 22:50:47Z jylexcel $
 
 
 //******************* VARIABLE PART TO COSTUMIZE ***************************//
 
 // -- MUMPS:
 
-MUMPS_DIR = home + "/MUMPS_4.9.2";
+MUMPS_DIR = home + "/MUMPS_4.10.0";
 MUMPS_INC_DIR = MUMPS_DIR+"/include"; //path until dmumps_c.h and zmumps_c.h
 MUMPS_LIB_DIR = MUMPS_DIR+"/lib";     //path until libdmumps.a, libzmumps.a and libpord.a
 MUMPS_LIB  = MUMPS_LIB_DIR+"/libmumps_common.a";
@@ -15,7 +15,7 @@ LIB_MPISEQ = MUMPS_DIR+"/libseq/libmpiseq.a";
 
 // -- SCILAB: Path to scilab routines
 
-SCI_DIR_INC = SCI + "/routines/";
+SCI_DIR_INC = "/usr/include/scilab/";
 
 // -- BLAS library, if not already included in Scilab:
 
@@ -31,7 +31,7 @@ ORDERINGS_LIB = PORD_LIB+" "+METIS_LIB;
 PTHREAD_LIB="-lpthread";
 
 // -- COMPILER FOR THE INTERFACE
-COMPILER_= "gcc -c -O";
+COMPILER_= "gcc -c -O -fPIC";
 
 // -- FORTRAN RUNTIME LIBRARIES
 
@@ -67,7 +67,7 @@ unix("make");
 
 //---- Build the Loader_inc.sce
 fd=mopen("loader_inc.sce","w");
-mfprintf(fd,"objects = [ path+\""intzmumpsc.o \"" ; \n")
+mfprintf(fd,"objects = [ path+\""intzmumpsc.o\"" ; \n")
 mfprintf(fd,"		path+\""intdmumpsc.o\"" ; \n")
 mfprintf(fd,"		\""%s\"" ; \n",DMUMPS_LIB)
 mfprintf(fd,"		\""%s\"" ; \n",ZMUMPS_LIB)

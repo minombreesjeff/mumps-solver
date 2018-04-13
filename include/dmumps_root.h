@@ -1,16 +1,24 @@
 !
-!  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+!  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 !
 !
 !  This version of MUMPS is provided to you free of charge. It is public
 !  domain, based on public domain software developed during the Esprit IV
-!  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-!  Since this first public domain version in 1999, the developments are
-!  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-!  IRIT, and INRIA.
+!  European project PARASOL (1996-1999). Since this first public domain
+!  version in 1999, research and developments have been supported by the
+!  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+!  INRIA, and University of Bordeaux.
 !
-!  Current development team includes Patrick Amestoy, Alfredo Buttari,
-!  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+!  The MUMPS team at the moment of releasing this version includes
+!  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+!  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+!  Ucar and Clement Weisbecker.
+!
+!  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+!  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+!  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+!  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+!  have been contributing to this project.
 !
 !  Up-to-date copies of the MUMPS package can be obtained
 !  from the Web pages:
@@ -39,36 +47,29 @@
 !
       TYPE DMUMPS_ROOT_STRUC
         SEQUENCE
-        INTEGER MBLOCK, NBLOCK, NPROW, NPCOL
-        INTEGER MYROW, MYCOL
-        INTEGER ROOT_SIZE, TOT_ROOT_SIZE
-        INTEGER :: CNTXT_BLACS
+        INTEGER :: MBLOCK, NBLOCK, NPROW, NPCOL
+        INTEGER :: MYROW, MYCOL
+        INTEGER :: SCHUR_MLOC, SCHUR_NLOC, SCHUR_LLD
+        INTEGER :: RHS_NLOC
+        INTEGER :: ROOT_SIZE, TOT_ROOT_SIZE
+!       descriptor for scalapack
+        INTEGER, DIMENSION( 9 ) :: DESCRIPTOR
+        INTEGER :: CNTXT_BLACS, LPIV, rootpad0
         INTEGER, DIMENSION(:), POINTER :: RG2L_ROW
         INTEGER, DIMENSION(:), POINTER :: RG2L_COL
-        INTEGER , DIMENSION(:), POINTER :: IPIV
-        INTEGER, DIMENSION( 9 ) :: DESCRIPTOR, DESCB
-        LOGICAL yes, gridinit_done
-        INTEGER LPIV
+        INTEGER , DIMENSION(:), POINTER :: IPIV, rootpad1
+!       Centralized master of root
+        DOUBLE PRECISION, DIMENSION(:), POINTER :: RHS_CNTR_MASTER_ROOT
 !       Used to access Schur easily from root structure
         DOUBLE PRECISION, DIMENSION(:), POINTER :: SCHUR_POINTER
-        INTEGER SCHUR_MLOC, SCHUR_NLOC, SCHUR_LLD
-!
-!      Data for nullspace/QR
-!
-        DOUBLE PRECISION, DIMENSION(:), POINTER :: QR_TAU
-        DOUBLE PRECISION     QR_RCOND
-!
-!      Givens rotations
-!
-        INTEGER MAXG, GIND
-        DOUBLE PRECISION, DIMENSION(:),POINTER::GROW, GCOS, GSIN
-!
-!      RRRLU data
-!
-        INTEGER ELG_MAX,NULL_MAX
-        INTEGER ELIND,EUIND,NLUPDATE,NUUPDATE
-        INTEGER,DIMENSION(:),POINTER::PERM_ROW,PERM_COL
-        INTEGER,DIMENSION(:),POINTER::ELROW, EUROW, PTREL, PTREU
-        DOUBLE PRECISION, DIMENSION(:), POINTER :: ELELG, EUELG, DL
+!       for try_null_space preprocessing constant only:
+        DOUBLE PRECISION, DIMENSION(:), POINTER :: QR_TAU, rootpad2
+!       Fwd in facto: 
+!           case of scalapack root: to store RHS in 2D block cyclic
+!           format compatible with root distribution
+        DOUBLE PRECISION, DIMENSION(:,:), POINTER :: RHS_ROOT, rootpad
+!       for try_nullspace preprocessing constant only:
+        DOUBLE PRECISION :: QR_RCOND, rootpad3
+        LOGICAL yes, gridinit_done
 !
       END TYPE DMUMPS_ROOT_STRUC

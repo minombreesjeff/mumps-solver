@@ -234,8 +234,8 @@ eliminateStage(minprior_t *minprior, int istage, int scoretype, timings_t *cpus)
   bucket_t    *bucket;
   stageinfo_t *stageinfo;
   int         *stage, *reachset, *auxbin, *auxtmp, *auxaux;
-  int         *vwght, *degree, *score;
-  int         *pflag, nreach, nvtx, nelim, r, u, i;
+  int         *degree, *score;
+  int         *pflag, nreach, nvtx, r, u, i;
 
   Gelim = minprior->Gelim;
   bucket = minprior->bucket;
@@ -248,7 +248,6 @@ eliminateStage(minprior_t *minprior, int istage, int scoretype, timings_t *cpus)
   pflag = &(minprior->flag);
   
   nvtx = Gelim->G->nvtx;
-  vwght = Gelim->G->vwght;
   degree = Gelim->degree;
   score = Gelim->score;
 
@@ -286,7 +285,7 @@ eliminateStage(minprior_t *minprior, int istage, int scoretype, timings_t *cpus)
      and now start the elimination process
      ------------------------------------- */
   while (TRUE)
-   { if ((nelim = eliminateStep(minprior, istage, scoretype)) == 0)
+   { if (eliminateStep(minprior, istage, scoretype) == 0)
        break;
      nreach = minprior->nreach;
 

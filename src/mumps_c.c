@@ -1,17 +1,25 @@
 /*
  *
- *  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+ *  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
- *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
- *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
- *  IRIT, and INRIA.
+ *  European project PARASOL (1996-1999). Since this first public domain
+ *  version in 1999, research and developments have been supported by the
+ *  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+ *  INRIA, and University of Bordeaux.
  *
- *  Current development team includes Patrick Amestoy, Alfredo Buttari,
- *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+ *  The MUMPS team at the moment of releasing this version includes
+ *  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+ *  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+ *  Ucar and Clement Weisbecker.
+ *
+ *  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+ *  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+ *  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+ *  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+ *  have been contributing to this project.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -112,7 +120,7 @@
 #  define F_SYM_ARITH(lower_case,upper_case) zmumps_##lower_case
 # endif
 #endif
-#define MUMPS_F77 \
+#define MUMPS_F77       \
     F_SYM_ARITH(f77,F77)
 void MUMPS_CALL
 MUMPS_F77( MUMPS_INT      *job,
@@ -154,14 +162,14 @@ MUMPS_F77( MUMPS_INT      *job,
            MUMPS_INT      *infog,
            MUMPS_REAL     *rinfog,
            MUMPS_INT      *deficiency,
-	   MUMPS_INT      *lwk_user,
+           MUMPS_INT      *lwk_user,
            MUMPS_INT      *size_schur,
            MUMPS_INT      *listvar_schur,
            MUMPS_INT      *listvar_schur_avail,
            MUMPS_COMPLEX  *schur,
            MUMPS_INT      *schur_avail,
-	   MUMPS_COMPLEX  *wk_user,
-	   MUMPS_INT      *wk_user_avail,
+           MUMPS_COMPLEX  *wk_user,
+           MUMPS_INT      *wk_user_avail,
            MUMPS_REAL     *colsca,
            MUMPS_INT      *colsca_avail,
            MUMPS_REAL     *rowsca,
@@ -195,7 +203,7 @@ MUMPS_F77( MUMPS_INT      *job,
            MUMPS_INT      *ooc_tmpdirlen,
            MUMPS_INT      *ooc_prefixlen,
            MUMPS_INT      *write_problemlen
-          );
+           );
 #ifdef return_scaling
 /*
  * Those two are static. They are passed inside cmumps_f77 but
@@ -303,8 +311,8 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
     int ooc_prefixlen;
     int write_problemlen;
     int i;
-    const static MUMPS_INT no = 0;
-    const static MUMPS_INT yes = 1;
+    static const MUMPS_INT no = 0;
+    static const MUMPS_INT yes = 1;
     idummyp = &idummy;
     cdummyp = &cdummy;
     rdummyp = &rdummy;
@@ -319,12 +327,12 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
     if ( mumps_par->job == -1 )
       { /* job = -1: we just reset all pointers to 0 */
         mumps_par->irn=0; mumps_par->jcn=0; mumps_par->a=0; mumps_par->rhs=0; mumps_par->wk_user=0;
-	mumps_par->redrhs=0;
+        mumps_par->redrhs=0;
         mumps_par->eltptr=0; mumps_par->eltvar=0; mumps_par->a_elt=0; mumps_par->perm_in=0; mumps_par->sym_perm=0; mumps_par->uns_perm=0; mumps_par->irn_loc=0;mumps_par->jcn_loc=0;mumps_par->a_loc=0; mumps_par->listvar_schur=0;mumps_par->schur=0;mumps_par->mapping=0;mumps_par->pivnul_list=0;mumps_par->colsca=0;mumps_par->rowsca=0; mumps_par->rhs_sparse=0; mumps_par->irhs_sparse=0; mumps_par->sol_loc=0; mumps_par->irhs_ptr=0; mumps_par->isol_loc=0;
         strcpy(mumps_par->ooc_tmpdir,"NAME_NOT_INITIALIZED");
         strcpy(mumps_par->ooc_prefix,"NAME_NOT_INITIALIZED");
         strcpy(mumps_par->write_problem,"NAME_NOT_INITIALIZED");
-	strncpy(mumps_par->version_number,MUMPS_VERSION,MUMPS_VERSION_MAX_LEN);
+        strncpy(mumps_par->version_number,MUMPS_VERSION,MUMPS_VERSION_MAX_LEN);
         mumps_par->version_number[MUMPS_VERSION_MAX_LEN+1] = '\0';
         /* Next line initializes scalars to arbitrary values.
          * Some of those will anyway be overwritten during the
@@ -422,7 +430,7 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
           &(mumps_par->deficiency), &(mumps_par->lwk_user), &(mumps_par->size_schur), listvar_schur, &listvar_schur_avail, schur,
           &schur_avail, wk_user, &wk_user_avail, colsca, &colsca_avail, rowsca, &rowsca_avail,
           &(mumps_par->instance_number), &(mumps_par->nrhs), &(mumps_par->lrhs),
-	  &(mumps_par->lredrhs),
+          &(mumps_par->lredrhs),
           rhs_sparse, &rhs_sparse_avail, sol_loc, &sol_loc_avail, irhs_sparse,
           &irhs_sparse_avail, irhs_ptr, &irhs_ptr_avail, isol_loc,
           &isol_loc_avail, &(mumps_par->nz_rhs), &(mumps_par->lsol_loc)
@@ -433,12 +441,12 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
           , &(mumps_par->nblock)
           , &(mumps_par->nprow)
           , &(mumps_par->npcol)
-	  , ooc_tmpdir
-	  , ooc_prefix
-	  , write_problem
-	  , &ooc_tmpdirlen
-	  , &ooc_prefixlen
-	  , &write_problemlen
+          , ooc_tmpdir
+          , ooc_prefix
+          , write_problem
+          , &ooc_tmpdirlen
+          , &ooc_prefixlen
+          , &write_problemlen
     );
     /*
      * mapping and pivnul_list are usually 0 except if

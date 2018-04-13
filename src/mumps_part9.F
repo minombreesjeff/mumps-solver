@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -57,15 +65,16 @@ C $Id$
       INTEGER, intent(in), optional :: 
      &                     COMPLEM_LIST(max(1,SIZE_COMPLEM_LIST))
       INTEGER HEAD(0:NBBUCK+1), WF(N)
-      INTEGER AMD, AMF1, AMF4, AMF4MA41
-      PARAMETER (AMD=1, AMF1=2, AMF4=3, AMF4MA41=4)
+      INTEGER AMD, AMF1, AMF4MA41
+      PARAMETER (AMD=1, AMF1=2, AMF4MA41=4)
       INTEGER DEG, DEGME, DEXT, DMAX, E, ELENME, ELN, I,
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X,
-     &        NBFLAG, LASTD, NELME, N2, PAS
+     &        LASTD, NELME, N2, PAS
+       INTEGER MAXINT_N
        INTEGER WF3, WF4
-       INTEGER*8 HASH, HMOD
+       INTEGER(8) HASH, HMOD
        DOUBLE PRECISION RMF, RMF1 
        DOUBLE PRECISION dummy
        INTEGER idummy
@@ -101,9 +110,10 @@ C $Id$
       N2 = -NBBUCK-1
       PAS = max((N/8), 1)
       WFLG = 2
+      MAXINT_N = huge(MAXINT_N) - N
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, NBBUCK-1),KIND=8)
+      HMOD = int(max (1, NBBUCK-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -179,7 +189,7 @@ C $Id$
                RMF = max(RMF, RMF1)
               ENDIF   
              ENDDO
-              DEG = MIN (DEG, TOTEL-NEL-NV(I))  
+              DEG = min(DEG, TOTEL-NEL-NV(I))  
             ENDIF
           ENDIF
             IF (
@@ -394,7 +404,7 @@ C $Id$
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -446,12 +456,12 @@ C $Id$
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E, KIND=8)
+              HASH = HASH + int(E, kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
              IF (.NOT.AGG4) THEN
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
              ELSE
               PE (E) = -ME
               W (E) = 0
@@ -468,7 +478,7 @@ C $Id$
               IF (NOTDEFINEDAMD) WF3 = WF3 + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (DEGREE(I).EQ.N2) DEG = N2
@@ -506,13 +516,13 @@ C $Id$
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -521,7 +531,7 @@ C $Id$
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV (I) .LT. 0) .AND. (DEGREE(I).NE.N2) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -671,7 +681,6 @@ C $Id$
            NV(ME)   = SIZE_COMPLEM_LIST
            PE(ME)   = 0
          ENDIF
-C    $      ' degree =',(degree(i),i=1,N)
         IF (NEL.NE.N) THEN
          write(*,*) ' Error 2 in HALO AMD NEL, N=', NEL,N
          NCMPA = -N - 1
@@ -736,7 +745,7 @@ C    $      ' degree =',(degree(i),i=1,N)
            ELEN (I) = K
 300     CONTINUE
       ENDIF
- 500  PFREE = MAXMEM
+      PFREE = MAXMEM
       RETURN
       END SUBROUTINE MUMPS_419 
       SUBROUTINE MUMPS_197(N, IWLEN, PE, PFREE, LEN, IW, NV, ELEN,
@@ -750,14 +759,16 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X
-      INTEGER*8 HASH, HMOD
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -912,7 +923,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -950,12 +961,12 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
 #if defined (NOAGG1)
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #else
               PE (E) = -ME
               W (E) = 0
@@ -971,7 +982,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
 #if defined (NOAGG1)
@@ -1001,13 +1012,13 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -1016,7 +1027,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF (NV (I) .LT. 0) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -1137,14 +1148,16 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X, 
      &        NPRINC
-      INTEGER*8 HASH, HMOD
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -1182,8 +1195,8 @@ C    $      ' degree =',(degree(i),i=1,N)
           NEXT (I) = INEXT
           HEAD (DEG) = I
         ELSE IF ( DEG.EQ. 0) THEN
+          ELEN (I) = - (NEL + 1)
           NEL = NEL + NV(I)
-          ELEN (I) = -NEL
           PE (I) = 0
           W (I) = 0
         ENDIF
@@ -1317,7 +1330,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -1355,12 +1368,12 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
 #if defined (NOAGG2)
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #else
               PE (E) = -ME
               W (E) = 0
@@ -1376,7 +1389,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
 #if defined (NOAGG2)
@@ -1406,13 +1419,13 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -1421,7 +1434,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF (NV (I) .LT. 0) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -1545,14 +1558,16 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X,
      &        NBFLAG, NREAL, LASTD, NELME
-      INTEGER*8 HASH, HMOD
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -1742,7 +1757,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -1780,7 +1795,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
 #if defined (NOAGG3)
               IW (PN) = E
@@ -1801,7 +1816,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (DEGREE(I).EQ.N+1) DEG = N+1
@@ -1836,14 +1851,14 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH, KIND=KIND(LAST))
+            LAST (I) = int(HASH, kind=kind(LAST))
             ENDIF
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -1852,7 +1867,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV (I) .LT. 0) .AND. (DEGREE(I) .LE. N) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -2010,7 +2025,8 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X,
      &        NBFLAG, NREAL, LASTD, NELME, WF3, WF4, N2, PAS
-       INTEGER*8 HASH, HMOD
+       INTEGER MAXINT_N
+       INTEGER(8) HASH, HMOD
        DOUBLE PRECISION RMF, RMF1 
        DOUBLE PRECISION dummy
        INTEGER idummy
@@ -2023,9 +2039,10 @@ C    $      ' degree =',(degree(i),i=1,N)
       N2 = -NBBUCK-1
       PAS = max((N/8), 1)
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, NBBUCK-1),KIND=8)
+      HMOD = int(max (1, NBBUCK-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -2285,7 +2302,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -2331,12 +2348,12 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E, KIND=8)
+              HASH = HASH + int(E, kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
 #if defined (NOAGG4)
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #else
               PE (E) = -ME
               W (E) = 0
@@ -2353,7 +2370,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               WF3 = WF3 + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (DEGREE(I).EQ.N2) DEG = N2
@@ -2393,14 +2410,14 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
             ENDIF
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -2409,7 +2426,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV (I) .LT. 0) .AND. (DEGREE(I).NE.N2) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -2613,14 +2630,15 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER NDENSE(N)
       INTEGER IVersion, THRESH
       INTEGER THRESM, MINDEN, MAXDEN, NDME
-      INTEGER NBD,NBED, NBDM, LASTD, NELME, DEG1
+      INTEGER NBD,NBED, NBDM, LASTD, NELME
       LOGICAL IDENSE
       DOUBLE PRECISION RELDEN
       INTEGER DEG, DEGME, DEXT, DMAX, E, ELENME, ELN, I,
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X
-      INTEGER*8 HASH, HMOD
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
       LOGICAL COMPRESS
@@ -2644,10 +2662,11 @@ C    $      ' degree =',(degree(i),i=1,N)
       NBED  = 0
       NBDM  = 0
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -2739,7 +2758,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           IF (DEGREE(ME).GT.TOTEL+1) THEN
             MINDEN = NBD
             MAXDEN = 0
-            IF (WFLG+NBD+1 .LE. WFLG) THEN
+            IF (WFLG .GT. MAXINT_N) THEN
              DO  52 X = 1, N
               IF (W (X) .NE. 0) W (X) = 1
   52         CONTINUE
@@ -2980,7 +2999,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -3020,12 +3039,12 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #if defined (NOAGG5)
             ELSE IF (DEXT .EQ. 0) THEN
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #else
             ELSE IF ((DEXT .EQ. 0) .AND.
      &                (NDENSE(ME).EQ.NBD)) THEN
@@ -3034,7 +3053,7 @@ C    $      ' degree =',(degree(i),i=1,N)
             ELSE IF (DEXT.EQ.0) THEN
                   IW(PN) = E
                   PN     = PN+1
-                  HASH   = HASH + INT(E,KIND=8)
+                  HASH   = HASH + int(E,kind=8)
 #endif
             ENDIF
   160     CONTINUE
@@ -3047,7 +3066,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               IF (DEGREE(J).LE.TOTEL) DEG=DEG+NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
 #if defined (NOAGG5)
@@ -3078,13 +3097,13 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -3093,7 +3112,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV(I).LT.0) .AND. (DEGREE(I).LE.TOTEL) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -3299,13 +3318,13 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER HEAD(0:NBBUCK+1), WF(N)
       INTEGER CONSTRAINT(N),THESON(N)
       INTEGER PREV,TOTO
-      LOGICAL TROUVE
       INTEGER DEG, DEGME, DEXT, DMAX, E, ELENME, ELN, I,
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X,
      &        NBFLAG, NREAL, LASTD, NELME, WF3, WF4, N2, PAS
-       INTEGER*8 HASH, HMOD
+       INTEGER MAXINT_N
+       INTEGER(8) HASH, HMOD
        DOUBLE PRECISION    RMF, RMF1 
        DOUBLE PRECISION    dummy
        INTEGER idummy
@@ -3317,9 +3336,10 @@ C    $      ' degree =',(degree(i),i=1,N)
       N2 = -NBBUCK-1
       PAS = max((N/8), 1)
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, NBBUCK-1),KIND=8)
+      HMOD = int(max (1, NBBUCK-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -3597,7 +3617,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -3643,12 +3663,12 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (DEXT .EQ. 0) THEN
 #if defined (NOAGG4)
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
 #else
               PE (E) = -ME
               W (E) = 0
@@ -3665,7 +3685,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               WF3 = WF3 + NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (DEGREE(I).EQ.N2) DEG = N2
@@ -3705,14 +3725,14 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
             ENDIF
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -3721,7 +3741,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV (I) .LT. 0) .AND. (DEGREE(I).NE.N2) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -3967,7 +3987,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER PERM(N)
       INTEGER THRESH
       INTEGER THRESM, NDME, PERMeqN
-      INTEGER NBD,NBED, NBDM, LASTD, NELME, DEG1
+      INTEGER NBD,NBED, NBDM, LASTD, NELME
       LOGICAL IDENSE
       INTEGER FDEG, ThresMin, ThresPrev, IBEGSchur, NbSchur, 
      &        ThresMinINIT
@@ -3976,7 +3996,8 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X
-      INTEGER*8 HASH, HMOD 
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD 
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
         IF (N.EQ.1) THEN
@@ -3984,6 +4005,7 @@ C    $      ' degree =',(degree(i),i=1,N)
            LAST(1) = 1
            PE(1) = 0
            NV(1) = 1
+           NCMPA = 0
            RETURN
         ENDIF
         SIZE_SCHUR = min(N,SIZE_SCHUR)
@@ -4023,10 +4045,11 @@ C    $      ' degree =',(degree(i),i=1,N)
       NBED  = 0
       NBDM  = 0
       WFLG = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA = 0
       NEL = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0
       MEM = PFREE - 1
       MAXMEM = MEM
@@ -4108,7 +4131,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           MINDEG = 1
           NBDM = max(NBDM,NBD)
           IF (DEGREE(ME).GT.N+1) THEN
-            IF (WFLG+NBD+1 .LE. WFLG) THEN
+            IF (WFLG .GT. MAXINT_N) THEN
              DO  52 X = 1, N
               IF (W (X) .NE. 0) W (X) = 1
   52         CONTINUE
@@ -4200,6 +4223,8 @@ C    $      ' degree =',(degree(i),i=1,N)
            NELME    = -(NEL+1)
            DO 59 X=1,N
             IF ((PE(X).GT.0) .AND. (ELEN(X).LT.0)) THEN
+              PE(X) = -LISTVAR_SCHUR(1)
+            ELSE IF ((PE(X).GT.0) .AND. (ELEN(X).LT.0)) THEN
              PE(X) = -LISTVAR_SCHUR(1)
             ELSEIF (DEGREE(X).EQ.N+1) THEN
              NEL   = NEL + NV(X)
@@ -4364,7 +4389,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -4404,11 +4429,11 @@ C    $      ' degree =',(degree(i),i=1,N)
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (.NOT. AGG6 .AND. DEXT .EQ. 0) THEN
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (AGG6 .AND. (DEXT .EQ. 0) .AND.
      &            ((NDENSE(ME).EQ.NBD).OR.(NDENSE(E).EQ.0))) THEN
                 PE (E) = -ME
@@ -4416,7 +4441,7 @@ C    $      ' degree =',(degree(i),i=1,N)
              ELSE IF (AGG6 .AND. DEXT.EQ.0) THEN
                   IW(PN) = E
                   PN     = PN+1
-                  HASH   = HASH + INT(E,KIND=8)
+                  HASH   = HASH + int(E,kind=8)
             ENDIF
   160     CONTINUE
           ELEN (I) = PN - P1 + 1
@@ -4428,7 +4453,7 @@ C    $      ' degree =',(degree(i),i=1,N)
               IF (DEGREE(J).LE.N) DEG=DEG+NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (((ELEN(I).EQ.1).AND.(P3.EQ.PN))
@@ -4459,13 +4484,13 @@ C    $      ' degree =',(degree(i),i=1,N)
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -4474,7 +4499,7 @@ C    $      ' degree =',(degree(i),i=1,N)
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV(I).LT.0) .AND. (DEGREE(I).LE.N) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -4649,11 +4674,11 @@ C    $      ' degree =',(degree(i),i=1,N)
       SUBROUTINE MUMPS_137( INODE, N, PROCNODE_STEPS,
      &           SLAVEF,
      &           ND, FILS, FRERE_STEPS, STEP, PIMASTER,
-     &           KEEP28, KEEP50,
+     &           KEEP28, KEEP50, KEEP253,
      &           FLOP1,
      &           IW, LIW, XSIZE )
       IMPLICIT NONE
-      INTEGER INODE, N, KEEP50, LIW, SLAVEF, KEEP28
+      INTEGER INODE, N, KEEP50, LIW, SLAVEF, KEEP28, KEEP253
       INTEGER PROCNODE_STEPS(KEEP28), ND(KEEP28),
      &        FILS(N), FRERE_STEPS(KEEP28),
      &        STEP(N), 
@@ -4668,8 +4693,8 @@ C    $      ' degree =',(degree(i),i=1,N)
       EXTERNAL MUMPS_170, MUMPS_330
       INCLUDE 'mumps_headers.h'
       FLOP1 = 0.0D0
-      IF (MUMPS_170(STEP(INODE),
-     &    PROCNODE_STEPS, SLAVEF) ) RETURN
+      IF (MUMPS_170(PROCNODE_STEPS(STEP(INODE)),
+     &                SLAVEF) ) RETURN
       IN     = INODE
       NUMORG = 0
    10 NUMORG = NUMORG + 1
@@ -4684,10 +4709,10 @@ C    $      ' degree =',(degree(i),i=1,N)
       NASS = NASS + IW(PIMASTER(STEP(ISON)) + 1 +XSIZE)
       ISON = FRERE_STEPS(STEP(ISON))
       IF (ISON .GT. 0) GOTO 20
-   30 NFRONT = ND(STEP(INODE)) + NASS
+   30 NFRONT = ND(STEP(INODE)) + NASS + KEEP253
       NPIV  = NASS + NUMORG
       NCB   = NFRONT - NPIV
-      LEVEL = MUMPS_330(STEP(INODE),PROCNODE_STEPS,SLAVEF)
+      LEVEL = MUMPS_330(PROCNODE_STEPS(STEP(INODE)),SLAVEF)
       CALL MUMPS_511(NFRONT,NPIV,NPIV,KEEP50,LEVEL,FLOP1)
       RETURN
       END SUBROUTINE MUMPS_137
@@ -4738,33 +4763,137 @@ C    $      ' degree =',(degree(i),i=1,N)
       RETURN
       END SUBROUTINE MUMPS_511
       SUBROUTINE MUMPS_81(MYID, INODE, N, IOLDPS,
-     &           HF, NFRONT, NFRONT_EFF,
+     &           HF, NFRONT, NFRONT_EFF, DAD,
      &           NASS1, NASS, NUMSTK, NUMORG, IWPOSCB, 
      &           IFSON, STEP, PIMASTER, PTRAIW, IW, LIW, 
-     &           INTARR, ITLOC, FILS, FRERE, 
-     &           SON_LEVEL2, NIV1, NBPROCFILS, KEEP,KEEP8, IFLAG)
+     &           INTARR, ITLOC, RHS_MUMPS, FILS, FRERE, 
+     &           SON_LEVEL2, NIV1, NBPROCFILS, KEEP,KEEP8, IFLAG,
+     &           PROCNODE_STEPS, SLAVEF )
       IMPLICIT NONE
-      INTEGER INODE, N, IOLDPS, HF, NFRONT, NASS1, LIW, NASS,
-     &        NUMSTK, NUMORG, IWPOSCB, IFSON, MYID, IFLAG
-      INTEGER KEEP(500), NFRONT_EFF
-      INTEGER*8 KEEP8(150)
+      INTEGER, intent(in) :: INODE, N, IOLDPS, HF, NFRONT, 
+     &        NASS1, LIW, NASS,
+     &        NUMSTK, NUMORG, IWPOSCB 
+      INTEGER, intent(in) :: KEEP(500)
+      INTEGER(8) , intent(in) ::KEEP8(150)
       INTEGER STEP(N), 
-     & PIMASTER(KEEP(28)),
-     &  PTRAIW(N), IW(LIW), 
-     &        ITLOC(N), FILS(N), FRERE(KEEP(28)),
-     &        NBPROCFILS(KEEP(28))
+     &        PIMASTER(KEEP(28)),
+     &        PTRAIW(N), IW(LIW), 
+     &        ITLOC(N+KEEP(253)), FILS(N), FRERE(KEEP(28))
+      COMPLEX :: RHS_MUMPS(KEEP(255))
       INTEGER INTARR(max(1,KEEP(14)))
-      LOGICAL SON_LEVEL2, NIV1
+      INTEGER, intent(inout) ::  NBPROCFILS(KEEP(28))
+      LOGICAL, intent(in)    :: NIV1
+      INTEGER, intent(inout) :: IFLAG
+      LOGICAL, intent(out)   :: SON_LEVEL2
+      INTEGER, intent(out)   :: NFRONT_EFF
+      INTEGER, intent(in) :: PROCNODE_STEPS(KEEP(28)), SLAVEF
+      INTEGER, intent(in)    :: DAD (KEEP(28)), IFSON, MYID
       INTEGER NEWEL, INEW, IOLDP2, INEW1,
      &        IN, NTOTFS, ICT11, NELIM, NPIVS, NSLSON, NCOLS,
      &        ITRANS, J, JJ, J1, J2, J3, JT1, ISON, IELL, LSTK, 
      &        NROWS, HS, IP1, IP2, K1, K2, IBROT, IORG, 
      &        I, K
       LOGICAL LEVEL1
+      INTEGER  MUMPS_810, MUMPS_330
+      EXTERNAL MUMPS_810, MUMPS_330
+      INTEGER  TYPESPLIT
       INCLUDE 'mumps_headers.h'
       SON_LEVEL2 = .FALSE.
       IOLDP2 = IOLDPS + HF - 1   
-      NEWEL = IOLDP2 + NASS1
+      ICT11  = IOLDP2 + NFRONT
+      NTOTFS = 0
+      TYPESPLIT  = MUMPS_810 (PROCNODE_STEPS(STEP(INODE)), 
+     &              SLAVEF)
+      IF ( (TYPESPLIT.EQ.5).OR.(TYPESPLIT.EQ.6) ) THEN
+        J2    = PIMASTER(STEP(IFSON))
+        LSTK  = IW(J2    +KEEP(IXSZ))
+        NELIM = IW(J2 + 1+KEEP(IXSZ))
+        NPIVS  = IW(J2 + 3+KEEP(IXSZ))
+        IF (NPIVS.LT.0) NPIVS = 0
+        NSLSON = IW(J2 + 5+KEEP(IXSZ))
+        IF( NSLSON.GT.0) SON_LEVEL2 = .TRUE.
+        LEVEL1    = NSLSON.EQ.0
+        NCOLS  = NPIVS + LSTK
+        NROWS  = NCOLS
+        ITRANS = NROWS
+        IF (NIV1) THEN
+         write(6,*) MYID, ':',
+     &    ' Internal error 2 in MUMPS_BUILD__INDEX ',
+     &    ' interior split node of type 1 '
+         CALL MUMPS_ABORT()
+        ELSE
+         I= MUMPS_330(PROCNODE_STEPS(STEP(IFSON)),SLAVEF)
+         J= MUMPS_810(PROCNODE_STEPS(STEP(IFSON)), 
+     &              SLAVEF)
+         IF (LEVEL1.or.J.LT.4) THEN
+         write(6,*) MYID, ':',
+     &     ' Internal error 3 in MUMPS_81 ',
+     &     ' son', IFSON, 
+     &     ' of interior split node', INODE, ' of type 1 ', 
+     &     ' NSLSON =', NSLSON, ' TYPE_SON=', I, 'TYPESPLIT_SON=', J
+          CALL MUMPS_ABORT()
+         ELSE
+          NBPROCFILS(STEP(IFSON)) = NSLSON
+          NBPROCFILS(STEP(INODE)) = NBPROCFILS(STEP(INODE))+
+     &                               NBPROCFILS(STEP(IFSON))
+         ENDIF
+        ENDIF
+        IF ( J2.GT. IWPOSCB ) THEN
+          NROWS = IW(J2 + 2+KEEP(IXSZ))
+          ITRANS = NPIVS + NROWS
+        ENDIF
+        HS = NSLSON + 6 + KEEP(IXSZ)
+        J1 = J2 + HS + NROWS + NPIVS
+        J2 = J1 + LSTK - 1 
+        J3 = J1 + NELIM - 1
+        IF (NELIM.GT.0) THEN
+         DO JJ=J1,J3
+          NTOTFS = NTOTFS + 1
+          JT1 = IW(JJ)
+          IW(ICT11 + NTOTFS) = JT1
+          IW(JJ) = NTOTFS
+          IW(IOLDP2 + NTOTFS) = IW(JJ - ITRANS)
+         ENDDO
+        ENDIF
+        DO JJ =J3+1, J3+NUMORG
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS   
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        DO JJ =J3+NUMORG+1, J2
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS    
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        NFRONT_EFF = NTOTFS
+        IBROT = INODE
+        DO IORG = 1, NUMORG
+          K1 = PTRAIW(IBROT) + 2
+          JT1 = INTARR(K1)
+          INTARR(K1) = ITLOC(JT1)
+          IBROT = FILS(IBROT)
+         K2 = K1 + INTARR(K1 - 2) - INTARR(K1 - 1)
+         K1 = K1 + 1
+         IF (K1 .LE. K2) THEN
+          DO JJ = K1, K2
+            J = INTARR(JJ)
+            INTARR(JJ) = ITLOC(J)
+          ENDDO
+         ENDIF
+        ENDDO
+        K1 = IOLDPS+HF
+        DO JJ=K1+NELIM,K1+NFRONT_EFF-1
+          ITLOC(IW(JJ)) = 0
+        ENDDO
+       RETURN
+      ENDIF
+      NEWEL  = IOLDP2 + NASS1
       NFRONT_EFF = NASS1
       IN = INODE
       INEW = IOLDPS + HF 
@@ -4778,10 +4907,34 @@ C    $      ' degree =',(degree(i),i=1,N)
       INEW1 = INEW1 + 1
       IN = FILS(IN)
       IF (IN .GT. 0) GOTO 50
+      IF  (TYPESPLIT.EQ.4) THEN
+         IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+          IBROT = DAD(STEP(IBROT)) 
+          IN = IBROT
+          DO WHILE (IN.GT.0)
+            NFRONT_EFF = NFRONT_EFF+1
+            NEWEL      = NEWEL + 1
+            ITLOC(IN)  = NFRONT_EFF
+            IW(NEWEL)  = IN
+            IN         = FILS( IN )
+          ENDDO
+         ENDDO
+      ENDIF
       IF (NUMSTK .NE. 0) THEN
         NTOTFS = NUMORG
         ISON = IFSON
-        ICT11 = IOLDP2 + NFRONT
         DO 100 IELL = 1, NUMSTK
           J2 = PIMASTER(STEP(ISON))
           LSTK = IW(J2+KEEP(IXSZ))
@@ -4812,7 +4965,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           ENDIF
           HS = NSLSON + 6 + KEEP(IXSZ)
           J1 = J2 + HS + NROWS + NPIVS
-          J2 = J1 + LSTK - 1
+          J2 = J1 + LSTK - 1 - KEEP(253)
           J3 = J1 + NELIM - 1
           IF (NELIM .EQ. 0) GOTO 70
           DO 60 JJ = J1, J3
@@ -4824,7 +4977,7 @@ C    $      ' degree =',(degree(i),i=1,N)
             IW(IOLDP2 + NTOTFS) = IW(JJ - ITRANS)
    60     CONTINUE
    70     J1 = J3 + 1
-          IF (NASS1 .NE. NFRONT) THEN
+          IF (NASS1 .NE. NFRONT - KEEP(253)) THEN
             DO 80 JJ = J1, J2
               J = IW(JJ)
               IF (ITLOC(J) .EQ. 0) THEN
@@ -4842,6 +4995,9 @@ C    $      ' degree =',(degree(i),i=1,N)
               IW(JJ) = ITLOC(IW(JJ))
    90       CONTINUE
           ENDIF
+          DO JJ=J2+1, J2+KEEP(253)
+              IW(JJ)=NFRONT-KEEP(253)+JJ-J2
+          ENDDO
           ISON = FRERE(STEP(ISON))
   100   CONTINUE
       ENDIF
@@ -4866,6 +5022,48 @@ C    $      ' degree =',(degree(i),i=1,N)
   110     CONTINUE
         ENDIF
   120 CONTINUE
+      IF ( (TYPESPLIT.EQ.4).AND.(NFRONT_EFF.LT.NFRONT-KEEP(253)) ) THEN
+         IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+          IBROT = DAD(STEP(IBROT)) 
+          IN = IBROT
+          DO WHILE (IN.GT.0.AND.NFRONT_EFF.LT.NFRONT-KEEP(253))
+            J1    = PTRAIW(IN) + 2
+            J2    = J1 + INTARR(J1 - 2) - INTARR(J1-1)
+            IN = FILS( IN )
+            DO JJ = J1+1, J2
+              J     = INTARR( JJ )
+              IF ( ITLOC( J ) .eq. 0 ) THEN
+               NEWEL  = NEWEL + 1
+               NFRONT_EFF = NFRONT_EFF + 1
+               IW( NEWEL ) = J
+               ITLOC( J ) = NFRONT_EFF
+              END IF
+            ENDDO
+          ENDDO
+          IF (NFRONT_EFF.EQ.NFRONT-KEEP(253)) EXIT  
+         ENDDO
+      ENDIF
+      IF ( KEEP(253).NE.0) THEN
+        IP1 = IOLDPS +  HF + NFRONT_EFF  
+        IP2 = IOLDPS + HF + NFRONT + NFRONT_EFF 
+        DO I= 1, KEEP(253)
+          IW(IP1+I-1) = N+I
+          IW(IP2+I-1) = N+I
+        ENDDO
+        NFRONT_EFF = NFRONT_EFF + KEEP(253)
+      ENDIF
       IF (NFRONT.NE.NFRONT_EFF) THEN
        IF (NUMORG.EQ.NASS1) THEN
         IP1 = IOLDPS + HF 
@@ -4876,7 +5074,9 @@ C    $      ' degree =',(degree(i),i=1,N)
        ELSE
         IP1 = IOLDPS + NFRONT + HF + NUMORG 
         IP2 = IOLDPS + HF + NFRONT_EFF + NUMORG 
-        IW(IP2:IP2+NASS-1) = IW(IP1:IP1+NASS-1)
+        DO I=1,NASS
+          IW(IP2+I-1)=IW(IP1+I-1)
+        ENDDO
         IP1 = IOLDPS + NASS1 + HF 
         IP2 = IOLDPS + HF + NFRONT - 1 
         DO I = IP1, IP2
@@ -4890,7 +5090,7 @@ C    $      ' degree =',(degree(i),i=1,N)
        ENDIF
       ELSE
        IP1 = IOLDPS + NASS1 + HF 
-       IP2 = IOLDPS + HF + NFRONT - 1 
+       IP2 = IOLDPS + HF + NFRONT - KEEP(253) - 1 
        DO I = IP1, IP2
         IW(I + NFRONT) = IW(I)
        ENDDO
@@ -4915,31 +5115,122 @@ C    $      ' degree =',(degree(i),i=1,N)
      &           NASS1, NASS, NUMSTK, NUMORG, IWPOSCB, 
      &           IFSON, STEP, PIMASTER, PTRAIW, NELT,
      &           IW, LIW, 
-     &           INTARR, LINTARR, ITLOC, FILS, FRERE_STEPS, 
+     &           INTARR, LINTARR, ITLOC, RHS_MUMPS,
+     &           FILS, FRERE_STEPS, 
      &           KEEP,
-     &           SON_LEVEL2, NIV1, NBPROCFILS, IFLAG)
+     &           SON_LEVEL2, NIV1, NBPROCFILS, IFLAG, 
+     &           DAD, PROCNODE_STEPS, SLAVEF, 
+     &           FRT_PTR, FRT_ELT, Pos_First_NUMORG)
       IMPLICIT NONE
       INTEGER NELT, INODE, N, IOLDPS, HF, NFRONT, NASS1, LIW, NASS,
      &        NUMSTK, NUMORG, IWPOSCB, IFSON, MYID, IFLAG,
      &        LINTARR, NUMELT, NFRONT_EFF
-      INTEGER KEEP(500)
+      INTEGER KEEP(500)  
       INTEGER LIST_ELT(*)
       INTEGER STEP(N), 
      & PIMASTER(KEEP(28)),
      &  PTRAIW(NELT+1), IW(LIW), 
-     &        ITLOC(N), FILS(N), FRERE_STEPS(KEEP(28)),
+     &        ITLOC(N+KEEP(253)), FILS(N),
+     &        FRERE_STEPS(KEEP(28)),
      &        NBPROCFILS(KEEP(28))
+      COMPLEX, POINTER, DIMENSION(:) :: RHS_MUMPS
       INTEGER INTARR(LINTARR)
       LOGICAL SON_LEVEL2, NIV1
+      INTEGER, intent(in)    :: DAD (KEEP(28))
+      INTEGER, intent(in) :: PROCNODE_STEPS(KEEP(28)), SLAVEF
+      INTEGER, intent(in) :: FRT_PTR(N+1), FRT_ELT(NELT)
+      INTEGER, intent(out) :: Pos_First_NUMORG
       INTEGER NEWEL, INEW, IOLDP2, INEW1,
      &        IN, NTOTFS, ICT11, NELIM, NPIVS, NSLSON, NCOLS,
      &        ITRANS, J, JJ, J1, J2, J3, JT1, ISON, IELL, LSTK, 
      &        NROWS, HS, IP1, IP2, K1, K2, 
      &        I, K, ELTI
       LOGICAL LEVEL1
+      INTEGER  MUMPS_810, MUMPS_330
+      EXTERNAL MUMPS_810, MUMPS_330
+      INTEGER  TYPESPLIT, NUMELT_IBROT, IBROT
       INCLUDE 'mumps_headers.h'
       SON_LEVEL2 = .FALSE.
       IOLDP2 = IOLDPS + HF - 1    
+      NTOTFS = 0
+      ICT11 = IOLDP2 + NFRONT
+      TYPESPLIT  = MUMPS_810 (PROCNODE_STEPS(STEP(INODE)), 
+     &              SLAVEF)
+      IF ( (TYPESPLIT.EQ.5).OR.(TYPESPLIT.EQ.6) ) THEN
+        J2    = PIMASTER(STEP(IFSON))
+        LSTK  = IW(J2    +KEEP(IXSZ))
+        NELIM = IW(J2 + 1+KEEP(IXSZ))
+        NPIVS  = IW(J2 + 3+KEEP(IXSZ))
+        IF (NPIVS.LT.0) NPIVS = 0
+        NSLSON = IW(J2 + 5+KEEP(IXSZ))
+        IF( NSLSON.GT.0) SON_LEVEL2 = .TRUE.
+        LEVEL1    = NSLSON.EQ.0
+        NCOLS  = NPIVS + LSTK
+        NROWS  = NCOLS
+        ITRANS = NROWS
+        IF (NIV1) THEN
+         write(6,*) MYID, ':',
+     &    ' Internal error 2 in MUMPS_BUILD__INDEX ',
+     &    ' interior split node of type 1 '
+         CALL MUMPS_ABORT()
+        ELSE
+         I= MUMPS_330(PROCNODE_STEPS(STEP(IFSON)),SLAVEF)
+         J= MUMPS_810(PROCNODE_STEPS(STEP(IFSON)), 
+     &              SLAVEF)
+         IF (LEVEL1.or.J.LT.4) THEN
+         write(6,*) MYID, ':',
+     &     ' Internal error 3 in MUMPS_81 ',
+     &     ' son', IFSON, 
+     &     ' of interior split node', INODE, ' of type 1 ', 
+     &     ' NSLSON =', NSLSON, ' TYPE_SON=', I, 'TYPESPLIT_SON=', J
+          CALL MUMPS_ABORT()
+         ELSE
+          NBPROCFILS(STEP(IFSON)) = NSLSON
+          NBPROCFILS(STEP(INODE)) = NBPROCFILS(STEP(INODE))+
+     &                               NBPROCFILS(STEP(IFSON))
+         ENDIF
+        ENDIF
+        IF ( J2.GT. IWPOSCB ) THEN
+          NROWS = IW(J2 + 2+KEEP(IXSZ))
+          ITRANS = NPIVS + NROWS
+        ENDIF
+        HS = NSLSON + 6 + KEEP(IXSZ)
+        J1 = J2 + HS + NROWS + NPIVS
+        J2 = J1 + LSTK - 1
+        J3 = J1 + NELIM - 1
+        IF (NELIM.GT.0) THEN
+         DO JJ=J1,J3
+          NTOTFS = NTOTFS + 1
+          JT1 = IW(JJ)
+          IW(ICT11 + NTOTFS) = JT1
+          IW(JJ) = NTOTFS
+          IW(IOLDP2 + NTOTFS) = IW(JJ - ITRANS)
+         ENDDO
+        ENDIF
+        DO JJ =J3+1, J2
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS    
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        NFRONT_EFF = NTOTFS
+        DO IELL=1,NUMELT
+         ELTI = LIST_ELT(IELL)
+         J1= PTRAIW(ELTI)
+         J2= PTRAIW(ELTI+1)-1
+         DO JJ=J1,J2
+          J = INTARR(JJ)
+          INTARR(JJ) = ITLOC(J)
+         END DO
+        ENDDO
+        K1 = IOLDPS+HF
+        DO JJ=K1+NELIM,K1+NFRONT_EFF-1
+          ITLOC(IW(JJ)) = 0
+        ENDDO
+        RETURN   
+      ENDIF
       NEWEL = IOLDP2 + NASS1
       NFRONT_EFF = NASS1
       IN = INODE
@@ -4952,10 +5243,34 @@ C    $      ' degree =',(degree(i),i=1,N)
        INEW      = INEW + 1
        IN = FILS(IN)
       END DO
+      IF  (TYPESPLIT.EQ.4) THEN
+        IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+          IBROT = DAD(STEP(IBROT)) 
+          IN = IBROT
+          DO WHILE (IN.GT.0)
+            NFRONT_EFF = NFRONT_EFF+1
+            NEWEL      = NEWEL + 1
+            ITLOC(IN)  = NFRONT_EFF
+            IW(NEWEL)  = IN
+            IN         = FILS( IN )
+          ENDDO
+         ENDDO
+      ENDIF
       IF (NUMSTK .NE. 0) THEN
         NTOTFS = NUMORG
         ISON = IFSON
-        ICT11 = IOLDP2 + NFRONT
         DO 100 IELL = 1, NUMSTK
           J2 = PIMASTER(STEP(ISON))
           LSTK = IW(J2+KEEP(IXSZ))
@@ -4986,7 +5301,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           ENDIF
           HS = NSLSON + 6 +KEEP(IXSZ)
           J1 = J2 + HS + NROWS + NPIVS
-          J2 = J1 + LSTK - 1
+          J2 = J1 + LSTK - 1 - KEEP(253)
           J3 = J1 + NELIM - 1
           IF (NELIM .EQ. 0) GOTO 70
           DO 60 JJ = J1, J3
@@ -5016,6 +5331,9 @@ C    $      ' degree =',(degree(i),i=1,N)
               IW(JJ) = ITLOC(IW(JJ))
    90       CONTINUE
           ENDIF
+          DO JJ=J2+1, J2+KEEP(253)
+              IW(JJ)=NFRONT-KEEP(253)+JJ-J2
+          ENDDO
           ISON = FRERE_STEPS(STEP(ISON))
   100   CONTINUE
       ENDIF
@@ -5036,6 +5354,49 @@ C    $      ' degree =',(degree(i),i=1,N)
           ENDIF
        END DO
       ENDDO
+      IF ( (TYPESPLIT.EQ.4).AND.(NFRONT_EFF.LT.NFRONT-KEEP(253)) ) THEN
+         IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+          IBROT = DAD(STEP(IBROT)) 
+          NUMELT_IBROT = FRT_PTR(IBROT+1) - FRT_PTR(IBROT)
+          IF (NUMELT_IBROT.EQ.0) CYCLE 
+          DO IELL = FRT_PTR(IBROT), FRT_PTR(IBROT+1)
+            ELTI = FRT_ELT(IELL)
+            J1= PTRAIW(ELTI)
+            J2= PTRAIW(ELTI+1)-1
+            DO JJ=J1,J2
+              J     = INTARR( JJ )
+              IF ( ITLOC( J ) .eq. 0 ) THEN
+               NEWEL  = NEWEL + 1
+               NFRONT_EFF = NFRONT_EFF + 1
+               IW( NEWEL ) = J
+               ITLOC( J ) = NFRONT_EFF
+              END IF
+            ENDDO
+          ENDDO
+          IF (NFRONT_EFF.EQ.NFRONT) EXIT  
+         ENDDO
+      ENDIF  
+      IF ( KEEP(253).GT.0) THEN
+        IP1 = IOLDPS +  HF + NFRONT_EFF  
+        IP2 = IOLDPS + HF + NFRONT + NFRONT_EFF 
+        DO I= 1, KEEP(253)
+          IW(IP1+I-1) = N+I
+          IW(IP2+I-1) = N+I
+        ENDDO
+        NFRONT_EFF = NFRONT_EFF + KEEP(253)
+      ENDIF
       IF (NFRONT.NE.NFRONT_EFF) THEN
        IF (NUMORG.EQ.NASS1) THEN
         IP1 = IOLDPS + HF 
@@ -5046,7 +5407,9 @@ C    $      ' degree =',(degree(i),i=1,N)
        ELSE
         IP1 = IOLDPS + NFRONT + HF + NUMORG 
         IP2 = IOLDPS + HF + NFRONT_EFF + NUMORG 
-        IW(IP2:IP2+NASS-1) = IW(IP1:IP1+NASS-1)
+        DO I=1,NASS
+          IW(IP2+I-1)=IW(IP1+I-1)
+        ENDDO
         IP1 = IOLDPS + NASS1 + HF 
         IP2 = IOLDPS + HF + NFRONT - 1 
         DO I = IP1, IP2
@@ -5070,6 +5433,7 @@ C    $      ' degree =',(degree(i),i=1,N)
          IW(I + NFRONT) = IW(I)
        ENDDO
       ENDIF
+      Pos_First_NUMORG = ITLOC(INODE)
       K1 = IOLDPS + HF + NUMORG 
       K2 = K1 + NFRONT_EFF - 1 + NASS
       DO 150 K = K1, K2
@@ -5079,26 +5443,30 @@ C    $      ' degree =',(degree(i),i=1,N)
       RETURN
       END SUBROUTINE MUMPS_124
       SUBROUTINE MUMPS_86(MYID, INODE, N, IOLDPS,
-     &           HF, NFRONT, NFRONT_EFF, PERM, 
+     &           HF, NFRONT, NFRONT_EFF, PERM, DAD,
      &           NASS1, NASS, NUMSTK, NUMORG, IWPOSCB, 
      &           IFSON, STEP, PIMASTER, PTRAIW, IW, LIW, 
-     &           INTARR, ITLOC, FILS, FRERE_STEPS, 
+     &           INTARR, ITLOC, RHS_MUMPS, FILS, FRERE_STEPS, 
      &           SON_LEVEL2, NIV1, NBPROCFILS, KEEP,KEEP8, IFLAG,
-     &           ISON_IN_PLACE)
+     &           ISON_IN_PLACE, PROCNODE_STEPS, SLAVEF )
       IMPLICIT NONE
       INTEGER INODE, N, IOLDPS, HF, NFRONT, NASS1, LIW, NASS,
-     &        NUMSTK, NUMORG, IWPOSCB, IFSON, MYID, IFLAG, 
-     &        NFRONT_EFF
-      INTEGER ISON_IN_PLACE
+     &        NUMSTK, NUMORG, IWPOSCB, IFSON, MYID
+      INTEGER, intent(in) ::  ISON_IN_PLACE
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
-      INTEGER STEP(N), 
-     & PIMASTER(KEEP(28)),
-     &  PTRAIW(N), IW(LIW), 
-     &        ITLOC(N), FILS(N), FRERE_STEPS(KEEP(28)),
+      INTEGER(8) KEEP8(150)
+      INTEGER STEP(N), PIMASTER(KEEP(28)),
+     &        PTRAIW(N), IW(LIW), 
+     &        ITLOC(N+KEEP(253)), FILS(N), FRERE_STEPS(KEEP(28)),
      &        NBPROCFILS(KEEP(28)), PERM(N)
+      COMPLEX :: RHS_MUMPS(KEEP(255))
       INTEGER INTARR(max(1,KEEP(14)))
-      LOGICAL SON_LEVEL2, NIV1
+      LOGICAL, intent(in)    ::  NIV1
+      INTEGER, intent(inout) :: IFLAG
+      LOGICAL, intent(out)   :: SON_LEVEL2
+      INTEGER, intent(out)   :: NFRONT_EFF
+      INTEGER, intent(in)    :: DAD (KEEP(28))
+      INTEGER, intent(in) :: PROCNODE_STEPS(KEEP(28)), SLAVEF
       INTEGER NELIM_SON_IN_PLACE 
       INTEGER NEWEL, IOLDP2, INEW, INEW1,
      &        IN, NTOTFS, ICT11, NELIM, NPIVS, NSLSON, NCOLS,
@@ -5107,25 +5475,128 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        I, K, JDEBROW, ILOC, NEWEL_SAVE, NEWEL1_SAVE,
      &        LAST_J_ASS, JMIN, MIN_PERM
       LOGICAL LEVEL1
+      INTEGER TYPESPLIT
       INCLUDE 'mumps_headers.h'
       INTEGER allocok
       INTEGER, ALLOCATABLE, DIMENSION(:) :: PTTRI, PTLAST
-      ALLOCATE(PTTRI(NUMSTK+1), stat=allocok)
-      IF (allocok .GT. 0) THEN
-       IFLAG = -13
-       GOTO 800
-      ENDIF
-      ALLOCATE(PTLAST(NUMSTK+1), stat=allocok)
-      IF (allocok .GT. 0) THEN
-       IFLAG = -13
-       GOTO 800
-      ENDIF
+      INTEGER  MUMPS_810, MUMPS_330 
+      EXTERNAL MUMPS_810, MUMPS_330 
+      TYPESPLIT  = MUMPS_810 (PROCNODE_STEPS(STEP(INODE)), 
+     &              SLAVEF)
       SON_LEVEL2 = .FALSE.
       IOLDP2     = IOLDPS + HF - 1
       ICT11      = IOLDP2 + NFRONT
-      NFRONT_EFF = NASS1
       NTOTFS = 0
       NELIM_SON_IN_PLACE = 0
+      IF ( (TYPESPLIT.EQ.5).OR.(TYPESPLIT.EQ.6) ) THEN
+        J2    = PIMASTER(STEP(IFSON))
+        LSTK  = IW(J2    +KEEP(IXSZ))
+        NELIM = IW(J2 + 1+KEEP(IXSZ))
+        IF ( ISON_IN_PLACE > 0 ) THEN
+          IF (ISON_IN_PLACE.NE.IFSON) THEN
+         write(6,*) MYID, ':',
+     &   ' Internal error 1 in MUMPS_86 ',
+     &   ' in place node is not the first son a interior split node '
+         CALL MUMPS_ABORT()
+          ENDIF
+          NELIM_SON_IN_PLACE = NELIM
+        ENDIF
+        NPIVS  = IW(J2 + 3+KEEP(IXSZ))
+        IF (NPIVS.LT.0) NPIVS = 0
+        NSLSON = IW(J2 + 5+KEEP(IXSZ))
+        IF( NSLSON.GT.0) SON_LEVEL2 = .TRUE.
+        LEVEL1    = NSLSON.EQ.0
+        NCOLS  = NPIVS + LSTK
+        NROWS  = NCOLS
+        ITRANS = NROWS
+        IF (NIV1) THEN
+         write(6,*) MYID, ':',
+     &    ' Internal error 2 in MUMPS_86 ',
+     &    ' interior split node of type 1 '
+         CALL MUMPS_ABORT()
+        ELSE
+         I= MUMPS_330(PROCNODE_STEPS(STEP(IFSON)),SLAVEF)
+         J= MUMPS_810(PROCNODE_STEPS(STEP(IFSON)), 
+     &              SLAVEF)
+         IF (LEVEL1.or.J.LT.4) THEN
+         write(6,*) MYID, ':',
+     &     ' Internal error 3 in MUMPS_86 ',
+     &     ' son', IFSON, 
+     &     ' of interior split node', INODE, ' of type 1 ', 
+     &     ' NSLSON =', NSLSON, ' TYPE_SON=', I, 'TYPESPLIT_SON=', J
+          CALL MUMPS_ABORT()
+         ELSE
+          NBPROCFILS(STEP(IFSON)) = NSLSON
+          NBPROCFILS(STEP(INODE)) = NBPROCFILS(STEP(INODE))+
+     &                               NBPROCFILS(STEP(IFSON))
+         ENDIF
+        ENDIF
+        IF ( J2.GT. IWPOSCB ) THEN
+          NROWS = IW(J2 + 2+KEEP(IXSZ))
+          ITRANS = NPIVS + NROWS
+        ENDIF
+        HS = NSLSON + 6 + KEEP(IXSZ)
+        J1 = J2 + HS + NROWS + NPIVS
+        J2 = J1 + LSTK - 1
+        J3 = J1 + NELIM - 1
+        IF (NELIM.GT.0) THEN
+         DO JJ=J1,J3
+          NTOTFS = NTOTFS + 1
+          JT1 = IW(JJ)
+          IW(ICT11 + NTOTFS) = JT1
+          IW(JJ) = NTOTFS
+          IW(IOLDP2 + NTOTFS) = IW(JJ - ITRANS)
+         ENDDO
+        ENDIF
+        DO JJ =J3+1, J3+NUMORG  
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS   
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        DO JJ =J3+NUMORG+1, J2
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS    
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        NFRONT_EFF = NTOTFS
+        IBROT = INODE
+        DO IORG = 1, NUMORG
+          K1 = PTRAIW(IBROT) + 2
+          JT1 = INTARR(K1)
+          INTARR(K1) = ITLOC(JT1)
+          IBROT = FILS(IBROT)
+         K2 = K1 + INTARR(K1 - 2) - INTARR(K1 - 1)
+         K1 = K1 + 1
+         IF (K1 .LE. K2) THEN
+          DO JJ = K1, K2
+            J = INTARR(JJ)
+            INTARR(JJ) = ITLOC(J)
+          ENDDO
+         ENDIF
+        ENDDO
+        K1 = IOLDPS+HF
+        DO JJ=K1+NELIM,K1+NFRONT_EFF-1
+          ITLOC(IW(JJ)) = 0
+        ENDDO
+        RETURN   
+      ENDIF
+       ALLOCATE(PTTRI(NUMSTK+1), stat=allocok)
+       IF (allocok .GT. 0) THEN
+        IFLAG = -13
+        GOTO 800
+       ENDIF
+       ALLOCATE(PTLAST(NUMSTK+1), stat=allocok)
+       IF (allocok .GT. 0) THEN
+        IFLAG = -13
+        GOTO 800
+       ENDIF
+      NFRONT_EFF = NASS1
       IF ( ISON_IN_PLACE > 0 ) THEN
         ISON  = ISON_IN_PLACE
         J2    = PIMASTER(STEP(ISON))
@@ -5166,7 +5637,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTARR(J1) = INEW1
       ITLOC(JT1) = INEW1
       IW(INEW)         = JT1
-      IW (INEW+NFRONT) = JT1
+      IW(INEW+NFRONT)  = JT1
       INEW = INEW + 1
       INEW1 = INEW1 + 1
       IN = FILS(IN)
@@ -5204,7 +5675,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           ENDIF
           HS = NSLSON + 6 + KEEP(IXSZ)
           J1 = J2 + HS + NROWS + NPIVS
-          J2 = J1 + LSTK - 1
+          J2 = J1 + LSTK - 1 - KEEP(253)
           J3 = J1 + NELIM - 1
           IF (NELIM .NE. 0 .AND. ISON.NE.ISON_IN_PLACE) THEN
             DO JJ = J1, J3
@@ -5219,7 +5690,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           PTTRI(IELL)  = J2+1
           PTLAST(IELL) = J2
           J1 = J3 + 1
-          IF (NASS1 .NE. NFRONT) THEN
+          IF (NASS1 .NE. NFRONT - KEEP(253)) THEN
             DO JJ = J1, J2
               J = IW(JJ)
               IF (ITLOC(J) .EQ. 0) THEN 
@@ -5231,11 +5702,14 @@ C    $      ' degree =',(degree(i),i=1,N)
             DO JJ = J1, J2
               IW(JJ) = ITLOC(IW(JJ))
             ENDDO
+            DO JJ=J2+1, J2+KEEP(253)
+              IW(JJ)=NFRONT-KEEP(253)+JJ-J2
+            ENDDO
           ENDIF
           ISON = FRERE_STEPS(STEP(ISON))
         ENDDO
       ENDIF
-      IF (NFRONT.EQ.NASS1) GOTO 600
+      IF (NFRONT-KEEP(253).EQ.NASS1) GOTO 500
  199  CONTINUE
       IF ( PTTRI( NUMSTK + 1 ) .LE. PTLAST( NUMSTK + 1 ) ) THEN
       IF ( ITLOC( INTARR( PTTRI( NUMSTK + 1 ) ) ) .NE. 0 ) THEN
@@ -5298,7 +5772,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       END DO
       NEWEL_SAVE  = NEWEL
       NEWEL1_SAVE = NFRONT_EFF
-      IF (NEWEL1_SAVE.LT.NFRONT) THEN 
+      IF (NEWEL1_SAVE.LT.NFRONT - KEEP(253)) THEN 
        IBROT = INODE
        DO IORG = 1, NUMORG
          J1    = PTRAIW(IBROT) + 2
@@ -5320,10 +5794,45 @@ C    $      ' degree =',(degree(i),i=1,N)
            END IF
          ENDDO
        ENDDO
+       IF ( (TYPESPLIT.EQ.4).AND.
+     &      (NFRONT_EFF.LT.NFRONT-KEEP(253)) ) THEN
+         IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )  
+          IBROT = DAD(STEP(IBROT)) 
+          IN = IBROT
+          DO WHILE (IN.GT.0.AND.NFRONT_EFF.LT.NFRONT-KEEP(253))
+            J1    = PTRAIW(IN) + 2
+            J2    = J1 + INTARR(J1 - 2) - INTARR(J1-1)
+            IN = FILS( IN )
+            DO JJ = J1, J2
+              J     = INTARR( JJ )
+              IF ( ITLOC( J ) .eq. 0 ) THEN
+               NEWEL  = NEWEL + 1
+               NFRONT_EFF = NFRONT_EFF + 1
+               IW( NEWEL ) = J
+               ITLOC( J ) = NFRONT_EFF
+              END IF
+            ENDDO
+          ENDDO
+          IF (NFRONT_EFF.EQ.NFRONT-KEEP(253)) EXIT  
+         ENDDO
+       ENDIF
       ENDIF
       IF ( NEWEL1_SAVE .eq. NFRONT_EFF ) THEN
-        IW( IOLDP2+NASS1+1 : IOLDP2+NFRONT_EFF ) = 
-     &    IW( ICT11+NASS1+1 : ICT11+NFRONT_EFF ) 
+         DO JJ=NASS1+1, NFRONT_EFF
+           IW( IOLDP2+JJ ) = IW( ICT11+JJ )
+         ENDDO
       ELSE
         CALL MUMPS_308( N, PERM, 
      &           IW( NEWEL_SAVE + 1 ), NFRONT_EFF - NEWEL1_SAVE )
@@ -5331,9 +5840,21 @@ C    $      ' degree =',(degree(i),i=1,N)
      &    IW( NEWEL_SAVE + 1), NFRONT_EFF - NEWEL1_SAVE, 
      &    IW( ICT11  + NASS1 + 1 ), NEWEL1_SAVE - NASS1, 
      &    IW( IOLDP2 + NASS1 + 1 ), NFRONT_EFF - NASS1 ) 
-        IW(ICT11+NASS1+1:ICT11+NFRONT_EFF)=
-     &    IW(IOLDP2+NASS1+1:IOLDP2+NFRONT_EFF)
+        DO JJ = NASS1+1, NFRONT_EFF
+          IW(ICT11 + JJ) = IW(IOLDP2+JJ)
+        ENDDO
       END IF
+  500 CONTINUE
+      IF ( KEEP(253).GT.0) THEN
+        IP1 = IOLDPS +  HF + NFRONT_EFF  
+        IP2 = IOLDPS + HF + NFRONT + NFRONT_EFF 
+        DO I= 1, KEEP(253)
+          IW(IP1+I-1) = N+I
+          IW(IP2+I-1) = N+I
+          ITLOC(N+I)  = NFRONT_EFF + I
+        ENDDO
+        NFRONT_EFF = NFRONT_EFF + KEEP(253)
+      ENDIF
       IF (NFRONT.NE.NFRONT_EFF) THEN
         IP1 = IOLDPS + NFRONT + HF 
         IP2 = IOLDPS + NFRONT_EFF + HF
@@ -5341,8 +5862,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           IW(IP2+I-1)=IW(IP1+I-1)
         ENDDO
       ENDIF
-  600 CONTINUE
-      IF ((NUMSTK .NE. 0).AND.(NFRONT.GT.NASS1)) THEN
+      IF ((NUMSTK .NE. 0).AND.(NFRONT-KEEP(253).GT.NASS1)) THEN
         ISON = IFSON
         DO IELL = 1, NUMSTK
           J2 = PIMASTER(STEP(ISON))
@@ -5427,7 +5947,7 @@ C    $      ' degree =',(degree(i),i=1,N)
      &                             MERGE, LMERGE )
       IMPLICIT NONE
       INTEGER N, NASS1, LSMALL, LLARGE, LMERGE
-      INTEGER PERM( N ), ITLOC( N )
+      INTEGER PERM( N ), ITLOC( N ) 
       INTEGER SMALL(LSMALL), LARGE(LLARGE), MERGE(LMERGE)
       INTEGER PSMALL, PLARGE, PMERGE, VSMALL, VLARGE, VMERGE
       PSMALL = 1
@@ -5458,37 +5978,6 @@ C    $      ' degree =',(degree(i),i=1,N)
       PMERGE = PMERGE - 1
       RETURN
       END SUBROUTINE MUMPS_309
-      SUBROUTINE MUMPS_88( MYID, N, PERM,
-     &                             ITLOC,
-     &                             IW, LIW, NASS1 )
-      IMPLICIT NONE
-      INTEGER MYID, N, LIW, NASS1
-      INTEGER PERM( N ), ITLOC( N ), IW( LIW )
-      INTEGER I, J
-      IF ( LIW .eq. 0 ) RETURN
-      IF ( NASS1 .eq. 0 ) THEN
-      END IF
-      DO I = 1, LIW - 1
-        IF ( PERM( IW( I ) ) .GE. PERM( IW( I + 1 ) ) ) THEN
-          WRITE(*,*) MYID,
-     &    ':Error in MUMPS_88: not sorted'
-          WRITE(*,*) MYID,':List = ',IW(1:LIW)
-          WRITE(*,*) MYID,':Permuted list =', (PERM(IW(J)),J=1,LIW)
-          CALL MUMPS_ABORT()
-        END IF
-        IF (ITLOC( IW( I + 1 ) ) .NE. ITLOC( IW( I ) ) + 1 ) THEN
-          WRITE(*,*) MYID,':Error in MUMPS_88: bad ITLOC'
-          WRITE(*,*) MYID,':ITLOC( IW ) =',(ITLOC(IW(J)),J=1,LIW)
-          CALL MUMPS_ABORT() 
-        END IF
-      END DO
-      IF ( ITLOC( IW( 1 ) )  .NE. NASS1 + 1 ) THEN
-        WRITE(*,*) MYID,': Bad First ITLOC ITLOC(IW(1)),NASS1+1=',
-     &              ITLOC( IW( 1 ) ), NASS1 + 1
-        CALL MUMPS_ABORT()
-      END IF
-      RETURN
-      END SUBROUTINE MUMPS_88
       SUBROUTINE MUMPS_125(
      &           NUMELT, LIST_ELT, 
      &           MYID, INODE, N, IOLDPS,
@@ -5496,31 +5985,128 @@ C    $      ' degree =',(degree(i),i=1,N)
      &           NASS1, NASS, NUMSTK, NUMORG, IWPOSCB, 
      &           IFSON, STEP, PIMASTER, PTRAIW, NELT, 
      &           IW, LIW, 
-     &           INTARR, LINTARR, ITLOC, FILS, FRERE_STEPS, 
-     &           KEEP, SON_LEVEL2, NIV1, NBPROCFILS, IFLAG)
+     &           INTARR, LINTARR, ITLOC, RHS_MUMPS,
+     &           FILS, FRERE_STEPS, 
+     &           KEEP, SON_LEVEL2, NIV1, NBPROCFILS, IFLAG, 
+     &           DAD, PROCNODE_STEPS, SLAVEF, 
+     &           FRT_PTR, FRT_ELT, Pos_First_NUMORG)
       IMPLICIT NONE
       INTEGER NELT, INODE, N, IOLDPS, HF, NFRONT, NASS1, LIW, NASS,
      &        NUMSTK, NUMORG, IWPOSCB, IFSON, MYID, IFLAG,
-     &        LINTARR, NUMELT, NFRONT_EFF
+     &        LINTARR, NUMELT
       INTEGER KEEP(500)
       INTEGER LIST_ELT(*)
       INTEGER STEP(N), PIMASTER(KEEP(28)),
      &  PTRAIW(NELT+1), IW(LIW), 
-     &        ITLOC(N), FILS(N), FRERE_STEPS(KEEP(28)),
+     &        ITLOC(N+KEEP(253)), FILS(N), FRERE_STEPS(KEEP(28)),
      &        NBPROCFILS(KEEP(28)), PERM(N)
+      COMPLEX :: RHS_MUMPS(KEEP(255))
       INTEGER INTARR(LINTARR)
-      LOGICAL SON_LEVEL2, NIV1
+      LOGICAL, intent(in)    :: NIV1
+      LOGICAL, intent(out)   :: SON_LEVEL2
+      INTEGER, intent(out)   :: NFRONT_EFF
+      INTEGER, intent(in)    :: DAD (KEEP(28))
+      INTEGER, intent(in) :: PROCNODE_STEPS(KEEP(28)), SLAVEF
+      INTEGER, intent(in) :: FRT_PTR(N+1), FRT_ELT(NELT)
+      INTEGER, intent(out) :: Pos_First_NUMORG
       INTEGER NEWEL, IOLDP2, INEW, INEW1,
      &        IN, NTOTFS, ICT11, NELIM, NPIVS, NSLSON, NCOLS,
      &        ITRANS, J, JJ, J1, J2, J3, JT1, ISON, IELL, LSTK, 
-     &        NROWS, HS, IP1, IP2, K1, K2, IBROT, IORG, 
-     &        I, K, JDEBROW, ILOC, NEWEL_SAVE, NEWEL1_SAVE,
+     &        NROWS, HS, IP1, IP2, K1, K2, IBROT,
+     &        I, K, ILOC, NEWEL_SAVE, NEWEL1_SAVE,
      &        LAST_J_ASS, JMIN, MIN_PERM
+      INTEGER TYPESPLIT, NUMELT_IBROT
       INTEGER ELTI
       INCLUDE 'mumps_headers.h'
       LOGICAL LEVEL1
       INTEGER allocok
       INTEGER , ALLOCATABLE, DIMENSION(:) :: PTTRI, PTLAST
+      INTEGER  MUMPS_810, MUMPS_330
+      EXTERNAL MUMPS_810, MUMPS_330 
+      Pos_First_NUMORG = 1
+      TYPESPLIT  = MUMPS_810 (PROCNODE_STEPS(STEP(INODE)), 
+     &              SLAVEF)
+      SON_LEVEL2 = .FALSE.
+      IOLDP2     = IOLDPS + HF - 1
+      ICT11      = IOLDP2 + NFRONT
+      NFRONT_EFF = NASS1
+      NTOTFS     = 0
+      IF ( (TYPESPLIT.EQ.5).OR.(TYPESPLIT.EQ.6) ) THEN
+        J2    = PIMASTER(STEP(IFSON))
+        LSTK  = IW(J2    +KEEP(IXSZ))
+        NELIM = IW(J2 + 1+KEEP(IXSZ))
+        NPIVS  = IW(J2 + 3+KEEP(IXSZ))
+        IF (NPIVS.LT.0) NPIVS = 0
+        NSLSON = IW(J2 + 5+KEEP(IXSZ))
+        IF( NSLSON.GT.0) SON_LEVEL2 = .TRUE.
+        LEVEL1    = NSLSON.EQ.0
+        NCOLS  = NPIVS + LSTK
+        NROWS  = NCOLS
+        ITRANS = NROWS
+        IF (NIV1) THEN
+         write(6,*) MYID, ':',
+     &    ' Internal error 2 in MUMPS_86 ',
+     &    ' interior split node of type 1 '
+         CALL MUMPS_ABORT()
+        ELSE
+         I= MUMPS_330(PROCNODE_STEPS(STEP(IFSON)),SLAVEF)
+         J= MUMPS_810(PROCNODE_STEPS(STEP(IFSON)), 
+     &              SLAVEF)
+         IF (LEVEL1.or.J.LT.4) THEN
+         write(6,*) MYID, ':',
+     &     ' Internal error 3 in MUMPS_86 ',
+     &     ' son', IFSON, 
+     &     ' of interior split node', INODE, ' of type 1 ', 
+     &     ' NSLSON =', NSLSON, ' TYPE_SON=', I, 'TYPESPLIT_SON=', J
+          CALL MUMPS_ABORT()
+         ELSE
+          NBPROCFILS(STEP(IFSON)) = NSLSON
+          NBPROCFILS(STEP(INODE)) = NBPROCFILS(STEP(INODE))+
+     &                               NBPROCFILS(STEP(IFSON))
+         ENDIF
+        ENDIF
+        IF ( J2.GT. IWPOSCB ) THEN
+          NROWS = IW(J2 + 2+KEEP(IXSZ))
+          ITRANS = NPIVS + NROWS
+        ENDIF
+        HS = NSLSON + 6 + KEEP(IXSZ)
+        J1 = J2 + HS + NROWS + NPIVS
+        J2 = J1 + LSTK - 1
+        J3 = J1 + NELIM - 1
+        IF (NELIM.GT.0) THEN
+         DO JJ=J1,J3
+          NTOTFS = NTOTFS + 1
+          JT1 = IW(JJ)
+          IW(ICT11 + NTOTFS) = JT1
+          IW(JJ) = NTOTFS
+          IW(IOLDP2 + NTOTFS) = IW(JJ - ITRANS)
+         ENDDO
+        ENDIF
+        DO JJ =J3+1, J2
+         NTOTFS = NTOTFS + 1
+         JT1 = IW(JJ)
+         ITLOC(JT1) = NTOTFS    
+         IW(JJ) = NTOTFS
+         IW(ICT11 + NTOTFS) = JT1
+         IW(IOLDP2 + NTOTFS) = JT1
+        ENDDO
+        NFRONT_EFF = NTOTFS
+        DO IELL=1,NUMELT
+         ELTI = LIST_ELT(IELL)
+         J1= PTRAIW(ELTI)
+         J2= PTRAIW(ELTI+1)-1
+         DO JJ=J1,J2
+          J = INTARR(JJ)
+          INTARR(JJ) = ITLOC(J)
+         END DO
+        ENDDO
+        Pos_First_NUMORG = ITLOC(INODE)
+        K1 = IOLDPS+HF
+        DO JJ=K1+NELIM,K1+NFRONT_EFF-1
+          ITLOC(IW(JJ)) = 0
+        ENDDO
+        RETURN   
+      ENDIF
       IF (NUMSTK.GT.0) THEN
         ALLOCATE(PTTRI(NUMSTK), stat=allocok)
         IF (allocok .GT. 0) THEN
@@ -5533,10 +6119,6 @@ C    $      ' degree =',(degree(i),i=1,N)
          GOTO 800
         ENDIF        
       ENDIF
-      SON_LEVEL2 = .FALSE.
-      IOLDP2 = IOLDPS + HF - 1
-      ICT11  = IOLDP2 + NFRONT
-      NFRONT_EFF = NASS1
       IN = INODE
       INEW = IOLDPS + HF
       INEW1 = 1
@@ -5581,7 +6163,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           ENDIF
           HS = NSLSON + 6 + KEEP(IXSZ)
           J1 = J2 + HS + NROWS + NPIVS
-          J2 = J1 + LSTK - 1
+          J2 = J1 + LSTK - 1 - KEEP(253)
           J3 = J1 + NELIM - 1
           IF (NELIM .NE. 0) THEN
             DO JJ = J1, J3
@@ -5596,7 +6178,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           PTTRI(IELL)  = J2+1
           PTLAST(IELL) = J2
           J1 = J3 + 1
-          IF (NASS1 .NE. NFRONT) THEN
+          IF (NASS1 .NE. NFRONT - KEEP(253)) THEN
             DO JJ = J1, J2
               J = IW(JJ)
               IF (ITLOC(J) .EQ. 0) THEN 
@@ -5608,11 +6190,14 @@ C    $      ' degree =',(degree(i),i=1,N)
             DO JJ = J1, J2
               IW(JJ) = ITLOC(IW(JJ))
             ENDDO
+           DO JJ=J2+1, J2+KEEP(253)
+             IW(JJ)=NFRONT-KEEP(253)+JJ-J2
+           ENDDO
           ENDIF
           ISON = FRERE_STEPS(STEP(ISON))
         ENDDO
       ENDIF
-      IF (NFRONT.EQ.NASS1) GOTO 600
+      IF (NFRONT-KEEP(253).EQ.NASS1) GOTO 500
       MIN_PERM = N + 1
       JMIN     = -1
       DO IELL = 1, NUMSTK 
@@ -5647,7 +6232,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       END DO
       NEWEL_SAVE  = NEWEL
       NEWEL1_SAVE = NFRONT_EFF
-      IF (NEWEL1_SAVE.LT.NFRONT) THEN 
+      IF (NEWEL1_SAVE.LT.NFRONT-KEEP(253)) THEN 
        DO IELL = 1,NUMELT
         ELTI = LIST_ELT(IELL)
          J1= PTRAIW(ELTI)
@@ -5662,10 +6247,46 @@ C    $      ' degree =',(degree(i),i=1,N)
            END IF
          ENDDO
        ENDDO
+       IF ( (TYPESPLIT.EQ.4).AND.
+     &      (NFRONT_EFF.LT.NFRONT-KEEP(253)) ) THEN
+         IBROT = INODE
+         DO WHILE 
+     &      (
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.5 
+     &        ) 
+     &        .OR.
+     &        ( MUMPS_810 
+     &           (PROCNODE_STEPS(STEP(DAD(STEP(IBROT)))),SLAVEF)
+     &           .EQ.6  
+     &        ) 
+     &      )     
+          IBROT = DAD(STEP(IBROT)) 
+          NUMELT_IBROT = FRT_PTR(IBROT+1) - FRT_PTR(IBROT)
+          IF (NUMELT_IBROT.EQ.0) CYCLE 
+          DO IELL = FRT_PTR(IBROT), FRT_PTR(IBROT+1)
+            ELTI = FRT_ELT(IELL)
+            J1= PTRAIW(ELTI)
+            J2= PTRAIW(ELTI+1)-1
+            DO JJ=J1,J2
+              J     = INTARR( JJ )
+              IF ( ITLOC( J ) .eq. 0 ) THEN
+               NEWEL  = NEWEL + 1
+               NFRONT_EFF = NFRONT_EFF + 1
+               IW( NEWEL ) = J
+               ITLOC( J ) = NFRONT_EFF
+              END IF
+            ENDDO
+          ENDDO
+          IF (NFRONT_EFF.EQ.NFRONT-KEEP(253)) EXIT  
+         ENDDO
+       ENDIF
       END IF
       IF ( NEWEL1_SAVE .eq. NFRONT_EFF ) THEN
-       IW( IOLDP2+NASS1+1 : IOLDP2+NFRONT_EFF ) = 
-     &  IW( ICT11+NASS1+1 : ICT11+NFRONT_EFF ) 
+         DO JJ=NASS1+1, NFRONT_EFF
+           IW( IOLDP2+JJ ) = IW( ICT11+JJ )
+         ENDDO
       ELSE
           CALL MUMPS_308( N, PERM, 
      &            IW( NEWEL_SAVE + 1 ), NFRONT_EFF - NEWEL1_SAVE )
@@ -5673,21 +6294,34 @@ C    $      ' degree =',(degree(i),i=1,N)
      &               IW( NEWEL_SAVE + 1), NFRONT_EFF - NEWEL1_SAVE,
      &               IW( ICT11  + NASS1 + 1 ), NEWEL1_SAVE - NASS1,
      &               IW( IOLDP2 + NASS1 + 1 ), NFRONT_EFF - NASS1 )
-      END IF
-      IF ( NFRONT_EFF .NE. NEWEL1_SAVE ) THEN
-        IP1 = IOLDPS + NASS1 + HF
-        IP2 = IOLDPS + HF + NFRONT - 1
-        DO I = IP1, IP2
-          IW(I + NFRONT) = IW(I)
+        DO JJ = NASS1+1, NFRONT_EFF
+          IW(ICT11 + JJ) = IW(IOLDP2+JJ)
         ENDDO
       END IF
-      IF (NFRONT.NE.NFRONT_EFF) THEN
+  500 CONTINUE
+      IF ( KEEP(253).GT.0) THEN
+        IP1 = IOLDPS +  HF + NFRONT_EFF  
+        IP2 = IOLDPS + HF + NFRONT + NFRONT_EFF 
+        DO I= 1, KEEP(253)
+          IW(IP1+I-1) = N+I
+          IW(IP2+I-1) = N+I
+          ITLOC(N+I)  = NFRONT_EFF + I
+        ENDDO
+        NFRONT_EFF = NFRONT_EFF + KEEP(253)
+      ENDIF
+      IF (NFRONT.GT.NFRONT_EFF) THEN
         IP1 = IOLDPS + NFRONT + HF
         IP2 = IOLDPS + NFRONT_EFF + HF
-        IW (IP2:IP2+NFRONT_EFF) = IW (IP1:IP1+NFRONT_EFF)
+        DO I=1,NFRONT_EFF
+          IW(IP2+I)=IW(IP1+I)
+        ENDDO
+      ELSE IF (NFRONT .LT. NFRONT_EFF) THEN
+        WRITE(*,*) "Internal error in MUMPS_125",
+     &             NFRONT, NFRONT_EFF
+        CALL MUMPS_ABORT()
       ENDIF
-  600 CONTINUE
-      IF ((NUMSTK .NE. 0).AND.(NFRONT.GT.NASS1)) THEN
+      IF ((NUMSTK .NE. 0).AND.
+     &    (NFRONT-KEEP(253).GT.NASS1)) THEN
         ISON = IFSON
         DO IELL = 1, NUMSTK
           J2 = PIMASTER(STEP(ISON))
@@ -5741,7 +6375,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER(8), INTENT (IN) :: K821
       INTEGER NSLAVESMIN, NASS, KMAX
       REAL Wmaster, Wtotal, Wmax
-      INTEGER I,ACC,X
+      INTEGER ACC,X
       REAL MUMPS_45
       INTEGER MUMPS_497    
       EXTERNAL  MUMPS_45, MUMPS_497
@@ -5827,13 +6461,14 @@ C    $      ' degree =',(degree(i),i=1,N)
       RETURN
       END FUNCTION MUMPS_52
       SUBROUTINE MUMPS_503( WHAT, KEEP,KEEP8,
-     &           NCB, NFR, SLAVEF, NBROWMAX, MAXSURFCB8 )
+     &           NCB, NFR, SLAVEF, NBROWMAX, MAXSURFCB8
+     &     )
       IMPLICIT NONE
       INTEGER, intent(in) :: WHAT, NCB, NFR, SLAVEF
       INTEGER, intent(in) :: KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, intent(out) :: NBROWMAX
-      INTEGER*8, intent(out) :: MAXSURFCB8
+      INTEGER(8), intent(out) :: MAXSURFCB8
       INTEGER KMAX, KMIN, NSLAVES, SIZEDUMMY, TABDUMMY(1)
       EXTERNAL MUMPS_497, MUMPS_442,
      &         MUMPS_50
@@ -5934,9 +6569,9 @@ C    $      ' degree =',(degree(i),i=1,N)
      &    NSLAVES, NFRONT, NCB, 
      &    KMIN, KMAX, SLAVEF, SIZETABPOS 
       INTEGER, INTENT (OUT) :: NBROWMAX
-      INTEGER*8, INTENT(OUT) :: MAXSURFCB
+      INTEGER(8), INTENT(OUT) :: MAXSURFCB
       INTEGER, INTENT (OUT) :: TABPOS(SIZETABPOS) 
-      REAL Wtotal, W, COSTni
+      REAL W, COSTni
       REAL delta
       INTEGER  SumNi, NCOLim1, I, BLSIZE, NASS
       LOGICAL GETROW, GETSURF, GETPOS, GET_AVGROW, GET_AVGSURF
@@ -6037,12 +6672,12 @@ C    $      ' degree =',(degree(i),i=1,N)
       IMPLICIT NONE
       INTEGER, INTENT( IN ) :: NCB, NSLAVES, SLAVEF, NFRONT,
      &                         KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER TAB_POS_IN_PERE(SLAVEF+2)
       INTEGER :: I, BLSIZE
       INTEGER KMIN, KMAX, NBROWDUMMY,
      &        GETPOSITIONS, SIZECOLTAB
-      INTEGER*8 MAXSURFDUMMY8
+      INTEGER(8) MAXSURFDUMMY8
       INTEGER MUMPS_442, MUMPS_497 
       EXTERNAL MUMPS_442, MUMPS_497, 
      &        MUMPS_440
@@ -6077,7 +6712,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       IMPLICIT NONE
       INTEGER, INTENT( IN ) :: ISLAVE, NCB, NSLAVES, SLAVEF,
      &                         KEEP(500), INODE, N 
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, INTENT( IN ) :: STEP(N), 
      &          ISTEP_TO_INIV2(KEEP(71)), 
      &          TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
@@ -6123,9 +6758,9 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER, INTENT( IN ) :: NCB, NFRONT, NSLAVES_less, 
      &                  K48, K50, SLAVEF, NMB_OF_CAND
       INTEGER(8), INTENT(IN) :: K821
-      INTEGER J, NSLAVES, NSLAVES_REAL, ISLAVE
-      INTEGER KMIN, KMAX, BLSIZE, NPIV,
-     &        NSLAVES_ref, KMINSURF, NSLAVES_max
+      INTEGER NSLAVES
+      INTEGER KMAX, NPIV,
+     &        NSLAVES_ref, NSLAVES_max
       REAL WK_MASTER, WK_SLAVE
       INTEGER  MUMPS_497, MUMPS_50, 
      &         MUMPS_52
@@ -6188,7 +6823,7 @@ C    $      ' degree =',(degree(i),i=1,N)
      &   NSLAVES, POSITION, ISLAVE, IPOSSLAVE )
       IMPLICIT NONE
       INTEGER, INTENT( IN ) :: KEEP(500),INODE,N,SLAVEF 
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER, INTENT( IN ) :: STEP(N), 
      &          ISTEP_TO_INIV2(KEEP(71)), 
      &          TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
@@ -6314,14 +6949,14 @@ C    $      ' degree =',(degree(i),i=1,N)
       IMPLICIT NONE
       CHARACTER(LEN=*) :: VERSION_STR
       CHARACTER(LEN=*) :: V;
-      PARAMETER (V = "4.9.2" )
-      IF ( LEN(V) .GT. 14 ) THEN
+      PARAMETER (V = "4.10.0" )
+      IF ( len(V) .GT. 14 ) THEN
          WRITE(*,*) "Version string too long ( >14 characters )"
          CALL MUMPS_ABORT()
       END IF
       VERSION_STR = V
       RETURN
-      END SUBROUTINE
+      END SUBROUTINE MUMPS_SET_VERSION
       SUBROUTINE MUMPS_420
      &                ( JOB, THRESH, NDENSE, 
      &                 N, IWLEN, PE, PFREE, LEN, IW, NV, 
@@ -6339,7 +6974,7 @@ C    $      ' degree =',(degree(i),i=1,N)
       INTEGER PERM(N)
       INTEGER THRESH
       INTEGER THRESM, NDME, PERMeqN
-      INTEGER NBD,NBED, NBDM, LASTD, NELME, DEG1
+      INTEGER NBD,NBED, NBDM, LASTD, NELME
       LOGICAL IDENSE
       INTEGER FDEG, ThresMin, ThresPrev, IBEGSchur, 
      &        ThresMinINIT
@@ -6348,7 +6983,8 @@ C    $      ' degree =',(degree(i),i=1,N)
      &        ILAST, INEXT, J, JLAST, JNEXT, K, KNT1, KNT2, KNT3,
      &        LENJ, LN, MAXMEM, ME, MEM, MINDEG, NEL, NEWMEM,
      &        NLEFT, NVI, NVJ, NVPIV, SLENME, WE, WFLG, WNVI, X
-      INTEGER*8 HASH, HMOD 
+      INTEGER MAXINT_N
+      INTEGER(8) HASH, HMOD 
       INTEGER P, P1, P2, P3, PDST, PEND, PJ, PME, PME1, PME2, PN, PSRC
       INTRINSIC max, min, mod
         IF (N.EQ.1) THEN
@@ -6409,9 +7045,10 @@ C    $      ' degree =',(degree(i),i=1,N)
       NBDM  = 0
       NEL   = 0
       WFLG   = 2
+      MAXINT_N=huge(WFLG)-N
       MINDEG = 1
       NCMPA  = 0
-      HMOD = INT(max (1, N-1),KIND=8)
+      HMOD = int(max (1, N-1),kind=8)
       DMAX = 0  
       MEM  = PFREE - 1
       MAXMEM = MEM
@@ -6509,7 +7146,7 @@ C    $      ' degree =',(degree(i),i=1,N)
           MINDEG = 1
           NBDM = max(NBDM,NBD)
           IF (DEGREE(ME).GT.N+1) THEN
-            IF (WFLG+NBD+1 .LE. WFLG) THEN
+            IF (WFLG .GT. MAXINT_N) THEN
              DO  52 X = 1, N
               IF (W (X) .NE. 0) W (X) = 1
   52         CONTINUE
@@ -6584,7 +7221,6 @@ C    $      ' degree =',(degree(i),i=1,N)
              ThresPrev = ThresPrev+(N-ThresPrev)/2+ThresMinINIT
              THRESM    = max(
      &         THRESM + int(sqrt(dble(ThresMin)))+ ThresMinINIT ,
-c    $         THRESM + ThresMin/2+ ThresMinINIT ,
      &         ThresPrev)
              THRESM    = min(THRESM,N) 
              ThresMin  = min(THRESM, ThresMin)
@@ -6769,7 +7405,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
         DEGREE (ME) = DEGME
         PE (ME) = PME1
         LEN (ME) = PME2 - PME1 + 1
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 130 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   130     CONTINUE
@@ -6809,11 +7445,11 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
               DEG = DEG + DEXT
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (.NOT. AGG6 .AND. DEXT .EQ. 0) THEN
               IW (PN) = E
               PN = PN + 1
-              HASH = HASH + INT(E,KIND=8)
+              HASH = HASH + int(E,kind=8)
             ELSE IF (AGG6 .AND. (DEXT .EQ. 0) .AND.
      &            ((NDENSE(ME).EQ.NBD).OR.(NDENSE(E).EQ.0))) THEN
                 PE (E) = -ME
@@ -6821,7 +7457,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
              ELSE IF (AGG6 .AND. DEXT.EQ.0) THEN
                   IW(PN) = E
                   PN     = PN+1
-                  HASH   = HASH + INT(E,KIND=8)
+                  HASH   = HASH + int(E,kind=8)
             ENDIF
   160     CONTINUE
           ELEN (I) = PN - P1 + 1
@@ -6833,7 +7469,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
               IF (DEGREE(J).LE.N) DEG=DEG+NVJ
               IW (PN) = J
               PN = PN + 1
-              HASH = HASH + INT(J,KIND=8)
+              HASH = HASH + int(J,kind=8)
             ENDIF
   170     CONTINUE
           IF (((ELEN(I).EQ.1).AND.(P3.EQ.PN))
@@ -6864,13 +7500,13 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
               NEXT (I) = LAST (J)
               LAST (J) = I
             ENDIF
-            LAST (I) = INT(HASH,KIND=KIND(LAST))
+            LAST (I) = int(HASH,kind=kind(LAST))
           ENDIF
   180   CONTINUE
         DEGREE (ME) = DEGME
         DMAX = max (DMAX, DEGME)
         WFLG = WFLG + DMAX
-        IF (WFLG+N .LE. WFLG) THEN
+        IF (WFLG .GT. MAXINT_N) THEN
           DO 190 X = 1, N
             IF (W (X) .NE. 0) W (X) = 1
   190     CONTINUE
@@ -6879,7 +7515,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
         DO 250 PME = PME1, PME2
           I = IW (PME)
           IF ( (NV(I).LT.0) .AND. (DEGREE(I).LE.N) ) THEN
-            HASH = INT(LAST (I),KIND=8)
+            HASH = int(LAST (I),kind=8)
             J = HEAD (HASH)
             IF (J .EQ. 0) GO TO 250
             IF (J .LT. 0) THEN
@@ -7073,62 +7709,66 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       THEROOT = IROOT
       RETURN
       END SUBROUTINE MUMPS_209
-      INTEGER FUNCTION MUMPS_330(INODE, PROCNODE, SLAVEF)
+      INTEGER FUNCTION MUMPS_330(PROCINFO_INODE, SLAVEF)
       IMPLICIT NONE
-      INTEGER INODE, SLAVEF 
-      INTEGER PROCNODE(*)
-      INTEGER MYPROC, TPN
-      MYPROC = PROCNODE( INODE )
-      IF (MYPROC <= SLAVEF ) THEN
+      INTEGER SLAVEF 
+      INTEGER PROCINFO_INODE, TPN
+      IF (PROCINFO_INODE <= SLAVEF ) THEN
         MUMPS_330 = 1
       ELSE
-        TPN = (MYPROC-1+2*SLAVEF)/SLAVEF - 1
+        TPN = (PROCINFO_INODE-1+2*SLAVEF)/SLAVEF - 1
         IF ( TPN .LT. 1 ) TPN = 1
+        IF (TPN.EQ.4.OR.TPN.EQ.5.OR.TPN.EQ.6) TPN = 2
         MUMPS_330 = TPN
       END IF
       RETURN 
       END FUNCTION MUMPS_330
-      INTEGER FUNCTION MUMPS_275(INODE, PROCNODE, SLAVEF)
+      INTEGER FUNCTION MUMPS_275(PROCINFO_INODE, SLAVEF)
       IMPLICIT NONE
-      INTEGER INODE, SLAVEF 
-      INTEGER PROCNODE(*)
-      INTEGER MYPROC
+      INTEGER SLAVEF 
+      INTEGER PROCINFO_INODE
       IF (SLAVEF == 1) THEN
         MUMPS_275 = 0
       ELSE
-        MYPROC = PROCNODE( INODE )
-        MUMPS_275=mod(2*SLAVEF+MYPROC-1,SLAVEF)
+        MUMPS_275=mod(2*SLAVEF+PROCINFO_INODE-1,SLAVEF)
       END IF
       RETURN
       END FUNCTION MUMPS_275
-      LOGICAL FUNCTION MUMPS_283( INODE, PROCNODE, SLAVEF )
+      INTEGER FUNCTION MUMPS_810 (PROCINFO_INODE, SLAVEF)
       IMPLICIT NONE
-      INTEGER INODE, SLAVEF
-      INTEGER  PROCNODE(*)
-      INTEGER TPN, MYPROC
-      MYPROC = PROCNODE( INODE )
-      TPN = (MYPROC-1+2*SLAVEF)/SLAVEF - 1
+      INTEGER, intent(in) ::  SLAVEF 
+      INTEGER PROCINFO_INODE, TPN
+      IF (PROCINFO_INODE <= SLAVEF ) THEN
+         MUMPS_810 = 1
+      ELSE
+        TPN = (PROCINFO_INODE-1+2*SLAVEF)/SLAVEF - 1
+        IF ( TPN .LT. 1 ) TPN = 1
+         MUMPS_810 = TPN
+      ENDIF
+      RETURN
+      END FUNCTION MUMPS_810
+      LOGICAL FUNCTION MUMPS_283( PROCINFO_INODE, SLAVEF )
+      IMPLICIT NONE
+      INTEGER SLAVEF
+      INTEGER TPN, PROCINFO_INODE
+      TPN = (PROCINFO_INODE-1+2*SLAVEF)/SLAVEF - 1
       MUMPS_283 = ( TPN .eq. 0 )
       RETURN
       END FUNCTION MUMPS_283
-      LOGICAL FUNCTION MUMPS_167( INODE, PROCNODE, SLAVEF )
+      LOGICAL FUNCTION MUMPS_167( PROCINFO_INODE, SLAVEF )
       IMPLICIT NONE
-      INTEGER INODE, SLAVEF
-      INTEGER  PROCNODE(*)
-      INTEGER TPN, MYPROC
-      MYPROC = PROCNODE( INODE )
-      TPN = (MYPROC-1+SLAVEF+SLAVEF)/SLAVEF - 1
+      INTEGER SLAVEF
+      INTEGER TPN, PROCINFO_INODE
+      TPN = (PROCINFO_INODE-1+SLAVEF+SLAVEF)/SLAVEF - 1
       MUMPS_167 = ( TPN .eq. -1 )
       RETURN 
       END FUNCTION MUMPS_167
       LOGICAL FUNCTION MUMPS_170
-     &        ( INODE, PROCNODE, SLAVEF )
+     &        ( PROCINFO_INODE, SLAVEF )
       IMPLICIT NONE
-      INTEGER INODE, SLAVEF
-      INTEGER  PROCNODE(*)
-      INTEGER TPN, MYPROC
-      MYPROC = PROCNODE( INODE )
-      TPN = (MYPROC-1+SLAVEF+SLAVEF)/SLAVEF - 1
+      INTEGER SLAVEF
+      INTEGER TPN, PROCINFO_INODE
+      TPN = (PROCINFO_INODE-1+SLAVEF+SLAVEF)/SLAVEF - 1
       MUMPS_170 =
      &           ( TPN .eq. -1 .OR. TPN .eq. 0 )
       RETURN
@@ -7190,26 +7830,6 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       END DO
       RETURN
       END SUBROUTINE MUMPS_558
-      SUBROUTINE MUMPS_158
-     &( N, MYID, STEP, PROCNODE_STEPS, K28, SLAVEF, NA, LNA,  MYLEAF )
-      IMPLICIT NONE
-      INTEGER, intent(in) :: N, SLAVEF, MYID, K28, LNA
-      INTEGER, intent(in) :: PROCNODE_STEPS( K28 ), STEP(N), NA( LNA )
-      INTEGER, intent(out) :: MYLEAF
-      INTEGER INODE, NBLEAF, I
-      INTEGER MUMPS_275
-      EXTERNAL MUMPS_275
-      MYLEAF = 0
-      NBLEAF = NA(1)
-      DO I = 1, NBLEAF
-        INODE = NA(2+I)
-        IF ( MUMPS_275(STEP(INODE),PROCNODE_STEPS,SLAVEF)
-     &       .eq. MYID ) THEN
-          MYLEAF = MYLEAF + 1
-        END IF
-      ENDDO
-      RETURN
-      END SUBROUTINE MUMPS_158
 #if defined (PESSL)
       SUBROUTINE DESCINIT( DESC, M, N, MB, NB, IRSRC, ICSRC, ICTXT,
      &                     LLD, INFO )
@@ -7227,11 +7847,11 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
      &                     RSRC_ = 7, CSRC_ = 8, LLD_ = 9 )
 # endif
       INTEGER            MYCOL, MYROW, NPCOL, NPROW
-      EXTERNAL           BLACS_GRIDINFO, PXERBLA
+      EXTERNAL           blacs_gridinfo, PXERBLA
       INTEGER            NUMROC
       EXTERNAL           NUMROC
       INTRINSIC          max, min
-      CALL BLACS_GRIDINFO( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
+      CALL blacs_gridinfo( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
       INFO = 0
       IF( M.LT.0 ) THEN
          INFO = -2
@@ -7247,7 +7867,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          INFO = -7
       ELSE IF( NPROW.EQ.-1 ) THEN
          INFO = -8
-      ELSE IF( LLD.LT.max( 1, NUMROC( M, MB, MYROW, IRSRC,
+      ELSE IF( LLD.LT.max( 1, numroc( M, MB, MYROW, IRSRC,
      &                                NPROW ) ) ) THEN
          INFO = -9
       END IF
@@ -7263,7 +7883,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       DESC( RSRC_ ) = max( 0, min( IRSRC, NPROW-1 ) )
       DESC( CSRC_ ) = max( 0, min( ICSRC, NPCOL-1 ) )
       DESC( CTXT_ ) = ICTXT
-      DESC( LLD_ )  = max( LLD, max( 1, NUMROC( DESC( M_ ), DESC( MB_ ),
+      DESC( LLD_ )  = max( LLD, max( 1, numroc( DESC( M_ ), DESC( MB_ ),
      &                              MYROW, DESC( RSRC_ ), NPROW ) ) )
       RETURN
       END SUBROUTINE DESCINIT
@@ -7271,8 +7891,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER            ICTXT, INFO
       CHARACTER*(*)      SRNAME
       INTEGER            MYCOL, MYROW, NPCOL, NPROW
-      EXTERNAL           BLACS_GRIDINFO
-      CALL BLACS_GRIDINFO( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
+      EXTERNAL           blacs_gridinfo
+      CALL blacs_gridinfo( ICTXT, NPROW, NPCOL, MYROW, MYCOL )
       WRITE( *, FMT = 9999 ) MYROW, MYCOL, SRNAME, INFO
  9999 FORMAT( '{', I5, ',', I5, '}:  On entry to ', A,
      &        ' parameter number', I4, ' had an illegal value' )
@@ -7312,7 +7932,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER N, LEAF, NROOT_LOC, NBROOT, MYID_NODES,
      &        SLAVEF, LPOOL, LNA
       INTEGER KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER STEP(N)
       INTEGER PROCNODE_STEPS(KEEP(28)), NA(LNA),
      &        IPOOL(LPOOL)
@@ -7324,7 +7944,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       LEAF = 1
       DO I = 1, NBLEAF
         INODE = NA(I+2)
-        IF (MUMPS_275(STEP(INODE),PROCNODE_STEPS,SLAVEF)
+        IF (MUMPS_275(PROCNODE_STEPS(STEP(INODE)),SLAVEF)
      &   .EQ.MYID_NODES) THEN
            IPOOL(LEAF) = INODE
            LEAF        = LEAF + 1
@@ -7333,7 +7953,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       NROOT_LOC = 0
       DO I = 1, NBROOT
         INODE = NA(I+2+NBLEAF)
-        IF (MUMPS_275(STEP(INODE),PROCNODE_STEPS,
+        IF (MUMPS_275(PROCNODE_STEPS(STEP(INODE)),
      &    SLAVEF).EQ.MYID_NODES) THEN
             NROOT_LOC = NROOT_LOC + 1
         END IF
@@ -7438,51 +8058,38 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       I8_VALUE = int( DBLE_VALUE,8)
       RETURN
       END SUBROUTINE MUMPS_749
-      SUBROUTINE MUMPS_645( IN, OUT, COMM)
-      IMPLICIT NONE
-      INCLUDE 'mpif.h'
-      INTEGER*8 IN, OUT
-      INTEGER COMM
-      INTEGER IERR
-      DOUBLE PRECISION DIN, DOUT
-      DIN =dble(IN)
-      CALL MPI_ALLREDUCE(DIN, DOUT, 1, MPI_DOUBLE_PRECISION,
-     &                   MPI_SUM, COMM, IERR)
-      OUT=int(DOUT,KIND=8)
-      RETURN
-      END SUBROUTINE MUMPS_645
       SUBROUTINE MUMPS_646( IN, OUT, MPI_OP, ROOT, COMM)
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER ROOT, COMM, MPI_OP
-      INTEGER*8 IN, OUT
+      INTEGER(8) IN, OUT
       INTEGER IERR
       DOUBLE PRECISION DIN, DOUT
       DIN =dble(IN)
       DOUT=0.0D0
       CALL MPI_REDUCE(DIN, DOUT, 1, MPI_DOUBLE_PRECISION,
      &                   MPI_OP, ROOT, COMM, IERR)
-      OUT=int(DOUT,KIND=8)
+      OUT=int(DOUT,kind=8)
       RETURN
       END SUBROUTINE MUMPS_646
       SUBROUTINE MUMPS_736( IN, OUT, MPI_OP, COMM)
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COMM, MPI_OP
-      INTEGER*8 IN, OUT
+      INTEGER(8) IN, OUT
       INTEGER IERR
       DOUBLE PRECISION DIN, DOUT
       DIN =dble(IN)
       DOUT=0.0D0
       CALL MPI_ALLREDUCE(DIN, DOUT, 1, MPI_DOUBLE_PRECISION,
      &                   MPI_OP, COMM, IERR)
-      OUT=int(DOUT,KIND=8)
+      OUT=int(DOUT,kind=8)
       RETURN
       END SUBROUTINE MUMPS_736
       SUBROUTINE MUMPS_754(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
       INTEGER, POINTER             :: ARRAY(:)
-      INTEGER                      :: INFO(*)
+      INTEGER                      :: INFO(:)
       INTEGER                      :: MINSIZE, LP
       LOGICAL, OPTIONAL            :: FORCE
       LOGICAL, OPTIONAL            :: COPY
@@ -7490,26 +8097,26 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER, OPTIONAL            :: ERRCODE, MEMCNT
       LOGICAL                      :: ICOPY, IFORCE
       INTEGER, POINTER             :: TEMP(:)
-      INTEGER                      :: I, IERR, ILP, ERRTPL(2)
+      INTEGER                      :: I, IERR, ERRTPL(2)
       CHARACTER                    :: FMTA*60, FMTD*60
-      IF(PRESENT(COPY)) THEN
+      IF(present(COPY)) THEN
          ICOPY = COPY
       ELSE
          ICOPY = .FALSE.
       END IF
-      IF (PRESENT(FORCE)) THEN
+      IF (present(FORCE)) THEN
          IFORCE = FORCE
       ELSE
          IFORCE = .FALSE.
       END IF
-      IF (PRESENT(STRING)) THEN
+      IF (present(STRING)) THEN
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
          FMTA = "Allocation failed inside realloc: "
          FMTD = "Deallocation failed inside realloc: "
       END IF
-      IF (PRESENT(ERRCODE)) THEN
+      IF (present(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
       ELSE
          ERRTPL = (/-13, MINSIZE/)
@@ -7524,12 +8131,12 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
                   INFO(1:2) = ERRTPL
                   RETURN
                ELSE
-                  IF(PRESENT(MEMCNT))MEMCNT = MEMCNT+MINSIZE
+                  IF(present(MEMCNT))MEMCNT = MEMCNT+MINSIZE
                END IF
-               DO I=1, MIN(size(ARRAY), MINSIZE)
+               DO I=1, min(size(ARRAY), MINSIZE)
                   TEMP(I) = ARRAY(I)
                END DO
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7547,9 +8154,9 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          END IF
       ELSE
          IF(associated(ARRAY)) THEN
-            IF ((SIZE(ARRAY) .LT. MINSIZE) .OR.
+            IF ((size(ARRAY) .LT. MINSIZE) .OR.
      &           ((size(ARRAY).NE.MINSIZE) .AND. IFORCE)) THEN
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7566,15 +8173,15 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
             INFO(1:2) = ERRTPL
             RETURN
          ELSE
-            IF(PRESENT(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
+            IF(present(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
          END IF
       END IF
       RETURN
       END SUBROUTINE MUMPS_754
       SUBROUTINE MUMPS_750(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
-      REAL(kind(1.E0)), POINTER             :: ARRAY(:)
-      INTEGER                      :: INFO(*)
+      REAL(kind(1.E0)), POINTER    :: ARRAY(:)
+      INTEGER                      :: INFO(:)
       INTEGER                      :: MINSIZE, LP
       LOGICAL, OPTIONAL            :: FORCE
       LOGICAL, OPTIONAL            :: COPY
@@ -7582,26 +8189,26 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER, OPTIONAL            :: ERRCODE, MEMCNT
       LOGICAL                      :: ICOPY, IFORCE
       REAL(kind(1.E0)), POINTER             :: TEMP(:)
-      INTEGER                      :: I, IERR, ILP, ERRTPL(2)
+      INTEGER                      :: I, IERR, ERRTPL(2)
       CHARACTER                    :: FMTA*60, FMTD*60
-      IF(PRESENT(COPY)) THEN
+      IF(present(COPY)) THEN
          ICOPY = COPY
       ELSE
          ICOPY = .FALSE.
       END IF
-      IF (PRESENT(FORCE)) THEN
+      IF (present(FORCE)) THEN
          IFORCE = FORCE
       ELSE
          IFORCE = .FALSE.
       END IF
-      IF (PRESENT(STRING)) THEN
+      IF (present(STRING)) THEN
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
          FMTA = "Allocation failed inside realloc: "
          FMTD = "Deallocation failed inside realloc: "
       END IF
-      IF (PRESENT(ERRCODE)) THEN
+      IF (present(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
       ELSE
          ERRTPL = (/-13, MINSIZE/)
@@ -7616,12 +8223,12 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
                   INFO(1:2) = ERRTPL
                   RETURN
                ELSE
-                  IF(PRESENT(MEMCNT))MEMCNT = MEMCNT+MINSIZE
+                  IF(present(MEMCNT))MEMCNT = MEMCNT+MINSIZE
                END IF
-               DO I=1, MIN(size(ARRAY), MINSIZE)
+               DO I=1, min(size(ARRAY), MINSIZE)
                   TEMP(I) = ARRAY(I)
                END DO
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7639,9 +8246,9 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          END IF
       ELSE
          IF(associated(ARRAY)) THEN
-            IF ((SIZE(ARRAY) .LT. MINSIZE) .OR.
+            IF ((size(ARRAY) .LT. MINSIZE) .OR.
      &           ((size(ARRAY).NE.MINSIZE) .AND. IFORCE)) THEN
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7658,7 +8265,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
             INFO(1:2) = ERRTPL
             RETURN
          ELSE
-            IF(PRESENT(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
+            IF(present(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
          END IF
       END IF
       RETURN
@@ -7666,7 +8273,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       SUBROUTINE MUMPS_752(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
       REAL(kind(1.D0)), POINTER    :: ARRAY(:)
-      INTEGER                      :: INFO(*)
+      INTEGER                      :: INFO(:)
       INTEGER                      :: MINSIZE, LP
       LOGICAL, OPTIONAL            :: FORCE
       LOGICAL, OPTIONAL            :: COPY
@@ -7674,26 +8281,26 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER, OPTIONAL            :: ERRCODE, MEMCNT
       LOGICAL                      :: ICOPY, IFORCE
       REAL(kind(1.D0)), POINTER    :: TEMP(:)
-      INTEGER                      :: I, IERR, ILP, ERRTPL(2)
+      INTEGER                      :: I, IERR, ERRTPL(2)
       CHARACTER                    :: FMTA*60, FMTD*60
-      IF(PRESENT(COPY)) THEN
+      IF(present(COPY)) THEN
          ICOPY = COPY
       ELSE
          ICOPY = .FALSE.
       END IF
-      IF (PRESENT(FORCE)) THEN
+      IF (present(FORCE)) THEN
          IFORCE = FORCE
       ELSE
          IFORCE = .FALSE.
       END IF
-      IF (PRESENT(STRING)) THEN
+      IF (present(STRING)) THEN
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
          FMTA = "Allocation failed inside realloc: "
          FMTD = "Deallocation failed inside realloc: "
       END IF
-      IF (PRESENT(ERRCODE)) THEN
+      IF (present(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
       ELSE
          ERRTPL = (/-13, MINSIZE/)
@@ -7708,12 +8315,12 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
                   INFO(1:2) = ERRTPL
                   RETURN
                ELSE
-                  IF(PRESENT(MEMCNT))MEMCNT = MEMCNT+MINSIZE
+                  IF(present(MEMCNT))MEMCNT = MEMCNT+MINSIZE
                END IF
-               DO I=1, MIN(size(ARRAY), MINSIZE)
+               DO I=1, min(size(ARRAY), MINSIZE)
                   TEMP(I) = ARRAY(I)
                END DO
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7731,9 +8338,9 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          END IF
       ELSE
          IF(associated(ARRAY)) THEN
-            IF ((SIZE(ARRAY) .LT. MINSIZE) .OR.
+            IF ((size(ARRAY) .LT. MINSIZE) .OR.
      &           ((size(ARRAY).NE.MINSIZE) .AND. IFORCE)) THEN
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7750,7 +8357,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
             INFO(1:2) = ERRTPL
             RETURN
          ELSE
-            IF(PRESENT(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
+            IF(present(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
          END IF
       END IF
       RETURN
@@ -7758,7 +8365,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       SUBROUTINE MUMPS_751(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
       COMPLEX(kind((1.E0,1.E0))), POINTER             :: ARRAY(:)
-      INTEGER                      :: INFO(*)
+      INTEGER                      :: INFO(:)
       INTEGER                      :: MINSIZE, LP
       LOGICAL, OPTIONAL            :: FORCE
       LOGICAL, OPTIONAL            :: COPY
@@ -7766,26 +8373,26 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER, OPTIONAL            :: ERRCODE, MEMCNT
       LOGICAL                      :: ICOPY, IFORCE
       COMPLEX(kind((1.E0,1.E0))), POINTER             :: TEMP(:)
-      INTEGER                      :: I, IERR, ILP, ERRTPL(2)
+      INTEGER                      :: I, IERR, ERRTPL(2)
       CHARACTER                    :: FMTA*60, FMTD*60
-      IF(PRESENT(COPY)) THEN
+      IF(present(COPY)) THEN
          ICOPY = COPY
       ELSE
          ICOPY = .FALSE.
       END IF
-      IF (PRESENT(FORCE)) THEN
+      IF (present(FORCE)) THEN
          IFORCE = FORCE
       ELSE
          IFORCE = .FALSE.
       END IF
-      IF (PRESENT(STRING)) THEN
+      IF (present(STRING)) THEN
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
          FMTA = "Allocation failed inside realloc: "
          FMTD = "Deallocation failed inside realloc: "
       END IF
-      IF (PRESENT(ERRCODE)) THEN
+      IF (present(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
       ELSE
          ERRTPL = (/-13, MINSIZE/)
@@ -7800,12 +8407,12 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
                   INFO(1:2) = ERRTPL
                   RETURN
                ELSE
-                  IF(PRESENT(MEMCNT))MEMCNT = MEMCNT+MINSIZE
+                  IF(present(MEMCNT))MEMCNT = MEMCNT+MINSIZE
                END IF
-               DO I=1, MIN(size(ARRAY), MINSIZE)
+               DO I=1, min(size(ARRAY), MINSIZE)
                   TEMP(I) = ARRAY(I)
                END DO
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7823,9 +8430,9 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          END IF
       ELSE
          IF(associated(ARRAY)) THEN
-            IF ((SIZE(ARRAY) .LT. MINSIZE) .OR.
+            IF ((size(ARRAY) .LT. MINSIZE) .OR.
      &           ((size(ARRAY).NE.MINSIZE) .AND. IFORCE)) THEN
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7842,7 +8449,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
             INFO(1:2) = ERRTPL
             RETURN
          ELSE
-            IF(PRESENT(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
+            IF(present(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
          END IF
       END IF
       RETURN
@@ -7850,7 +8457,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       SUBROUTINE MUMPS_753(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
       COMPLEX(kind((1.D0,1.D0))), POINTER             :: ARRAY(:)
-      INTEGER                      :: INFO(*)
+      INTEGER                      :: INFO(:)
       INTEGER                      :: MINSIZE, LP
       LOGICAL, OPTIONAL            :: FORCE
       LOGICAL, OPTIONAL            :: COPY
@@ -7858,26 +8465,26 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       INTEGER, OPTIONAL            :: ERRCODE, MEMCNT
       LOGICAL                      :: ICOPY, IFORCE
       COMPLEX(kind((1.D0,1.D0))), POINTER             :: TEMP(:)
-      INTEGER                      :: I, IERR, ILP, ERRTPL(2)
+      INTEGER                      :: I, IERR, ERRTPL(2)
       CHARACTER                    :: FMTA*60, FMTD*60
-      IF(PRESENT(COPY)) THEN
+      IF(present(COPY)) THEN
          ICOPY = COPY
       ELSE
          ICOPY = .FALSE.
       END IF
-      IF (PRESENT(FORCE)) THEN
+      IF (present(FORCE)) THEN
          IFORCE = FORCE
       ELSE
          IFORCE = .FALSE.
       END IF
-      IF (PRESENT(STRING)) THEN
+      IF (present(STRING)) THEN
          FMTA = "Allocation failed inside realloc: "//STRING
          FMTD = "Deallocation failed inside realloc: "//STRING
       ELSE
          FMTA = "Allocation failed inside realloc: "
          FMTD = "Deallocation failed inside realloc: "
       END IF
-      IF (PRESENT(ERRCODE)) THEN
+      IF (present(ERRCODE)) THEN
          ERRTPL = (/ERRCODE, MINSIZE/)
       ELSE
          ERRTPL = (/-13, MINSIZE/)
@@ -7892,12 +8499,12 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
                   INFO(1:2) = ERRTPL
                   RETURN
                ELSE
-                  IF(PRESENT(MEMCNT))MEMCNT = MEMCNT+MINSIZE
+                  IF(present(MEMCNT))MEMCNT = MEMCNT+MINSIZE
                END IF
-               DO I=1, MIN(size(ARRAY), MINSIZE)
+               DO I=1, min(size(ARRAY), MINSIZE)
                   TEMP(I) = ARRAY(I)
                END DO
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7915,9 +8522,9 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
          END IF
       ELSE
          IF(associated(ARRAY)) THEN
-            IF ((SIZE(ARRAY) .LT. MINSIZE) .OR.
+            IF ((size(ARRAY) .LT. MINSIZE) .OR.
      &           ((size(ARRAY).NE.MINSIZE) .AND. IFORCE)) THEN
-               IF(PRESENT(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
+               IF(present(MEMCNT))MEMCNT = MEMCNT-size(ARRAY)
                deallocate(ARRAY, STAT=IERR)
                IF(IERR .LT. 0) THEN
                   WRITE(LP,FMTD)
@@ -7934,7 +8541,7 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
             INFO(1:2) = ERRTPL
             RETURN
          ELSE
-            IF(PRESENT(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
+            IF(present(MEMCNT)) MEMCNT = MEMCNT+MINSIZE
          END IF
       END IF
       RETURN
@@ -7971,9 +8578,10 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       IMPLICIT NONE
       INTEGER(8), intent(in)  :: I8
       INTEGER,    intent(out) :: INT_ARRAY(2)
+      INTEGER(kind(0_4)) :: I32
       INTEGER(8) :: IDIV, IPAR
-      PARAMETER (IPAR=int(huge(INT_ARRAY),8))
-      PARAMETER (IDIV=IPAR+1_8) 
+      PARAMETER (IPAR=int(huge(I32),8))
+      PARAMETER (IDIV=IPAR+1_8)
       IF ( I8 .LT. IDIV ) THEN
         INT_ARRAY(1) = 0
         INT_ARRAY(2) = int(I8)
@@ -7987,9 +8595,10 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       IMPLICIT NONE
       INTEGER(8), intent(out)  :: I8
       INTEGER,    intent(in)  :: INT_ARRAY(2)
+      INTEGER(kind(0_4)) :: I32
       INTEGER(8) :: IDIV, IPAR
-      PARAMETER (IPAR=int(huge(INT_ARRAY),8))
-      PARAMETER (IDIV=IPAR+1_8) 
+      PARAMETER (IPAR=int(huge(I32),8))
+      PARAMETER (IDIV=IPAR+1_8)
       IF ( INT_ARRAY(1) .EQ. 0 ) THEN
         I8=int(INT_ARRAY(2),8)
       ELSE
@@ -8017,8 +8626,8 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
       CALL MUMPS_730(I8TMP, INT_ARRAY)
       RETURN
       END SUBROUTINE MUMPS_724
-      FUNCTION MUMPS_PARANAL_AVAIL(WHICH)
-      LOGICAL :: MUMPS_PARANAL_AVAIL
+      FUNCTION MUMPS_815(WHICH)
+      LOGICAL :: MUMPS_815
       CHARACTER :: WHICH*(*)
       LOGICAL :: PTSCOTCH=.FALSE., PARMETIS=.FALSE.
 #if defined(ptscotch)
@@ -8029,15 +8638,15 @@ c    $         THRESM + ThresMin/2+ ThresMinINIT ,
 #endif
       SELECT CASE(WHICH)
       CASE('ptscotch','PTSCOTCH')
-         MUMPS_PARANAL_AVAIL = PTSCOTCH
+         MUMPS_815 = PTSCOTCH
       CASE('parmetis','PARMETIS')
-         MUMPS_PARANAL_AVAIL = PARMETIS
+         MUMPS_815 = PARMETIS
       CASE('both','BOTH')
-         MUMPS_PARANAL_AVAIL = PTSCOTCH .AND. PARMETIS
+         MUMPS_815 = PTSCOTCH .AND. PARMETIS
       CASE('any','ANY')
-         MUMPS_PARANAL_AVAIL = PTSCOTCH .OR. PARMETIS
+         MUMPS_815 = PTSCOTCH .OR. PARMETIS
       CASE default
-         write(*,'("Invakud input in MUMPS_PARANAL_AVAIL")')
+         write(*,'("Invalid input in MUMPS_815")')
       END SELECT
       RETURN
-      END FUNCTION MUMPS_PARANAL_AVAIL
+      END FUNCTION MUMPS_815

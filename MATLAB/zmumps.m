@@ -2,7 +2,7 @@ function [id]=zmumps(id,mat)
 %
 % [id]=zmumps(id,mat)
 % id is a structure (see details in initmumps.m and MUMPS documentation)
-% mat is optionnal if the job is -1 or -2
+% mat is optional if the job is -1 or -2
 % mat is a square sparse matrice
 % information are return in id fields
 %

@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -39,17 +47,16 @@ C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
       MODULE MUMPS_OOC_COMMON
       IMPLICIT NONE
-      INTEGER FCT
-      PARAMETER(FCT=0)
+      INTEGER, PARAMETER :: FCT = 0 
+      INTEGER, PARAMETER, PUBLIC :: TYPEF_INVALID = -999999
       INTEGER, PUBLIC  ::  TYPEF_L, TYPEF_U, TYPEF_CB
-      PARAMETER ( TYPEF_L=1, TYPEF_U=2, TYPEF_CB=3)
-      INTEGER OOC_NB_FILE_TYPE,OOC_FCT_TYPE      
+      INTEGER OOC_NB_FILE_TYPE, OOC_FCT_TYPE
       INTEGER, DIMENSION(:,:),POINTER :: OOC_INODE_SEQUENCE
-      INTEGER*8, DIMENSION(:,:),POINTER :: OOC_VADDR
+      INTEGER(8), DIMENSION(:,:),POINTER :: OOC_VADDR
       INTEGER,DIMENSION(:),POINTER:: KEEP_OOC
       INTEGER ICNTL1 
-      INTEGER*8, DIMENSION(:),ALLOCATABLE :: AddVirtLibre
-      LOGICAL,SAVE :: STRAT_IO_ASYNC,WITH_BUF,SOLVE,IS_INIT_CALLED
+      INTEGER(8), DIMENSION(:),ALLOCATABLE :: AddVirtLibre
+      LOGICAL,SAVE :: STRAT_IO_ASYNC,WITH_BUF,SOLVE
       INTEGER, DIMENSION(:),POINTER :: STEP_OOC,PROCNODE_OOC
       INTEGER, SAVE :: MYID_OOC,SLAVEF_OOC,LOW_LEVEL_STRAT_IO
       INTEGER(8), SAVE :: HBUF_SIZE, DIM_BUF_IO
@@ -75,8 +82,8 @@ C
       SUBROUTINE MUMPS_676(INT1,INT2,BIGINT)
       IMPLICIT NONE
       INTEGER INT1,INT2
-      INTEGER*8 BIGINT
-      INTEGER*8 TMP1,TMP2,CONV
+      INTEGER(8) BIGINT
+      INTEGER(8) TMP1,TMP2,CONV
       PARAMETER (CONV=1073741824_8) 
       TMP1=int(INT1,kind=kind(TMP1))
       TMP2=int(INT2,kind=kind(TMP2))
@@ -86,8 +93,8 @@ C
       SUBROUTINE MUMPS_677(INT1,INT2,BIGINT)
       IMPLICIT NONE
       INTEGER INT1,INT2
-      INTEGER*8 BIGINT
-      INTEGER*8 TMP1,TMP2,CONV
+      INTEGER(8) BIGINT
+      INTEGER(8) TMP1,TMP2,CONV
       PARAMETER (CONV=1073741824_8) 
       TMP1=BIGINT/CONV
       TMP2=mod(BIGINT,CONV)
@@ -95,3 +102,66 @@ C
       INT2=int(TMP2)
       RETURN
       END SUBROUTINE MUMPS_677
+      SUBROUTINE MUMPS_796
+     &           (TYPEF_L,TYPEF_U,TYPEF_CB,K201, K251, K50,
+     &            TYPEF_INVALID)
+      IMPLICIT NONE
+      INTEGER, intent(out):: TYPEF_L, TYPEF_U, TYPEF_CB
+      INTEGER, intent(in) :: K201, K251, K50
+      INTEGER, intent(in) :: TYPEF_INVALID
+      IF (K201 .EQ. 1 .AND. K50.EQ.0) THEN
+        IF ( K251.NE.2 ) THEN
+          TYPEF_L  = 1
+          TYPEF_U  = 2
+          TYPEF_CB = 3 
+        ELSE
+          TYPEF_U  = 1
+          TYPEF_L  = TYPEF_INVALID 
+          TYPEF_CB = 2 
+        ENDIF
+      ELSE 
+         TYPEF_L = 1
+         TYPEF_U = TYPEF_INVALID 
+         TYPEF_CB=2 
+      ENDIF
+      RETURN
+      END SUBROUTINE MUMPS_796
+      INTEGER FUNCTION MUMPS_808
+     &                 (FWDORBWD, MTYPE, K201, K50)
+      USE MUMPS_OOC_COMMON 
+      INTEGER,     intent(in) :: MTYPE, K201, K50
+      CHARACTER*1, intent(in) :: FWDORBWD
+      IF ( (TYPEF_L .NE. 1 .AND. TYPEF_L .NE. TYPEF_INVALID)
+     &     .OR. (TYPEF_U .NE. 1 .AND. TYPEF_U .NE. 2 .AND.
+     &           TYPEF_U .NE. TYPEF_INVALID) ) THEN
+        WRITE(*,*) "Internal error 1 in MUMPS_808",
+     &              TYPEF_L, TYPEF_U
+        CALL MUMPS_ABORT()
+      ENDIF
+      IF (FWDORBWD .NE. 'F' .AND. FWDORBWD .NE. 'B') THEN
+        WRITE(*,*) "Internal error in MUMPS_808,",FWDORBWD
+        CALL MUMPS_ABORT()
+      ENDIF
+      IF (K201 .EQ. 1) THEN  
+        IF (FWDORBWD .EQ. 'F') THEN
+         IF((MTYPE.NE.1).AND.(K50.EQ.0))THEN
+           MUMPS_808=TYPEF_U
+         ELSE
+           MUMPS_808=TYPEF_L
+         ENDIF
+        ELSE 
+          IF(K50.EQ.0)THEN
+            IF(MTYPE.NE.1)THEN
+              MUMPS_808=TYPEF_L
+            ELSE
+              MUMPS_808=TYPEF_U
+            ENDIF
+          ELSE
+            MUMPS_808=TYPEF_L
+          ENDIF
+        ENDIF
+      ELSE  
+        MUMPS_808 = 1
+      ENDIF
+      RETURN
+      END FUNCTION MUMPS_808

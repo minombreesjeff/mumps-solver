@@ -2,6 +2,40 @@
 = ChangeLog =
 -------------
 
+Changes from 4.9.2 to 4.10.0
+* Modified variable names and variable contents in Make.inc/Makefile*
+  for Windows (Makefile.inc from an older version needs modifications,
+  please do a diff)
+* Option to discard factors during factorization when
+  not needed (ICNTL(31))
+* Option to compute the determinant (ICNTL(33)) 
+* Experimental "A-1" functionality (ICNTL(30))
+* Matlab interface updated for 64-bit machines
+* Improved users' guide
+* Suppressed a memory leak occurring when Scalapack is used
+  and user does loops on JOB=6 without JOB=-2/JOB=-1 in-between
+* Avoid occasional deadlock with huge values of ICNTL(14)
+* Avoid problem of -17 error code during solve phase
+* Avoid checking association of pointer arrays ISOL_loc and SOL_loc
+  on procs with no components of solution (small problems)
+* Some data structures were not free at the end of the parallel analysis. Bug fixed.	
+* Fixed unsafe test of overflow "IF (WFLG+N .LE. WFLG)"
+* Large Schur complements sent by blocks if ICNTL(19)=1 (but
+  options ICNTL(19)=2 or 3 are recommended when Schur complement
+  is large)
+* Corrected problem with sparse RHS + unsymmetric permutation +
+  transpose solve (problem appeared in 4.9)
+* Case where ICNTL(19)=2 or 3 and small value of SIZE_SCHUR
+  causing problems in parallel solved.
+* In case an error is detected, solved occasional problem of
+  deallocating non-allocated local array PERM.
+* Correction in computation of matrix norm in complex arithmetic
+  (MPI_COMPLEX was used in place of MPI_REAL in MPI_REDUCE)
+* Scaling works on singular matrices
+* Compilation problem with -i8 solved
+* MUMPS_INT used in OOC layer to facilitate compilation with
+  64 bit integers
+
 Changes from 4.9.1 to 4.9.2
 * Compressed orderings (ICNTL(12)=2) are now compatible with PORD
   and PT-Scotch
@@ -367,6 +401,7 @@ Changes from 4.0.4 to 4.1.4
 = Release history =
 -------------------
 
+Release 4.10.0           : May 2011
 Release 4.9.2            : November 2009
 Release 4.9.1            : October 2009
 Release 4.9              : July 2009

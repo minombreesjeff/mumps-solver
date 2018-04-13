@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -48,7 +56,7 @@ C MPI
 C
 C******************************************************************
       SUBROUTINE MPI_BSEND( BUF, COUNT, DATATYPE, DEST, TAG, COMM,
-     *            IERR )
+     &            IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, DEST, TAG, COMM, IERR
@@ -57,28 +65,28 @@ C******************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_BSEND
 C***********************************************************************
-      SUBROUTINE mpi_buffer_attach(BUF, COUNT,  IERR )
+      SUBROUTINE MPI_BUFFER_ATTACH(BUF, COUNT,  IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, IERR
       INTEGER BUF(*)
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_BUFFER_ATTACH
 C***********************************************************************
-      SUBROUTINE mpi_buffer_detach(BUF, COUNT,  IERR )
+      SUBROUTINE MPI_BUFFER_DETACH(BUF, COUNT,  IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, IERR
       INTEGER BUF(*)
            IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_BUFFER_DETACH
       SUBROUTINE MPI_GATHER( SENDBUF, COUNT, 
-     *         DATATYPE, RECVBUF, RECCOUNT, RECTYPE,
-     *         ROOT, COMM, IERR )
+     &         DATATYPE, RECVBUF, RECCOUNT, RECTYPE,
+     &         ROOT, COMM, IERR )
       IMPLICIT NONE
       INTEGER COUNT, DATATYPE, RECCOUNT, RECTYPE, ROOT, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
@@ -94,11 +102,11 @@ C***********************************************************************
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GATHER
 C***********************************************************************
       SUBROUTINE MPI_GATHERV( SENDBUF, COUNT, 
-     *         DATATYPE, RECVBUF, RECCOUNT, DISPLS, RECTYPE,
-     *         ROOT, COMM, IERR )
+     &         DATATYPE, RECVBUF, RECCOUNT, DISPLS, RECTYPE,
+     &         ROOT, COMM, IERR )
       IMPLICIT NONE
       INTEGER COUNT, DATATYPE, RECTYPE, ROOT, COMM, IERR
       INTEGER RECCOUNT(1)
@@ -122,10 +130,10 @@ C
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GATHERV
 C***********************************************************************
       SUBROUTINE MPI_ALLREDUCE( SENDBUF, RECVBUF, COUNT, DATATYPE,
-     *                          OPERATION, COMM, IERR )
+     &                          OPERATION, COMM, IERR )
       IMPLICIT NONE
       INTEGER COUNT, DATATYPE, OPERATION, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
@@ -136,10 +144,10 @@ C***********************************************************************
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_ALLREDUCE
 C***********************************************************************
       SUBROUTINE MPI_REDUCE( SENDBUF, RECVBUF, COUNT, DATATYPE, OP,
-     *           ROOT, COMM, IERR )
+     &           ROOT, COMM, IERR )
       IMPLICIT NONE
       INTEGER COUNT, DATATYPE, OP, ROOT, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
@@ -150,10 +158,10 @@ C***********************************************************************
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_REDUCE
 C***********************************************************************
       SUBROUTINE MPI_REDUCE_SCATTER( SENDBUF, RECVBUF, RCVCOUNT, 
-     *           DATATYPE, OP, COMM, IERR )
+     &           DATATYPE, OP, COMM, IERR )
       IMPLICIT NONE
       INTEGER RCVCOUNT, DATATYPE, OP, ROOT, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
@@ -164,7 +172,7 @@ C***********************************************************************
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_REDUCE_SCATTER
 C***********************************************************************
       SUBROUTINE MPI_ABORT( COMM, IERRCODE, IERR )
       IMPLICIT NONE
@@ -174,7 +182,7 @@ C***********************************************************************
       END SUBROUTINE MPI_ABORT
 C***********************************************************************
       SUBROUTINE MPI_ALLTOALL( SENDBUF, SENDCNT, SENDTYPE,
-     *                         RECVBUF, RECVCNT, RECVTYPE, COMM, IERR )
+     &                         RECVBUF, RECVCNT, RECVTYPE, COMM, IERR )
       IMPLICIT NONE
       INTEGER SENDCNT, SENDTYPE, RECVCNT, RECVTYPE, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
@@ -193,13 +201,13 @@ C***********************************************************************
       END IF
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_ALLTOALL
 C***********************************************************************
       SUBROUTINE MPI_ATTR_PUT( COMM, KEY, VAL, IERR )
       IMPLICIT NONE
       INTEGER COMM, KEY, VAL, IERR
       RETURN
-      END
+      END SUBROUTINE MPI_ATTR_PUT
 C***********************************************************************
       SUBROUTINE MPI_BARRIER( COMM, IERR )
       IMPLICIT NONE
@@ -207,7 +215,7 @@ C***********************************************************************
       INTEGER COMM, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_BARRIER
 C***********************************************************************
       SUBROUTINE MPI_GET_PROCESSOR_NAME( NAME, RESULTLEN, IERROR)
       CHARACTER (LEN=*) NAME
@@ -216,7 +224,7 @@ C***********************************************************************
       IERROR = 0
       NAME = 'X'
       RETURN
-      END
+      END SUBROUTINE MPI_GET_PROCESSOR_NAME
 C***********************************************************************
       SUBROUTINE MPI_BCAST( BUFFER, COUNT, DATATYPE, ROOT, COMM, IERR )
       IMPLICIT NONE
@@ -225,7 +233,7 @@ C***********************************************************************
       INTEGER BUFFER( * )
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_BCAST
 C***********************************************************************
       SUBROUTINE MPI_CANCEL( IREQ, IERR )
       IMPLICIT NONE
@@ -233,7 +241,7 @@ C***********************************************************************
       INTEGER IREQ, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_CANCEL
 C***********************************************************************
       SUBROUTINE MPI_COMM_CREATE( COMM, GROUP, COMM2, IERR )
       IMPLICIT NONE
@@ -241,7 +249,7 @@ C***********************************************************************
       INTEGER COMM, GROUP, COMM2, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_CREATE
 C***********************************************************************
       SUBROUTINE MPI_COMM_DUP( COMM, COMM2, IERR )
       IMPLICIT NONE
@@ -249,7 +257,7 @@ C***********************************************************************
       INTEGER COMM, COMM2, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_DUP
 C***********************************************************************
       SUBROUTINE MPI_COMM_FREE( COMM, IERR )
       IMPLICIT NONE
@@ -257,7 +265,7 @@ C***********************************************************************
       INTEGER COMM, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_FREE
 C***********************************************************************
       SUBROUTINE MPI_COMM_GROUP( COMM, GROUP, IERR )
       IMPLICIT NONE
@@ -265,7 +273,7 @@ C***********************************************************************
       INTEGER COMM, GROUP, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_GROUP
 C***********************************************************************
       SUBROUTINE MPI_COMM_RANK( COMM, RANK, IERR )
       IMPLICIT NONE
@@ -274,7 +282,7 @@ C***********************************************************************
       RANK = 0
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_RANK
 C***********************************************************************
       SUBROUTINE MPI_COMM_SIZE( COMM, SIZE, IERR )
       IMPLICIT NONE
@@ -283,7 +291,7 @@ C***********************************************************************
       SIZE = 1
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_SIZE
 C***********************************************************************
       SUBROUTINE MPI_COMM_SPLIT( COMM, COLOR, KEY, COMM2, IERR )
       IMPLICIT NONE
@@ -291,7 +299,7 @@ C***********************************************************************
       INTEGER COMM, COLOR, KEY, COMM2, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_COMM_SPLIT
 C***********************************************************************
 c     SUBROUTINE MPI_ERRHANDLER_SET( COMM, ERRHANDLER, IERR )
 c     IMPLICIT NONE
@@ -299,7 +307,7 @@ c     INCLUDE 'mpif.h'
 c     INTEGER COMM, ERRHANDLER, IERR
 c     IERR = 0
 c     RETURN
-c     END
+c     END SUBROUTINE MPI_ERRHANDLER_SET
 C***********************************************************************
       SUBROUTINE MPI_FINALIZE( IERR )
       IMPLICIT NONE
@@ -307,7 +315,7 @@ C***********************************************************************
       INTEGER IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_FINALIZE
 C***********************************************************************
       SUBROUTINE MPI_GET_COUNT( STATUS, DATATYPE, COUNT, IERR )
       IMPLICIT NONE
@@ -318,7 +326,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GET_COUNT
 C***********************************************************************
       SUBROUTINE MPI_GROUP_FREE( GROUP, IERR )
       IMPLICIT NONE
@@ -326,7 +334,7 @@ C***********************************************************************
       INTEGER GROUP, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GROUP_FREE
 C***********************************************************************
       SUBROUTINE MPI_GROUP_RANGE_EXCL( GROUP, N, RANGES, GROUP2, IERR )
       IMPLICIT NONE
@@ -335,7 +343,7 @@ C***********************************************************************
       INTEGER RANGES(*)
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GROUP_RANGE_EXCL
 C***********************************************************************
       SUBROUTINE MPI_GROUP_SIZE( GROUP, SIZE, IERR )
       IMPLICIT NONE
@@ -344,7 +352,7 @@ C***********************************************************************
       SIZE = 1 ! Or should it be zero ?
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_GROUP_SIZE
 C***********************************************************************
       SUBROUTINE MPI_INIT(IERR)
       IMPLICIT NONE
@@ -352,7 +360,7 @@ C***********************************************************************
       INTEGER IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_INIT
 C***********************************************************************
       SUBROUTINE MPI_INITIALIZED( FLAG, IERR )
       IMPLICIT NONE
@@ -362,7 +370,7 @@ C***********************************************************************
       FLAG = .TRUE.
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_INITIALIZED
 C***********************************************************************
       SUBROUTINE MPI_IPROBE( SOURCE, TAG, COMM, FLAG, STATUS, IERR )
       IMPLICIT NONE
@@ -373,20 +381,20 @@ C***********************************************************************
       FLAG = .FALSE.
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_IPROBE
 C***********************************************************************
       SUBROUTINE MPI_IRECV( BUF, COUNT, DATATYPE, SOURCE, TAG, COMM,
-     *           IREQ, IERR )
+     &           IREQ, IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, SOURCE, TAG, COMM, IREQ, IERR
       INTEGER BUF(*)
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_IRECV
 C***********************************************************************
       SUBROUTINE MPI_ISEND( BUF, COUNT, DATATYPE, DEST, TAG, COMM,
-     *           IREQ, IERR )
+     &           IREQ, IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, DEST, TAG, COMM, IERR, IREQ
@@ -395,7 +403,26 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_ISEND
+C***********************************************************************
+      SUBROUTINE MPI_TYPE_COMMIT( NEWTYP, IERR_MPI )
+      IMPLICIT NONE
+      INTEGER NEWTYP, IERR_MPI
+      RETURN
+      END SUBROUTINE MPI_TYPE_COMMIT
+C***********************************************************************
+      SUBROUTINE MPI_TYPE_FREE( NEWTYP, IERR_MPI )
+      IMPLICIT NONE
+      INTEGER NEWTYP, IERR_MPI
+      RETURN
+      END SUBROUTINE MPI_TYPE_FREE
+C***********************************************************************
+      SUBROUTINE MPI_TYPE_CONTIGUOUS( LENGTH, DATATYPE, NEWTYPE,
+     &                                IERR_MPI )
+      IMPLICIT NONE
+      INTEGER LENGTH, DATATYPE, NEWTYPE, IERR_MPI
+      RETURN
+      END SUBROUTINE MPI_TYPE_CONTIGUOUS
 C***********************************************************************
       SUBROUTINE MPI_OP_CREATE( FUNC, COMMUTE, OP, IERR )
       IMPLICIT NONE
@@ -404,16 +431,16 @@ C***********************************************************************
       INTEGER OP, IERR
       OP = 0
       RETURN
-      END
+      END SUBROUTINE MPI_OP_CREATE
 C***********************************************************************
       SUBROUTINE MPI_OP_FREE( OP, IERR )
       IMPLICIT NONE
       INTEGER OP, IERR
       RETURN
-      END
+      END SUBROUTINE MPI_OP_FREE
 C***********************************************************************
       SUBROUTINE MPI_PACK( INBUF, INCOUNT, DATATYPE, OUTBUF, OUTCOUNT,
-     *           POSITION, COMM, IERR )
+     &           POSITION, COMM, IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER INCOUNT, DATATYPE, OUTCOUNT, POSITION, COMM, IERR
@@ -422,7 +449,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_PACK
 C***********************************************************************
       SUBROUTINE MPI_PACK_SIZE( INCOUNT, DATATYPE, COMM, SIZE, IERR )
       IMPLICIT NONE
@@ -432,7 +459,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_PACK_SIZE
 C***********************************************************************
       SUBROUTINE MPI_PROBE( SOURCE, TAG, COMM, STATUS, IERR )
       IMPLICIT NONE
@@ -443,10 +470,10 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_PROBE
 C***********************************************************************
       SUBROUTINE MPI_RECV( BUF, COUNT, DATATYPE, SOURCE, TAG, COMM,
-     *           STATUS, IERR )
+     &           STATUS, IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, SOURCE, TAG, COMM, IERR
@@ -455,7 +482,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_RECV
 C***********************************************************************
       SUBROUTINE MPI_REQUEST_FREE( IREQ, IERR )
       IMPLICIT NONE
@@ -463,7 +490,7 @@ C***********************************************************************
       INTEGER IREQ, IERR
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_REQUEST_FREE
 C***********************************************************************
       SUBROUTINE MPI_SEND( BUF, COUNT, DATATYPE, DEST, TAG, COMM, IERR )
       IMPLICIT NONE
@@ -474,7 +501,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_SEND
 C***********************************************************************
       SUBROUTINE MPI_SSEND( BUF, COUNT, DATATYPE, DEST, TAG, COMM, IERR)
       IMPLICIT NONE
@@ -485,7 +512,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_SSEND
 C***********************************************************************
       SUBROUTINE MPI_TEST( IREQ, FLAG, STATUS, IERR )
       IMPLICIT NONE
@@ -496,10 +523,10 @@ C***********************************************************************
       FLAG = .FALSE.
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_TEST
 C***********************************************************************
       SUBROUTINE MPI_UNPACK( INBUF, INSIZE, POSITION, OUTBUF, OUTCOUNT,
-     *           DATATYPE, COMM, IERR )
+     &           DATATYPE, COMM, IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER INSIZE, POSITION, OUTCOUNT, DATATYPE, COMM, IERR
@@ -508,7 +535,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_UNPACK
 C***********************************************************************
       SUBROUTINE MPI_WAIT( IREQ, STATUS, IERR )
       IMPLICIT NONE
@@ -519,7 +546,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_WAIT
 C***********************************************************************
       SUBROUTINE MPI_WAITALL( COUNT, ARRAY_OF_REQUESTS, STATUS, IERR )
       IMPLICIT NONE
@@ -531,10 +558,10 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_WAITALL
 C***********************************************************************
       SUBROUTINE MPI_WAITANY( COUNT, ARRAY_OF_REQUESTS, INDEX, STATUS,
-     *           IERR )
+     &           IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, INDEX, IERR
@@ -544,7 +571,7 @@ C***********************************************************************
       STOP
       IERR = 0
       RETURN
-      END
+      END SUBROUTINE MPI_WAITANY
 C***********************************************************************
       DOUBLE PRECISION FUNCTION MPI_WTIME( )
 C     elapsed time
@@ -554,7 +581,7 @@ C     write(*,*) 'Entering MPI_WTIME'
       MPI_WTIME = VAL
 C     write(*,*) 'Exiting MPI_WTIME'
       RETURN
-      END
+      END FUNCTION MPI_WTIME
 
 
 C***********************************************************************
@@ -570,6 +597,8 @@ C***********************************************************************
       INTEGER SENDBUF(*), RECVBUF(*)
       IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
         CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
+      ELSEIF ( DATATYPE .EQ. MPI_LOGICAL ) THEN
+        CALL MUMPS_COPY_LOGICAL( SENDBUF, RECVBUF, COUNT )
       ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
         CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
       ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION .OR.
@@ -589,12 +618,22 @@ C***********************************************************************
       END IF
       IERR=0
       RETURN
-      END
+      END SUBROUTINE MUMPS_COPY
 
       SUBROUTINE MUMPS_COPY_INTEGER( S, R, N )
       IMPLICIT NONE
       INTEGER N
       INTEGER S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END SUBROUTINE MUMPS_COPY_INTEGER
+      SUBROUTINE MUMPS_COPY_LOGICAL( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      LOGICAL S(N),R(N)
       INTEGER I
       DO I = 1, N
         R(I) = S(I)
@@ -610,7 +649,7 @@ C***********************************************************************
         R(I) = S(I)
       END DO
       RETURN
-      END
+      END SUBROUTINE MUMPS_COPY_2INTEGER
       SUBROUTINE MUMPS_COPY_REAL( S, R, N )
       IMPLICIT NONE
       INTEGER N
@@ -630,7 +669,7 @@ C***********************************************************************
         R(I) = S(I)
       END DO
       RETURN
-      END
+      END SUBROUTINE MUMPS_COPY_2DOUBLE_PRECISION
       SUBROUTINE MUMPS_COPY_DOUBLE_PRECISION( S, R, N )
       IMPLICIT NONE
       INTEGER N
@@ -650,11 +689,12 @@ C***********************************************************************
         R(I) = S(I)
       END DO
       RETURN
-      END
+      END SUBROUTINE MUMPS_COPY_COMPLEX
       SUBROUTINE MUMPS_COPY_DOUBLE_COMPLEX( S, R, N )
       IMPLICIT NONE
       INTEGER N
-      DOUBLE COMPLEX S(N),R(N)
+C     DOUBLE COMPLEX S(N),R(N)
+      COMPLEX(kind=kind(0.0D0)) :: S(N),R(N)
       INTEGER I
       DO I = 1, N
         R(I) = S(I)
@@ -668,30 +708,30 @@ C
 C     BLACS
 C
 C***********************************************************************
-      SUBROUTINE BLACS_GRIDINIT( CNTXT, C, NPROW, NPCOL )
+      SUBROUTINE blacs_gridinit( CNTXT, C, NPROW, NPCOL )
       IMPLICIT NONE
       INTEGER CNTXT, NPROW, NPCOL
       CHARACTER C
         WRITE(*,*) 'Error. BLACS_GRIDINIT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE blacs_gridinit
 C***********************************************************************
-      SUBROUTINE BLACS_GRIDINFO( CNTXT, NPROW, NPCOL, MYROW, MYCOL )
+      SUBROUTINE blacs_gridinfo( CNTXT, NPROW, NPCOL, MYROW, MYCOL )
       IMPLICIT NONE
       INTEGER CNTXT, NPROW, NPCOL, MYROW, MYCOL
         WRITE(*,*) 'Error. BLACS_GRIDINFO should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE blacs_gridinfo
 C***********************************************************************
-      SUBROUTINE BLACS_GRIDEXIT( CNTXT )
+      SUBROUTINE blacs_gridexit( CNTXT )
       IMPLICIT NONE
       INTEGER CNTXT
         WRITE(*,*) 'Error. BLACS_GRIDEXIT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE blacs_gridexit
 
 
 C***********************************************************************
@@ -700,16 +740,16 @@ C     ScaLAPACK
 C
 C***********************************************************************
       SUBROUTINE DESCINIT( DESC, M, N, MB, NB, IRSRC, ICSRC,
-     *           ICTXT, LLD, INFO )
+     &           ICTXT, LLD, INFO )
       IMPLICIT NONE
       INTEGER ICSRC, ICTXT, INFO, IRSRC, LLD, M, MB, N, NB
       INTEGER DESC( * )
         WRITE(*,*) 'Error. DESCINIT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE DESCINIT
 C***********************************************************************
-      INTEGER FUNCTION NUMROC( N, NB, IPROC, ISRCPROC, NPROCS ) 
+      INTEGER FUNCTION numroc( N, NB, IPROC, ISRCPROC, NPROCS ) 
       INTEGER N, NB, IPROC, ISRCPROC, NPROCS
 C     Can be called
       IF ( NPROCS .ne. 1 ) THEN
@@ -722,9 +762,9 @@ C     Can be called
       ENDIF
       NUMROC = N
       RETURN
-      END
+      END FUNCTION numroc
 C***********************************************************************
-      SUBROUTINE PCPOTRF( UPLO, N, A, IA, JA, DESCA, INFO )
+      SUBROUTINE pcpotrf( UPLO, N, A, IA, JA, DESCA, INFO )
       IMPLICIT NONE
       CHARACTER          UPLO
       INTEGER            IA, INFO, JA, N
@@ -733,9 +773,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCPOTRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcpotrf
 C***********************************************************************
-      SUBROUTINE PCGETRF( M, N, A, IA, JA, DESCA, IPIV, INFO )
+      SUBROUTINE pcgetrf( M, N, A, IA, JA, DESCA, IPIV, INFO )
       IMPLICIT NONE
       INTEGER            IA, INFO, JA, M, N
       INTEGER            DESCA( * ), IPIV( * )
@@ -743,10 +783,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCGETRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcgetrf
 C***********************************************************************
-      SUBROUTINE PCTRTRS( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
-     *                    B, IB, JB, DESCB, INFO )
+      SUBROUTINE pctrtrs( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
+     &                    B, IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          DIAG, TRANS, UPLO
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -755,42 +795,45 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCTRTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pctrtrs
 C***********************************************************************
-      SUBROUTINE PZPOTRF( UPLO, N, A, IA, JA, DESCA, INFO )
+      SUBROUTINE pzpotrf( UPLO, N, A, IA, JA, DESCA, INFO )
       IMPLICIT NONE
       CHARACTER          UPLO
       INTEGER            IA, INFO, JA, N
       INTEGER            DESCA( * )
-      DOUBLE COMPLEX     A( * )
+C     DOUBLE COMPLEX     A( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * )
         WRITE(*,*) 'Error. PZPOTRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzpotrf
 C***********************************************************************
-      SUBROUTINE PZGETRF( M, N, A, IA, JA, DESCA, IPIV, INFO )
+      SUBROUTINE pzgetrf( M, N, A, IA, JA, DESCA, IPIV, INFO )
       IMPLICIT NONE
       INTEGER            IA, INFO, JA, M, N
       INTEGER            DESCA( * ), IPIV( * )
-      DOUBLE COMPLEX     A( * )
+C     DOUBLE COMPLEX     A( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * )
         WRITE(*,*) 'Error. PZGETRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzgetrf
 C***********************************************************************
-      SUBROUTINE PZTRTRS( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
-     *                    B, IB, JB, DESCB, INFO )
+      SUBROUTINE pztrtrs( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
+     &                    B, IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          DIAG, TRANS, UPLO
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
       INTEGER            DESCA( * ), DESCB( * )
-      DOUBLE COMPLEX     A( * ), B( * )
+C     DOUBLE COMPLEX     A( * ), B( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * ), B( * )
         WRITE(*,*) 'Error. PZTRTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pztrtrs
 C***********************************************************************
-      SUBROUTINE PSPOTRF( UPLO, N, A, IA, JA, DESCA, INFO )
+      SUBROUTINE pspotrf( UPLO, N, A, IA, JA, DESCA, INFO )
       IMPLICIT NONE
       CHARACTER          UPLO
       INTEGER            IA, INFO, JA, N
@@ -799,9 +842,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSPOTRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pspotrf
 C***********************************************************************
-      SUBROUTINE PSGETRF( M, N, A, IA, JA, DESCA, IPIV, INFO )
+      SUBROUTINE psgetrf( M, N, A, IA, JA, DESCA, IPIV, INFO )
       IMPLICIT NONE
       INTEGER            IA, INFO, JA, M, N
       INTEGER            DESCA( * ), IPIV( * )
@@ -809,10 +852,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSGETRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psgetrf
 C***********************************************************************
-      SUBROUTINE PSTRTRS( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
-     *                    B, IB, JB, DESCB, INFO )
+      SUBROUTINE pstrtrs( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
+     &                    B, IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          DIAG, TRANS, UPLO
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -821,9 +864,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSTRTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pstrtrs
 C***********************************************************************
-      SUBROUTINE PDPOTRF( UPLO, N, A, IA, JA, DESCA, INFO )
+      SUBROUTINE pdpotrf( UPLO, N, A, IA, JA, DESCA, INFO )
       IMPLICIT NONE
       CHARACTER          UPLO
       INTEGER            IA, INFO, JA, N
@@ -832,9 +875,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDPOTRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdpotrf
 C***********************************************************************
-      SUBROUTINE PDGETRF( M, N, A, IA, JA, DESCA, IPIV, INFO )
+      SUBROUTINE pdgetrf( M, N, A, IA, JA, DESCA, IPIV, INFO )
       IMPLICIT NONE
       INTEGER            IA, INFO, JA, M, N
       INTEGER            DESCA( * ), IPIV( * )
@@ -842,10 +885,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDGETRF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdgetrf
 C***********************************************************************
-      SUBROUTINE PDTRTRS( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
-     *                    B, IB, JB, DESCB, INFO )
+      SUBROUTINE pdtrtrs( UPLO, TRANS, DIAG, N, NRHS, A, IA, JA, DESCA,
+     &                    B, IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          DIAG, TRANS, UPLO
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -854,18 +897,18 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDTRTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdtrtrs
 C***********************************************************************
       SUBROUTINE INFOG2L( GRINDX, GCINDX, DESC, NPROW, NPCOL, MYROW,
-     *                    MYCOL, LRINDX, LCINDX, RSRC, CSRC )
+     &                    MYCOL, LRINDX, LCINDX, RSRC, CSRC )
       IMPLICIT NONE
       INTEGER            CSRC, GCINDX, GRINDX, LRINDX, LCINDX, MYCOL,
-     *                   MYROW, NPCOL, NPROW, RSRC
+     &                   MYROW, NPCOL, NPROW, RSRC
       INTEGER            DESC( * )
         WRITE(*,*) 'Error. INFOG2L should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE INFOG2L
 C***********************************************************************
       INTEGER FUNCTION INDXG2P( INDXGLOB, NB, IPROC, ISRCPROC, NPROCS )
       INTEGER            INDXGLOB, IPROC, ISRCPROC, NB, NPROCS
@@ -873,9 +916,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. INFOG2L should not be called.'
         STOP
       RETURN
-      END
+      END FUNCTION INDXG2P
 C***********************************************************************
-      SUBROUTINE PCSCAL(N, ALPHA, X, IX, JX, DESCX, INCX)
+      SUBROUTINE pcscal(N, ALPHA, X, IX, JX, DESCX, INCX)
       IMPLICIT NONE
       INTEGER            INCX, N, IX, JX
       COMPLEX            ALPHA
@@ -884,20 +927,21 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCSCAL should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcscal
 C***********************************************************************
-      SUBROUTINE PZSCAL(N, ALPHA, X, IX, JX, DESCX, INCX)
+      SUBROUTINE pzscal(N, ALPHA, X, IX, JX, DESCX, INCX)
       IMPLICIT NONE
       INTEGER            INCX, N, IX, JX
-      DOUBLE COMPLEX     ALPHA
-      DOUBLE COMPLEX     X( * )
+C     DOUBLE COMPLEX     ALPHA
+C     DOUBLE COMPLEX     X( * )
+      COMPLEX(kind=kind(0.0D0)) :: ALPHA, X( * )
       INTEGER            DESCX( * )
         WRITE(*,*) 'Error. PZSCAL should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzscal
 C***********************************************************************
-      SUBROUTINE PDSCAL(N, ALPHA, X, IX, JX, DESCX, INCX)
+      SUBROUTINE pdscal(N, ALPHA, X, IX, JX, DESCX, INCX)
       IMPLICIT NONE
       INTEGER            INCX, N, IX, JX
       DOUBLE PRECISION   ALPHA
@@ -906,9 +950,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDSCAL should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdscal
 C***********************************************************************
-      SUBROUTINE PSSCAL(N, ALPHA, X, IX, JX, DESCX, INCX)
+      SUBROUTINE psscal(N, ALPHA, X, IX, JX, DESCX, INCX)
       IMPLICIT NONE
       INTEGER            INCX, N, IX, JX
       REAL               ALPHA
@@ -917,22 +961,23 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSSCAL should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psscal
 C***********************************************************************
-      SUBROUTINE PZDOT
+      SUBROUTINE pzdot
      &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
       IMPLICIT NONE
       INTEGER N, IX, JX, IY, JY, INCX, INCY
       INTEGER DESCX(*), DESCY(*)
-      DOUBLE COMPLEX X(*), Y(*)
+C     DOUBLE COMPLEX X(*), Y(*)
+      COMPLEX(kind=kind(0.0D0)) :: X(*), Y(*)
       DOUBLE PRECISION DOT
         DOT = 0.0d0
         WRITE(*,*) 'Error. PZDOT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzdot
 C***********************************************************************
-      SUBROUTINE PCDOT
+      SUBROUTINE pcdot
      &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
       IMPLICIT NONE
       INTEGER N, IX, JX, IY, JY, INCX, INCY
@@ -943,9 +988,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCDOT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcdot
 C***********************************************************************
-      SUBROUTINE PDDOT
+      SUBROUTINE pddot
      &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
       IMPLICIT NONE
       INTEGER N, IX, JX, IY, JY, INCX, INCY
@@ -955,9 +1000,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDDOT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pddot
 C***********************************************************************
-      SUBROUTINE PSDOT
+      SUBROUTINE psdot
      &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
       IMPLICIT NONE
       INTEGER N, IX, JX, IY, JY, INCX, INCY
@@ -967,19 +1012,20 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSDOT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psdot
 C***********************************************************************
-      SUBROUTINE ZGEBS2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE zgebs2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
-      DOUBLE COMPLEX A(*)
+C     DOUBLE COMPLEX A(*)
+      COMPLEX(kind=kind(0.0D0)) :: A(*)
       CHARACTER SCOPE, TOP
         WRITE(*,*) 'Error. ZGEBS2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE zgebs2d
 C***********************************************************************
-      SUBROUTINE CGEBS2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE cgebs2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       COMPLEX A(*)
@@ -987,9 +1033,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. CGEBS2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE cgebs2d
 C***********************************************************************
-      SUBROUTINE SGEBS2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE sgebs2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       REAL A(*)
@@ -997,9 +1043,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. SGEBS2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE sgebs2d
 C***********************************************************************
-      SUBROUTINE DGEBS2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE dgebs2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       DOUBLE PRECISION A(*)
@@ -1007,19 +1053,20 @@ C***********************************************************************
         WRITE(*,*) 'Error. DGEBS2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE dgebs2d
 C***********************************************************************
-      SUBROUTINE ZGEBR2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE zgebr2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
-      DOUBLE COMPLEX A(*)
+C     DOUBLE COMPLEX A(*)
+      COMPLEX(kind=kind(0.0D0)) :: A(*)
       CHARACTER SCOPE, TOP
         WRITE(*,*) 'Error. ZGEBR2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE zgebr2d
 C***********************************************************************
-      SUBROUTINE CGEBR2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE cgebr2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       COMPLEX A(*)
@@ -1027,9 +1074,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. CGEBR2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE cgebr2d
 C***********************************************************************
-      SUBROUTINE SGEBR2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE sgebr2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       REAL A(*)
@@ -1037,9 +1084,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. SGEBR2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE sgebr2d
 C***********************************************************************
-      SUBROUTINE DGEBR2D( CONTXT, SCOPE, TOP, M, N, A, LDA )
+      SUBROUTINE dgebr2d( CONTXT, SCOPE, TOP, M, N, A, LDA )
       IMPLICIT NONE
       INTEGER CONTXT, M, N, LDA
       DOUBLE PRECISION A(*)
@@ -1047,10 +1094,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. DGEBR2D should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE dgebr2d
 C***********************************************************************
-      SUBROUTINE PCGETRS( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
-     *                    IB, JB, DESCB, INFO )
+      SUBROUTINE pcgetrs( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
+     &                    IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          TRANS
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -1059,22 +1106,23 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCGETRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcgetrs
 C***********************************************************************
-      SUBROUTINE PZGETRS( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
-     *                    IB, JB, DESCB, INFO )
+      SUBROUTINE pzgetrs( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
+     &                    IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          TRANS
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
       INTEGER            DESCA( * ), DESCB( * ), IPIV( * )
-      DOUBLE COMPLEX     A( * ), B( * )
+c     DOUBLE COMPLEX     A( * ), B( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * ), B( * )
         WRITE(*,*) 'Error. PZGETRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzgetrs
 C***********************************************************************
-      SUBROUTINE PSGETRS( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
-     *                    IB, JB, DESCB, INFO )
+      SUBROUTINE psgetrs( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
+     &                    IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          TRANS
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -1083,10 +1131,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSGETRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psgetrs
 C***********************************************************************
-      SUBROUTINE PDGETRS( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
-     *                    IB, JB, DESCB, INFO )
+      SUBROUTINE pdgetrs( TRANS, N, NRHS, A, IA, JA, DESCA, IPIV, B,
+     &                    IB, JB, DESCB, INFO )
       IMPLICIT NONE
       CHARACTER          TRANS
       INTEGER            IA, IB, INFO, JA, JB, N, NRHS
@@ -1095,10 +1143,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDGETRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdgetrs
 C***********************************************************************
-      SUBROUTINE PCPOTRS( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
-     *           DESCB, INFO )
+      SUBROUTINE pcpotrs( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
+     &           DESCB, INFO )
       IMPLICIT NONE
       CHARACTER       UPLO
       INTEGER         IA, IB, INFO, JA, JB, N, NRHS
@@ -1107,22 +1155,23 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCPOTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcpotrs
 C***********************************************************************
-      SUBROUTINE PZPOTRS( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
-     *           DESCB, INFO )
+      SUBROUTINE pzpotrs( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
+     &           DESCB, INFO )
       IMPLICIT NONE
       CHARACTER       UPLO
       INTEGER         IA, IB, INFO, JA, JB, N, NRHS
       INTEGER         DESCA( * ), DESCB( * )
-      DOUBLE COMPLEX  A( * ), B( * )
+c     DOUBLE COMPLEX     A( * ), B( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * ), B( * )
         WRITE(*,*) 'Error. PZPOTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzpotrs
 C***********************************************************************
-      SUBROUTINE PSPOTRS( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
-     *           DESCB, INFO )
+      SUBROUTINE pspotrs( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
+     &           DESCB, INFO )
       IMPLICIT NONE
       CHARACTER       UPLO
       INTEGER         IA, IB, INFO, JA, JB, N, NRHS
@@ -1131,10 +1180,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSPOTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pspotrs
 C***********************************************************************
-      SUBROUTINE PDPOTRS( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
-     *           DESCB, INFO )
+      SUBROUTINE pdpotrs( UPLO, N, NRHS, A, IA, JA, DESCA, B, IB, JB,
+     &           DESCB, INFO )
       IMPLICIT NONE
       CHARACTER       UPLO
       INTEGER         IA, IB, INFO, JA, JB, N, NRHS
@@ -1143,9 +1192,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDPOTRS should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdpotrs
 C***********************************************************************
-      SUBROUTINE PSCNRM2( N, NORM2, X, IX, JX, DESCX, INCX )
+      SUBROUTINE pscnrm2( N, NORM2, X, IX, JX, DESCX, INCX )
       IMPLICIT NONE
       INTEGER N, IX, JX, INCX
       INTEGER DESCX(*)
@@ -1154,20 +1203,21 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCNRM2 should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pscnrm2
 C***********************************************************************
-      SUBROUTINE PDZNRM2( N, NORM2, X, IX, JX, DESCX, INCX )
+      SUBROUTINE pdznrm2( N, NORM2, X, IX, JX, DESCX, INCX )
       IMPLICIT NONE
       INTEGER N, IX, JX, INCX
       INTEGER DESCX(*)
       DOUBLE PRECISION NORM2
-      DOUBLE COMPLEX  X( * )
+C     DOUBLE COMPLEX X( * )
+      COMPLEX(kind=kind(0.0D0)) :: X( * )
         WRITE(*,*) 'Error. PZNRM2 should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdznrm2
 C***********************************************************************
-      SUBROUTINE PSNRM2( N, NORM2, X, IX, JX, DESCX, INCX )
+      SUBROUTINE psnrm2( N, NORM2, X, IX, JX, DESCX, INCX )
       IMPLICIT NONE
       INTEGER N, IX, JX, INCX
       INTEGER DESCX(*)
@@ -1175,9 +1225,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSNRM2 should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psnrm2
 C***********************************************************************
-      SUBROUTINE PDNRM2( N, NORM2, X, IX, JX, DESCX, INCX )
+      SUBROUTINE pdnrm2( N, NORM2, X, IX, JX, DESCX, INCX )
       IMPLICIT NONE
       INTEGER N, IX, JX, INCX
       INTEGER DESCX(*)
@@ -1185,10 +1235,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDNRM2 should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdnrm2
 C***********************************************************************
-      REAL FUNCTION PCLANGE( NORM, M, N, A, IA,  JA,
-     *                 DESCA, WORK )
+      REAL FUNCTION pclange( NORM, M, N, A, IA,  JA,
+     &                 DESCA, WORK )
       CHARACTER    NORM
       INTEGER      IA, JA, M, N
       INTEGER      DESCA( * )
@@ -1197,10 +1247,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCLANGE should not be called.'
         STOP
       RETURN
-      END
+      END FUNCTION pclange
 C***********************************************************************
-      DOUBLE PRECISION FUNCTION PZLANGE( NORM, M, N, A, IA,  JA,
-     *                 DESCA, WORK )
+      DOUBLE PRECISION FUNCTION pzlange( NORM, M, N, A, IA,  JA,
+     &                 DESCA, WORK )
       CHARACTER    NORM
       INTEGER      IA, JA, M, N
       INTEGER      DESCA( * )
@@ -1209,10 +1259,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PZLANGE should not be called.'
         STOP
       RETURN
-      END
+      END FUNCTION pzlange
 C***********************************************************************
-      REAL FUNCTION PSLANGE( NORM, M, N, A, IA,  JA,
-     *                 DESCA, WORK )
+      REAL FUNCTION pslange( NORM, M, N, A, IA,  JA,
+     &                 DESCA, WORK )
       CHARACTER    NORM
       INTEGER      IA, JA, M, N
       INTEGER      DESCA( * )
@@ -1221,10 +1271,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSLANGE should not be called.'
         STOP
       RETURN
-      END
+      END FUNCTION pslange
 C***********************************************************************
-      DOUBLE PRECISION FUNCTION PDLANGE( NORM, M, N, A, IA,  JA,
-     *                 DESCA, WORK )
+      DOUBLE PRECISION FUNCTION pdlange( NORM, M, N, A, IA,  JA,
+     &                 DESCA, WORK )
       CHARACTER    NORM
       INTEGER      IA, JA, M, N
       INTEGER      DESCA( * )
@@ -1233,10 +1283,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDLANGE should not be called.'
         STOP
       RETURN
-      END
+      END FUNCTION pdlange
 C***********************************************************************
-      SUBROUTINE PCGECON( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
-     *           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
+      SUBROUTINE pcgecon( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
+     &           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
       IMPLICIT NONE
 
       CHARACTER       NORM
@@ -1247,24 +1297,25 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCGECON should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcgecon
 C***********************************************************************
-      SUBROUTINE PZGECON( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
-     *           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
+      SUBROUTINE pzgecon( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
+     &           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
       IMPLICIT NONE
 
       CHARACTER       NORM
       INTEGER         IA, INFO, JA, LIWORK, LWORK, N
       DOUBLE PRECISION ANORM, RCOND
       INTEGER         DESCA( * ), IWORK( * )
-      DOUBLE COMPLEX  A( * ), WORK( * )
+C     DOUBLE COMPLEX  A( * ), WORK( * )
+      COMPLEX(kind=kind(0.0D0)) :: A( * ), WORK( * )
         WRITE(*,*) 'Error. PZGECON should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzgecon
 C***********************************************************************
-      SUBROUTINE PSGECON( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
-     *           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
+      SUBROUTINE psgecon( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
+     &           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
       IMPLICIT NONE
 
       CHARACTER       NORM
@@ -1275,10 +1326,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSGECON should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psgecon
 C***********************************************************************
-      SUBROUTINE PDGECON( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
-     *           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
+      SUBROUTINE pdgecon( NORM, N,  A,  IA,  JA,  DESCA,  ANORM,
+     &           RCOND,  WORK,  LWORK,  IWORK,  LIWORK, INFO )
       IMPLICIT NONE
 
       CHARACTER       NORM
@@ -1289,10 +1340,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDGECON should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdgecon
 C***********************************************************************
-      SUBROUTINE PCGEQPF( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
-     *           WORK, LWORK, INFO )
+      SUBROUTINE pcgeqpf( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
+     &           WORK, LWORK, INFO )
       IMPLICIT NONE
       INTEGER    IA, JA, INFO, LWORK, M, N
       INTEGER    DESCA( * ), IPIV( * )
@@ -1300,21 +1351,22 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCGEQPF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcgeqpf
 C***********************************************************************
-      SUBROUTINE PZGEQPF( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
-     *           WORK, LWORK, INFO )
+      SUBROUTINE pzgeqpf( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
+     &           WORK, LWORK, INFO )
       IMPLICIT NONE
       INTEGER    IA, JA, INFO, LWORK, M, N
       INTEGER    DESCA( * ), IPIV( * )
-      DOUBLE COMPLEX A( * ), TAU( * ), WORK( * )
+C     DOUBLE COMPLEX A( * ), TAU( * ), WORK( * )
+      COMPLEX(kind=kind(0.0D0)) :: A( * ), TAU( * ), WORK( * )
         WRITE(*,*) 'Error. PZGEQPF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzgeqpf
 C***********************************************************************
-      SUBROUTINE PSGEQPF( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
-     *           WORK, LWORK, INFO )
+      SUBROUTINE psgeqpf( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
+     &           WORK, LWORK, INFO )
       IMPLICIT NONE
       INTEGER         IA, JA, INFO, LWORK, M, N
       INTEGER         DESCA( * ), IPIV( * )
@@ -1322,10 +1374,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSGEQPF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psgeqpf
 C***********************************************************************
-      SUBROUTINE PDGEQPF( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
-     *           WORK, LWORK, INFO )
+      SUBROUTINE pdgeqpf( M,  N,  A,  IA,  JA, DESCA, IPIV, TAU,
+     &           WORK, LWORK, INFO )
       IMPLICIT NONE
       INTEGER         IA, JA, INFO, LWORK, M, N
       INTEGER         DESCA( * ), IPIV( * )
@@ -1333,10 +1385,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDGEQPF should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdgeqpf
 C***********************************************************************
-      SUBROUTINE PCAXPY(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
-     *           DESCY, INCY)
+      SUBROUTINE pcaxpy(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
+     &           DESCY, INCY)
       IMPLICIT NONE
       INTEGER N, IX, IY, JX, JY, INCX, INCY
       INTEGER DESCX(*), DESCY(*)
@@ -1344,21 +1396,22 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCAXPY should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcaxpy
 C***********************************************************************
-      SUBROUTINE PZAXPY(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
-     *           DESCY, INCY)
+      SUBROUTINE pzaxpy(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
+     &           DESCY, INCY)
       IMPLICIT NONE
       INTEGER N, IX, IY, JX, JY, INCX, INCY
       INTEGER DESCX(*), DESCY(*)
-      DOUBLE COMPLEX A(*),X(*),Y(*)
+C     DOUBLE COMPLEX A(*),X(*),Y(*)
+      COMPLEX(kind=kind(0.0D0)) :: A(*),X(*),Y(*)
         WRITE(*,*) 'Error. PZAXPY should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzaxpy
 C***********************************************************************
-      SUBROUTINE PSAXPY(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
-     *           DESCY, INCY)
+      SUBROUTINE psaxpy(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
+     &           DESCY, INCY)
       IMPLICIT NONE
       INTEGER N, IX, IY, JX, JY, INCX, INCY
       INTEGER DESCX(*), DESCY(*)
@@ -1366,10 +1419,10 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSAXPY should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psaxpy
 C***********************************************************************
-      SUBROUTINE PDAXPY(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
-     *           DESCY, INCY)
+      SUBROUTINE pdaxpy(N, A, X, IX, JX, DESCX, INCX, Y, IY, JY,
+     &           DESCY, INCY)
       IMPLICIT NONE
       INTEGER N, IX, IY, JX, JY, INCX, INCY
       INTEGER DESCX(*), DESCY(*)
@@ -1377,9 +1430,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDAXPY should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdaxpy
 C***********************************************************************
-      SUBROUTINE PCTRSM ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
+      SUBROUTINE pctrsm ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
      $                   JA, DESCA, B, IB, JB, DESCB )
       IMPLICIT NONE
       CHARACTER          SIDE, UPLO, TRANSA, DIAG
@@ -1390,22 +1443,24 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCTRSM should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pctrsm 
 C***********************************************************************
-      SUBROUTINE PZTRSM ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
+      SUBROUTINE pztrsm ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
      $                   JA, DESCA, B, IB, JB, DESCB )
       IMPLICIT NONE
       CHARACTER          SIDE, UPLO, TRANSA, DIAG
       INTEGER            M, N, IA, JA, IB, JB
-      DOUBLE COMPLEX     ALPHA
+C     DOUBLE COMPLEX     ALPHA
+      COMPLEX(kind=kind(0.0D0)) ::     ALPHA
       INTEGER            DESCA( * ), DESCB( * )
-      DOUBLE COMPLEX     A( * ), B( * )
+C     DOUBLE COMPLEX     A( * ), B( * )
+      COMPLEX(kind=kind(0.0D0)) ::     A( * ), B( * )
         WRITE(*,*) 'Error. PZTRSM should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pztrsm 
 C***********************************************************************
-      SUBROUTINE PSTRSM ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
+      SUBROUTINE pstrsm ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
      $                   JA, DESCA, B, IB, JB, DESCB )
       IMPLICIT NONE
       CHARACTER          SIDE, UPLO, TRANSA, DIAG
@@ -1416,9 +1471,9 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSTRSM should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pstrsm 
 C***********************************************************************
-      SUBROUTINE PDTRSM ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
+      SUBROUTINE pdtrsm ( SIDE, UPLO, TRANSA, DIAG, M, N, ALPHA, A, IA,
      $                   JA, DESCA, B, IB, JB, DESCB )
       IMPLICIT NONE
       CHARACTER          SIDE, UPLO, TRANSA, DIAG
@@ -1429,11 +1484,11 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDTRSM should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdtrsm 
 C***********************************************************************
-      SUBROUTINE PCUNMQR( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
-     *                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
-     *                    LWORK, INFO )
+      SUBROUTINE pcunmqr( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
+     &                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
+     &                    LWORK, INFO )
       IMPLICIT NONE
       CHARACTER SIDE, TRANS
       INTEGER   IA, IC, INFO, JA, JC, K, LWORK, M, N
@@ -1442,24 +1497,25 @@ C***********************************************************************
         WRITE(*,*) 'Error. PCUNMQR should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pcunmqr
 C***********************************************************************
-      SUBROUTINE PZUNMQR( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
-     *                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
-     *                    LWORK, INFO )
+      SUBROUTINE pzunmqr( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
+     &                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
+     &                    LWORK, INFO )
       IMPLICIT NONE
       CHARACTER SIDE, TRANS
       INTEGER   IA, IC, INFO, JA, JC, K, LWORK, M, N
       INTEGER   DESCA( * ), DESCC( * )
-      DOUBLE COMPLEX A(  *  ), C( * ), TAU( * ), WORK( * )
+C     DOUBLE COMPLEX A(  *  ), C( * ), TAU( * ), WORK( * )
+      COMPLEX(kind=kind(0.0D0)) :: A(  *  ), C( * ), TAU( * ), WORK( * )
         WRITE(*,*) 'Error. PZUNMQR should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pzunmqr
 C***********************************************************************
-      SUBROUTINE PSORMQR( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
-     *                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
-     *                    LWORK, INFO )
+      SUBROUTINE psormqr( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
+     &                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
+     &                    LWORK, INFO )
       IMPLICIT NONE
       CHARACTER SIDE, TRANS
       INTEGER   IA, IC, INFO, JA, JC, K, LWORK, M, N
@@ -1468,11 +1524,11 @@ C***********************************************************************
         WRITE(*,*) 'Error. PSORMQR should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE psormqr
 C***********************************************************************
-      SUBROUTINE PDORMQR( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
-     *                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
-     *                    LWORK, INFO )
+      SUBROUTINE pdormqr( SIDE,  TRANS,  M,  N,  K,  A,  IA, JA,
+     &                    DESCA, TAU, C, IC,  JC,  DESCC,  WORK,
+     &                    LWORK, INFO )
       IMPLICIT NONE
       CHARACTER SIDE, TRANS
       INTEGER         IA, IC, INFO, JA, JC, K, LWORK, M, N
@@ -1481,48 +1537,48 @@ C***********************************************************************
         WRITE(*,*) 'Error. PDORMQR should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pdormqr
 C***********************************************************************
-      SUBROUTINE CHK1MAT( MA, MAPOS0, NA, NAPOS0, IA, JA, DESCA,
-     *                    DESCAPOS0, INFO )
+      SUBROUTINE chk1mat( MA, MAPOS0, NA, NAPOS0, IA, JA, DESCA,
+     &                    DESCAPOS0, INFO )
       IMPLICIT NONE
       INTEGER            DESCAPOS0, IA, INFO, JA, MA, MAPOS0, NA, NAPOS0
       INTEGER            DESCA( * )
         WRITE(*,*) 'Error. CHK1MAT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE chk1mat
 C***********************************************************************
-      SUBROUTINE PCHK2MAT( MA, MAPOS0, NA, NAPOS0, IA, JA, DESCA,
-     *                     DESCAPOS0, MB, MBPOS0, NB, NBPOS0, IB, JB,
-     *                     DESCB, DESCBPOS0, NEXTRA, EX, EXPOS, INFO )
+      SUBROUTINE pchk2mat( MA, MAPOS0, NA, NAPOS0, IA, JA, DESCA,
+     &                     DESCAPOS0, MB, MBPOS0, NB, NBPOS0, IB, JB,
+     &                     DESCB, DESCBPOS0, NEXTRA, EX, EXPOS, INFO )
       IMPLICIT NONE
       INTEGER            DESCAPOS0, DESCBPOS0, IA, IB, INFO, JA, JB, MA,
-     *                   MAPOS0, MB, MBPOS0, NA, NAPOS0, NB, NBPOS0,
-     *                   NEXTRA
+     &                   MAPOS0, MB, MBPOS0, NA, NAPOS0, NB, NBPOS0,
+     &                   NEXTRA
       INTEGER            DESCA( * ), DESCB( * ), EX( NEXTRA ),
-     *                   EXPOS( NEXTRA )
+     &                   EXPOS( NEXTRA )
         WRITE(*,*) 'Error. PCHK2MAT should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pchk2mat
 C***********************************************************************
-      SUBROUTINE PXERBLA( CONTXT, SRNAME, INFO )
+      SUBROUTINE pxerbla( CONTXT, SRNAME, INFO )
       IMPLICIT NONE
       INTEGER CONTXT, INFO
       CHARACTER SRNAME
         WRITE(*,*) 'Error. PXERBLA should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE pxerbla
 C***********************************************************************
-      SUBROUTINE DESCSET( DESC, M, N, MB, NB, IRSRC, ICSRC, ICTXT,
-     *                    LLD )
+      SUBROUTINE descset( DESC, M, N, MB, NB, IRSRC, ICSRC, ICTXT,
+     &                    LLD )
       IMPLICIT NONE
       INTEGER            ICSRC, ICTXT, IRSRC, LLD, M, MB, N, NB
       INTEGER            DESC( * )
         WRITE(*,*) 'Error. DESCSET should not be called.'
         STOP
       RETURN
-      END
+      END SUBROUTINE descset
 

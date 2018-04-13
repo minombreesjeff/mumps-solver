@@ -221,16 +221,18 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 #if MUMPS_ARITH == MUMPS_ARITH_z
   double *ptri_matlab;
 #endif
-  int tmp_m,tmp_n;
+  mwSize tmp_m,tmp_n;
 
   /* C pointer for input parameters */
   size_t inst_address;
-  int n,m,ne,netrue,inst,job;
-  int *irn_in,*jcn_in;
+  mwSize n,m,ne, netrue ;
+  int inst,job;
+  mwIndex *irn_in,*jcn_in;
   
   /* variable for multiple and sparse rhs */
-  int nbrhs,ldrhs,nz_rhs,posrhs;
-  int *irhs_ptr, *irhs_sparse;
+  int posrhs;
+          mwSize  nbrhs,ldrhs, nz_rhs;
+  mwIndex *irhs_ptr, *irhs_sparse;
   double *rhs_sparse;
 #if MUMPS_ARITH == MUMPS_ARITH_z
   double *im_rhs_sparse;
@@ -272,27 +274,31 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
       n = mxGetN(A_IN);
       m = mxGetM(A_IN);
 			
-      if (!mxIsSparse(A_IN) || n != m ){
-	mexErrMsgTxt ("Input matrix must be a sparse square matrix");
-      }
+      if (!mxIsSparse(A_IN) || n != m )
+          mexErrMsgTxt("Input matrix must be a sparse square matrix");
+      
       jcn_in = mxGetJc(A_IN);
       ne = jcn_in[n];
       irn_in = mxGetIr(A_IN);
-      dmumps_par->n = n;
+      dmumps_par->n = (int)n;
+      if(dmumps_par->n != n)
+          mexErrMsgTxt("Input is too big; will not work...barfing out\n");
       
-      if(dmumps_par->sym != 0){
-	netrue = (n+ne)/2;
-      }else{
-	netrue = ne;
-      }
+      if(dmumps_par->sym != 0)
+          netrue = (n+ne)/2;
+      else
+          netrue = ne;
+      
       if(dmumps_par->nz_alloc < netrue || dmumps_par->nz_alloc >= 2*netrue){  
 	MYFREE(dmumps_par->jcn);
 	MYFREE(dmumps_par->irn);
 	MYFREE(dmumps_par->a);
-	MYMALLOC((dmumps_par->jcn),netrue,int);
-	MYMALLOC((dmumps_par->irn),netrue,int);
-	MYMALLOC((dmumps_par->a),netrue,double2);
-	dmumps_par->nz_alloc = netrue;
+	MYMALLOC((dmumps_par->jcn),(int)netrue,int);
+	MYMALLOC((dmumps_par->irn),(int)netrue,int);
+	MYMALLOC((dmumps_par->a),(int)netrue,double2);
+	dmumps_par->nz_alloc = (int)netrue;
+    if (dmumps_par->nz_alloc != netrue)
+        mexErrMsgTxt("Input is too big; will not work...barfing out\n");
       }
 
 
@@ -303,35 +309,38 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 	   format of the matrix between the 2 calls */
 	if(doanal){ 
 	  /* || dmumps_par->info[22] == 0 */
-	  for(i=0;i<n;i++){
+	  for(i=0;i<dmumps_par->n;i++){
 	    for(j=jcn_in[i];j<jcn_in[i+1];j++){
 	      (dmumps_par->jcn)[j] = i+1;
-	      (dmumps_par->irn)[j] = irn_in[j]+1;
+	      (dmumps_par->irn)[j] = ((int)irn_in[j])+1;
 	    }
 	  }
 	}
+    dmumps_par->nz = (int)ne;
+    if( dmumps_par->nz != ne)
+        mexErrMsgTxt("Input is too big; will not work...barfing out\n");
 #if MUMPS_ARITH == MUMPS_ARITH_z
 	ptr_matlab = mxGetPr(A_IN);
-	for(i=0;i<ne;i++){                                                   
+	for(i=0;i<dmumps_par->nz;i++){                                                   
 	  ((dmumps_par->a)[i]).r = ptr_matlab[i];
 	}
 	ptr_matlab = mxGetPi(A_IN);
 	if(ptr_matlab){
-	  for(i=0;i<ne;i++){                                                   
+	  for(i=0;i<dmumps_par->nz;i++){                                                   
 	    ((dmumps_par->a)[i]).i = ptr_matlab[i];
 	  }
 	}else{
-	  for(i=0;i<ne;i++){                                                   
+	  for(i=0;i<dmumps_par->nz;i++){                                                   
 	    ((dmumps_par->a)[i]).i = 0.0;
 	  }
 	}
 #else
 	ptr_matlab = mxGetPr(A_IN);
-	for(i=0;i<ne;i++){                                                   
+	for(i=0;i<dmumps_par->nz;i++){                                                   
 	  (dmumps_par->a)[i] = ptr_matlab[i];
 	}
 #endif
-	dmumps_par->nz = ne;
+	
       }else{
 	/* in the symmetric case we do not need to check doanal */
 	pos = 0;
@@ -339,13 +348,13 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 #if MUMPS_ARITH == MUMPS_ARITH_z
 	ptri_matlab = mxGetPi(A_IN);
 #endif
-	for(i=0;i<n;i++){
+	for(i=0;i<dmumps_par->n;i++){
 	  for(j=jcn_in[i];j<jcn_in[i+1];j++){
 	    if(irn_in[j] >= i){
-	      if(pos >= netrue){
-		mexErrMsgTxt ("Input matrix must be symmetric");}
+	      if(pos >= netrue)
+              mexErrMsgTxt("Input matrix must be symmetric");
 	      (dmumps_par->jcn)[pos] = i+1;
-	      (dmumps_par->irn)[pos] = irn_in[j]+1;
+	      (dmumps_par->irn)[pos] = (int)irn_in[j]+1;
 #if MUMPS_ARITH == MUMPS_ARITH_z
 	      ((dmumps_par->a)[pos]).r = ptr_matlab[j];
 	      if(ptri_matlab){
@@ -367,12 +376,12 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
       EXTRACT_FROM_MATLAB_TOVAL(JOB,dmumps_par->job);
       EXTRACT_FROM_MATLAB_TOARR(ICNTL,dmumps_par->icntl,int,40);
       EXTRACT_FROM_MATLAB_TOARR(CNTL,dmumps_par->cntl,double,15);
-      EXTRACT_FROM_MATLAB_TOPTR(PERM_IN,(dmumps_par->perm_in),int,n);
+      EXTRACT_FROM_MATLAB_TOPTR(PERM_IN,(dmumps_par->perm_in),int,((int)n));
 
-      EXTRACT_FROM_MATLAB_TOPTR(COLSCA,(dmumps_par->colsca),double,n);
-      EXTRACT_FROM_MATLAB_TOPTR(ROWSCA,(dmumps_par->rowsca),double,n);
+      EXTRACT_FROM_MATLAB_TOPTR(COLSCA,(dmumps_par->colsca),double,((int)n));
+      EXTRACT_FROM_MATLAB_TOPTR(ROWSCA,(dmumps_par->rowsca),double,((int)n));
 
-      dmumps_par->size_schur = mxGetN(VAR_SCHUR);
+      dmumps_par->size_schur = (int)mxGetN(VAR_SCHUR);
       EXTRACT_FROM_MATLAB_TOPTR(VAR_SCHUR,(dmumps_par->listvar_schur),int,dmumps_par->size_schur);
       if(!dmumps_par->listvar_schur) dmumps_par->size_schur = 0;
 
@@ -407,7 +416,7 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 	 }
       if (donullspace) {
         nbrhs=dmumps_par->nrhs; ldrhs=n;
-	dmumps_par->lrhs=n;
+	dmumps_par->lrhs=(int)n;
 	MYMALLOC((dmumps_par->rhs),((dmumps_par->n)*(dmumps_par->nrhs)),double2);
          }
       else if((!dosolve) || ptr_matlab[0] == -9999 ) { /* rhs not already provided, or not used */
@@ -419,14 +428,14 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
       }else{
 	nbrhs = mxGetN(RHS);
 	ldrhs = mxGetM(RHS);
-	dmumps_par->nrhs = nbrhs;
-	dmumps_par->lrhs = ldrhs;
+	dmumps_par->nrhs = (int)nbrhs;
+	dmumps_par->lrhs = (int)ldrhs;
 	if(ldrhs != n){
 	  mexErrMsgTxt ("Incompatible number of rows in RHS");
 	}
 	if (!mxIsSparse(RHS)){ /* full rhs */
 	  dmumps_par->icntl[19] = 0;
-	  EXTRACT_CMPLX_FROM_MATLAB_TOPTR(RHS,(dmumps_par->rhs),double,(nbrhs*ldrhs));
+	  EXTRACT_CMPLX_FROM_MATLAB_TOPTR(RHS,(dmumps_par->rhs),double,(int)( dmumps_par->nrhs*ldrhs));
 	}else{ /* sparse rhs */
 	  /* printf("sparse RHS ldrhs = %d nrhs = %d\n",ldrhs,nbrhs); */
 	  dmumps_par->icntl[19] = 1;
@@ -438,35 +447,35 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 #endif
 
 	  nz_rhs = irhs_ptr[nbrhs];
-	  dmumps_par->nz_rhs = nz_rhs;
+	  dmumps_par->nz_rhs = (int)nz_rhs;
 
-	  MYMALLOC((dmumps_par->irhs_ptr),(nbrhs+1),int);
-	  MYMALLOC((dmumps_par->irhs_sparse),nz_rhs,int);
-	  MYMALLOC((dmumps_par->rhs_sparse),nz_rhs,double2);
+	  MYMALLOC((dmumps_par->irhs_ptr),(dmumps_par->nrhs+1),int);
+	  MYMALLOC((dmumps_par->irhs_sparse), dmumps_par->nz_rhs,int);
+	  MYMALLOC((dmumps_par->rhs_sparse), dmumps_par->nz_rhs,double2);
           /* dmumps_par->rhs will store the solution*/
-	  MYMALLOC((dmumps_par->rhs),(nbrhs*ldrhs),double2);
+	  MYMALLOC((dmumps_par->rhs),((dmumps_par->nrhs*dmumps_par->lrhs)),double2);
 
-	  for(i=0;i<nbrhs;i++){
+	  for(i=0;i< dmumps_par->nrhs;i++){
 	    for(j=irhs_ptr[i];j<irhs_ptr[i+1];j++){
 	      (dmumps_par->irhs_sparse)[j] = irhs_sparse[j]+1;
 	    }
 	    (dmumps_par->irhs_ptr)[i] = irhs_ptr[i]+1;
 	  }
-	  (dmumps_par->irhs_ptr)[nbrhs] = nz_rhs+1;
+	  (dmumps_par->irhs_ptr)[dmumps_par->nrhs] = dmumps_par->nz_rhs+1;
 #if MUMPS_ARITH == MUMPS_ARITH_z
 	  if(im_rhs_sparse){
-	    for(i=0;i<nz_rhs;i++){                                                   
+	    for(i=0;i<dmumps_par->nz_rhs;i++){                                                   
 	      ((dmumps_par->rhs_sparse)[i]).r = rhs_sparse[i];
 	      ((dmumps_par->rhs_sparse)[i]).i = im_rhs_sparse[i];
 	    }
 	  }else{
-	    for(i=0;i<nz_rhs;i++){                                                   
+	    for(i=0;i<dmumps_par->nz_rhs;i++){                                                   
 	      ((dmumps_par->rhs_sparse)[i]).r = rhs_sparse[i];
 	      ((dmumps_par->rhs_sparse)[i]).i = 0.0;
 	    }
 	  }
 #else
-	  for(i=0;i<nz_rhs;i++){                                                   
+	  for(i=0;i<dmumps_par->nz_rhs;i++){                                                   
 	    (dmumps_par->rhs_sparse)[i] = rhs_sparse[i];
 	  }
 #endif
@@ -488,7 +497,7 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
             if (tmp_m != dmumps_par->size_schur || tmp_n != dmumps_par->nrhs) {
               mexErrMsgTxt ("bad dimensions for REDRHS in mumpsmex.c");
             }
-            EXTRACT_CMPLX_FROM_MATLAB_TOPTR(REDRHS_IN,(dmumps_par->redrhs),double,tmp_m*tmp_n);
+            EXTRACT_CMPLX_FROM_MATLAB_TOPTR(REDRHS_IN,(dmumps_par->redrhs),double,((int)tmp_m*tmp_n));
             dmumps_par->lredrhs=dmumps_par->size_schur;
           }
           if ( dmumps_par->icntl[26-1] == 1 ) {
@@ -504,25 +513,25 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
   }
   if(nlhs > 0){
     EXTRACT_FROM_C_TO_MATLAB( INFO_OUT  ,(dmumps_par->infog),40);
-    EXTRACT_FROM_C_TO_MATLAB( RINFO_OUT ,(dmumps_par->rinfog),20);
+    EXTRACT_FROM_C_TO_MATLAB( RINFO_OUT ,(dmumps_par->rinfog),40);
     if(dmumps_par->rhs && dosolve){
       /* nbrhs may not have been set (case of null space) */
       nbrhs=dmumps_par->nrhs;
-      RHS_OUT = mxCreateDoubleMatrix (n,nbrhs,mxREAL2);
+      RHS_OUT = mxCreateDoubleMatrix (dmumps_par->n,dmumps_par->nrhs,mxREAL2);
       ptr_matlab = mxGetPr (RHS_OUT);
 #if MUMPS_ARITH == MUMPS_ARITH_z
       ptri_matlab = mxGetPi (RHS_OUT);
-      for(j=0;j<nbrhs;j++){
-	posrhs = j*n;
-	for(i=0;i<n;i++){
+      for(j=0;j<dmumps_par->nrhs;j++){
+	posrhs = j*(int)n;
+	for(i=0;i<dmumps_par->n;i++){
 	  ptr_matlab[posrhs+i]= (dmumps_par->rhs)[posrhs+i].r;	
 	  ptri_matlab[posrhs+i]= (dmumps_par->rhs)[posrhs+i].i;		
 	}              
       }
 #else
-      for(j=0;j<nbrhs;j++){
-	posrhs = j*n;
-	for(i=0;i<n;i++){
+      for(j=0;j<dmumps_par->nrhs;j++){
+	posrhs = j*dmumps_par->n;
+	for(i=0;i<dmumps_par->n;i++){
 	  ptr_matlab[posrhs+i]= (dmumps_par->rhs)[posrhs+i];	
 	}              
       }
@@ -535,8 +544,8 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
     inst_address = (size_t) ptr_int;
     EXTRACT_FROM_C_TO_MATLAB( INST_OUT   ,&inst_address,1); 
     EXTRACT_FROM_C_TO_MATLAB( PIVNUL_LIST ,dmumps_par->pivnul_list,dmumps_par->infog[27]);
-    EXTRACT_FROM_C_TO_MATLAB( PERM_OUT   ,dmumps_par->sym_perm,n);
-    EXTRACT_FROM_C_TO_MATLAB( UNS_PERM   ,dmumps_par->uns_perm,n);
+    EXTRACT_FROM_C_TO_MATLAB( PERM_OUT   ,dmumps_par->sym_perm,dmumps_par->n);
+    EXTRACT_FROM_C_TO_MATLAB( UNS_PERM   ,dmumps_par->uns_perm,dmumps_par->n);
     EXTRACT_FROM_C_TO_MATLAB( ICNTL_OUT   ,dmumps_par->icntl,40);
     EXTRACT_FROM_C_TO_MATLAB( CNTL_OUT   ,dmumps_par->cntl,15);
 

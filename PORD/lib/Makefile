@@ -19,10 +19,10 @@ OBJS = graph.o gbipart.o gbisect.o ddcreate.o ddbisect.o nestdiss.o \
 # original SPACE package.
 
 .c.o:
-	$(CC) $(COPTIONS) -c $*.c
+	$(CC) $(COPTIONS) -c $*.c $(OUTC)$*.o
 
-libpord.a:	$(OBJS)
-	$(AR) $(ARFUNCT) $@ $(OBJS)
+libpord$(LIBEXT):$(OBJS)
+	$(AR)$@ $(OBJS)
 	$(RANLIB) $@
 
 clean:

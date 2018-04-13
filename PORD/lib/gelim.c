@@ -759,7 +759,7 @@ findIndNodes(gelim_t *Gelim, int *reachset, int nreach, int *bin, int *next,
 ******************************************************************************/
 void
 updateDegree(gelim_t *Gelim, int *reachset, int nreach, int *bin)
-{ int *xadj, *adjncy, *vwght, *len, *elen, *degree, *score;
+{ int *xadj, *adjncy, *vwght, *len, *elen, *degree;
   int totvwght, deg, vwghtv, u, v, w, e, me, r, i, istart, istop;
   int j, jstart, jstop;
 
@@ -770,7 +770,6 @@ updateDegree(gelim_t *Gelim, int *reachset, int nreach, int *bin)
   len = Gelim->len;
   elen = Gelim->elen;
   degree = Gelim->degree;
-  score = Gelim->score;
 
   /* -------------------------------------------------------------------
      degree update only for those vertices in reachset that are adjacent

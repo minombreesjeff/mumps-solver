@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+#  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 #
 topdir = .
 libdir = $(topdir)/lib
@@ -51,7 +51,7 @@ zexamples:	z
 	(cd examples ; $(MAKE) z)
 
 
-requiredobj: Makefile.inc $(LIBSEQNEEDED) $(libdir)/libpord$(PLAT).a
+requiredobj: Makefile.inc $(LIBSEQNEEDED) $(libdir)/libpord$(PLAT)$(LIBEXT)
 
 # dummy MPI library (sequential version)
 
@@ -59,19 +59,19 @@ libseqneeded:
 	(cd libseq; $(MAKE))
 
 # Build the libpord.a library and copy it into $(topdir)/lib
-$(libdir)/libpord$(PLAT).a:
+$(libdir)/libpord$(PLAT)$(LIBEXT):
 	if [ "$(LPORDDIR)" != "" ] ; then \
 	  cd $(LPORDDIR); \
-	  $(MAKE) CC="$(CC)" CFLAGS="$(OPTC)" AR="$(AR)" ARFUNCT= RANLIB="$(RANLIB)"; \
+	  $(MAKE) CC="$(CC)" CFLAGS="$(OPTC)" AR="$(AR)" RANLIB="$(RANLIB)" OUTC=$(OUTC) LIBEXT=$(LIBEXT); \
 	fi;
 	if [ "$(LPORDDIR)" != "" ] ; then \
-	  cp $(LPORDDIR)/libpord.a $@; \
+	  cp $(LPORDDIR)/libpord$(LIBEXT) $@; \
 	fi;
 
 clean:
 	(cd src; $(MAKE) clean)
 	(cd examples; $(MAKE) clean)
-	(cd $(libdir); $(RM) *$(PLAT).a)
+	(cd $(libdir); $(RM) *$(PLAT)$(LIBEXT))
 	(cd libseq; $(MAKE) clean)
 	if [ $(LPORDDIR) != "" ] ; then \
 	  cd $(LPORDDIR); $(MAKE) realclean; \

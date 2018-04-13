@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+#  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 #
 topdir = ..
 libdir = $(topdir)/lib
@@ -19,57 +19,57 @@ z:	zsimpletest
 
 include $(topdir)/Makefile.inc
 
-LIBMUMPS_COMMON = $(libdir)/libmumps_common$(PLAT).a
+LIBMUMPS_COMMON = $(libdir)/libmumps_common$(PLAT)$(LIBEXT)
 
 
-LIBSMUMPS = $(libdir)/libsmumps$(PLAT).a $(LIBMUMPS_COMMON)
+LIBSMUMPS = $(libdir)/libsmumps$(PLAT)$(LIBEXT) $(LIBMUMPS_COMMON)
 
-ssimpletest:  $(LIBSMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) ssimpletest.o $(LIBSMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
-
-
-LIBDMUMPS = $(libdir)/libdmumps$(PLAT).a $(LIBMUMPS_COMMON)
-
-dsimpletest: $(LIBDMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) dsimpletest.o $(LIBDMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
+ssimpletest:  $(LIBSMUMPS)  $$@.o
+	$(FL) -o $@ $(OPTL) ssimpletest.o  $(LIBSMUMPS) $(LORDERINGS) $(LIBS) $(LIBBLAS) $(LIBOTHERS)
 
 
-LIBCMUMPS = $(libdir)/libcmumps$(PLAT).a $(LIBMUMPS_COMMON)
+LIBDMUMPS = $(libdir)/libdmumps$(PLAT)$(LIBEXT) $(LIBMUMPS_COMMON)
 
-csimpletest: $(LIBCMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) csimpletest.o $(LIBCMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
+dsimpletest: $(LIBDMUMPS)  $$@.o 
+	$(FL) -o $@ $(OPTL) dsimpletest.o  $(LIBDMUMPS) $(LORDERINGS) $(LIBS) $(LIBBLAS) $(LIBOTHERS)
 
 
-LIBZMUMPS = $(libdir)/libzmumps$(PLAT).a $(LIBMUMPS_COMMON)
+LIBCMUMPS = $(libdir)/libcmumps$(PLAT)$(LIBEXT) $(LIBMUMPS_COMMON)
 
-zsimpletest: $(LIBZMUMPS) $$@.o 
-	$(FL) -o $@ $(OPTL) zsimpletest.o $(LIBZMUMPS)  $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
+csimpletest: $(LIBCMUMPS)  $$@.o
+	$(FL) -o $@ $(OPTL) csimpletest.o  $(LIBCMUMPS) $(LORDERINGS) $(LIBS) $(LIBBLAS) $(LIBOTHERS)
+
+
+LIBZMUMPS = $(libdir)/libzmumps$(PLAT)$(LIBEXT) $(LIBMUMPS_COMMON)
+
+zsimpletest: $(LIBZMUMPS)  $$@.o
+	$(FL) -o $@ $(OPTL) zsimpletest.o  $(LIBZMUMPS) $(LORDERINGS) $(LIBS) $(LIBBLAS) $(LIBOTHERS)
 
 
 c_example:	$(LIBDMUMPS) $$@.o
-	$(FL) -o $@ $(OPTL) $@.o $(LIBDMUMPS) $(LORDERINGS) $(LIB) $(LIBBLAS) $(LIBOTHERS)
+	$(FL) -o $@ $(OPTL) $@.o $(LIBDMUMPS) $(LORDERINGS) $(LIBS) $(LIBBLAS) $(LIBOTHERS)
 
 
 .SUFFIXES: .c .F .o
 .F.o:
-	$(FC) $(OPTF) $(INC) -I. -I$(topdir)/include -c $*.F
+	$(FC) $(OPTF) $(INCS) -I. -I$(topdir)/include -c $*.F $(OUTF)$*.o
 .c.o:
-	$(CC) $(OPTC) $(INC) -I. -I$(topdir)/include -c $*.c
+	$(CC) $(OPTC) $(INCS) -I. -I$(topdir)/include -c $*.c $(OUTC)$*.o
 
 
-$(libdir)/libsmumps$(PLAT).a:
+$(libdir)/libsmumps$(PLAT)$(LIBEXT):
 	@echo 'Error: you should build the library' $@ 'first'
 	exit -1
 
-$(libdir)/libdmumps$(PLAT).a:
+$(libdir)/libdmumps$(PLAT)$(LIBEXT):
 	@echo 'Error: you should build the library' $@ 'first'
 	exit -1
 
-$(libdir)/libcmumps$(PLAT).a:
+$(libdir)/libcmumps$(PLAT)$(LIBEXT):
 	@echo 'Error: you should build the library' $@ 'first'
 	exit -1
 
-$(libdir)/libzmumps$(PLAT).a:
+$(libdir)/libzmumps$(PLAT)$(LIBEXT):
 	@echo 'Error: you should build the library' $@ 'first'
 	exit -1
 

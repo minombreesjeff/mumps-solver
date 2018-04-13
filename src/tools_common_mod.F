@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -43,7 +51,7 @@ C
      &     STRING, MEMCNT, ERRCODE)
       INTEGER, POINTER    :: ARRAY(:)
       INTEGER             :: MINSIZE, LP
-      INTEGER             :: INFO(*)
+      INTEGER             :: INFO(:)
       LOGICAL, OPTIONAL   :: FORCE
       LOGICAL, OPTIONAL   :: COPY
       CHARACTER, OPTIONAL :: STRING*(*)
@@ -51,9 +59,9 @@ C
       END SUBROUTINE MUMPS_754
       SUBROUTINE MUMPS_752(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
-      REAL(KIND(1.D0)), POINTER    :: ARRAY(:)
+      REAL(kind(1.D0)), POINTER    :: ARRAY(:)
       INTEGER             :: MINSIZE, LP
-      INTEGER             :: INFO(*)
+      INTEGER             :: INFO(:)
       LOGICAL, OPTIONAL   :: FORCE
       LOGICAL, OPTIONAL   :: COPY
       CHARACTER, OPTIONAL :: STRING*(*)
@@ -61,9 +69,9 @@ C
       END SUBROUTINE MUMPS_752
       SUBROUTINE MUMPS_750(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
-      REAL(KIND(1.E0)), POINTER    :: ARRAY(:)
+      REAL(kind(1.E0)), POINTER    :: ARRAY(:)
       INTEGER             :: MINSIZE, LP
-      INTEGER             :: INFO(*)
+      INTEGER             :: INFO(:)
       LOGICAL, OPTIONAL   :: FORCE
       LOGICAL, OPTIONAL   :: COPY
       CHARACTER, OPTIONAL :: STRING*(*)
@@ -71,9 +79,9 @@ C
       END SUBROUTINE MUMPS_750
       SUBROUTINE MUMPS_753(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
-      COMPLEX(KIND((1.D0,1.D0))), POINTER    :: ARRAY(:)
+      COMPLEX(kind((1.D0,1.D0))), POINTER    :: ARRAY(:)
       INTEGER             :: MINSIZE, LP
-      INTEGER             :: INFO(*)
+      INTEGER             :: INFO(:)
       LOGICAL, OPTIONAL   :: FORCE
       LOGICAL, OPTIONAL   :: COPY
       CHARACTER, OPTIONAL :: STRING*(*)
@@ -81,9 +89,9 @@ C
       END SUBROUTINE MUMPS_753
       SUBROUTINE MUMPS_751(ARRAY, MINSIZE, INFO, LP, FORCE, COPY,
      &     STRING, MEMCNT, ERRCODE)
-      COMPLEX(KIND((1.E0,1.E0))), POINTER    :: ARRAY(:)
+      COMPLEX(kind((1.E0,1.E0))), POINTER    :: ARRAY(:)
       INTEGER             :: MINSIZE, LP
-      INTEGER             :: INFO(*)
+      INTEGER             :: INFO(:)
       LOGICAL, OPTIONAL   :: FORCE
       LOGICAL, OPTIONAL   :: COPY
       CHARACTER, OPTIONAL :: STRING*(*)

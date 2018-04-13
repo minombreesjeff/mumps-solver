@@ -1,16 +1,24 @@
 C
-C  This file is part of MUMPS 4.9.2, built on Thu Nov  5 07:05:08 UTC 2009
+C  This file is part of MUMPS 4.10.0, built on Tue May 10 12:56:32 UTC 2011
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
-C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
-C  IRIT, and INRIA.
+C  European project PARASOL (1996-1999). Since this first public domain
+C  version in 1999, research and developments have been supported by the
+C  following institutions: CERFACS, CNRS, ENS Lyon, INPT(ENSEEIHT)-IRIT,
+C  INRIA, and University of Bordeaux.
 C
-C  Current development team includes Patrick Amestoy, Alfredo Buttari,
-C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
+C  The MUMPS team at the moment of releasing this version includes
+C  Patrick Amestoy, Maurice Bremond, Alfredo Buttari, Abdou Guermouche,
+C  Guillaume Joslin, Jean-Yves L'Excellent, Francois-Henry Rouet, Bora
+C  Ucar and Clement Weisbecker.
+C
+C  We are also grateful to Emmanuel Agullo, Caroline Bousquet, Indranil
+C  Chowdhury, Philippe Combes, Christophe Daniel, Iain Duff, Vincent Espirat,
+C  Aurelia Fevre, Jacko Koster, Stephane Pralet, Chiara Puglisi, Gregoire
+C  Richard, Tzvetomila Slavova, Miroslav Tuma and Christophe Voemel who
+C  have been contributing to this project.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -68,8 +76,8 @@ C
       INTEGER,SAVE :: MAX_PREF_SIZE
 #endif
      &     ,NB_CALLED,REQ_ACT,NB_CALL
-      INTEGER*8, SAVE :: OOC_VADDR_PTR
-      INTEGER*8, SAVE :: SIZE_ZONE_REQ
+      INTEGER(8), SAVE :: OOC_VADDR_PTR
+      INTEGER(8), SAVE :: SIZE_ZONE_REQ
       DOUBLE PRECISION,SAVE :: MAX_OOC_FILE_SIZE
       INTEGER(8), DIMENSION(:), ALLOCATABLE :: SIZE_OF_READ, READ_DEST
       INTEGER,DIMENSION(:),ALLOCATABLE :: FIRST_POS_IN_READ,
@@ -84,7 +92,7 @@ C
      &     DMUMPS_577,
      &     DMUMPS_578,
      &     DMUMPS_579,
-     &     DMUMPS_581,DMUMPS_582,
+     &     DMUMPS_582,
      &     DMUMPS_583,DMUMPS_584,
      &     DMUMPS_585,DMUMPS_586
          INTEGER, PARAMETER, PUBLIC :: TYPEF_BOTH_LU = -99976
@@ -155,9 +163,7 @@ C
       INTEGER K211_LOC
       ICNTL1=id%ICNTL(1)
       MAX_SIZE_FACTOR_OOC=0_8
-      OOC_FCT_TYPE=1
       N_OOC=id%N
-      IS_INIT_CALLED=.TRUE.
       ASYNC=0
       SOLVE=.FALSE.
       IERR=0
@@ -195,6 +201,11 @@ C
          id%INFO(1) = IERR
          id%INFO(2) = 0
          RETURN
+      ENDIF
+      CALL MUMPS_796(TYPEF_L, TYPEF_U, TYPEF_CB,
+     &     id%KEEP(201), id%KEEP(251), id%KEEP(50), TYPEF_INVALID )
+      IF (id%KEEP(201).EQ.2) THEN
+        OOC_FCT_TYPE=1
       ENDIF
       STEP_OOC=>id%STEP
       PROCNODE_OOC=>id%PROCNODE_STEPS
@@ -277,8 +288,9 @@ C
       FILE_FLAG_TAB(1:OOC_NB_FILE_TYPE)=0
       IERR=0
       TMP=int(id%KEEP8(11)/1000000_8,kind=4)+1
-      IF((id%KEEP(201).EQ.1).AND.(id%KEEP(50).EQ.0))THEN
-         TMP=MAX(1,TMP/2)
+      IF((id%KEEP(201).EQ.1).AND.(id%KEEP(50).EQ.0)
+     &   ) THEN
+         TMP=max(1,TMP/2)
       ENDIF
       CALL MUMPS_LOW_LEVEL_INIT_OOC_C(MYID_OOC,TMP,
      &     id%KEEP(35),LOW_LEVEL_STRAT_IO,K211_LOC,OOC_NB_FILE_TYPE,
@@ -302,10 +314,10 @@ C
       IMPLICIT NONE
       INTEGER INODE,KEEP(500)
       INTEGER(8) :: LA
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER(8) :: PTRFAC(KEEP(28)), SIZE
       DOUBLE PRECISION A(LA)
-      INTEGER IERR,I,FLAG,NODE,ASYNC,REQUEST
+      INTEGER IERR,NODE,ASYNC,REQUEST
       LOGICAL IO_C
       INTEGER ADDR_INT1,ADDR_INT2
       INTEGER TYPE
@@ -413,10 +425,13 @@ C
      &  )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
-      INTEGER IERR,INODE,STATUS
+      INTEGER IERR,INODE
       DOUBLE PRECISION DEST
-      INTEGER FLAG,NODE,ASYNC,REQUEST
+      INTEGER ASYNC
       LOGICAL IO_C
+#if defined(OLD_READ)
+      INTEGER REQUEST
+#endif
       INTEGER ADDR_INT1,ADDR_INT2
       INTEGER TYPE
       INTEGER SIZE_INT1,SIZE_INT2
@@ -637,9 +652,9 @@ C
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       TYPE(DMUMPS_STRUC), TARGET :: id
-      INTEGER TMP,TMP_SIZE,I,J
+      INTEGER TMP,I,J
       INTEGER(8) :: TMP_SIZE8
-      INTEGER ZONE,INODE,SIZE,allocok,IERR,ASYNC
+      INTEGER allocok,IERR
       EXTERNAL MUMPS_275
       INTEGER MUMPS_275
       INTEGER MASTER_ROOT
@@ -728,6 +743,8 @@ C
       IF(associated(OOC_INODE_SEQUENCE))THEN
          NULLIFY(OOC_VADDR)
       ENDIF
+      CALL MUMPS_796(TYPEF_L, TYPEF_U, TYPEF_CB,
+     &     id%KEEP(201), id%KEEP(251), id%KEEP(50), TYPEF_INVALID )
       DIM_ERR_STR_OOC = ERR_STR_OOC_MAX_LEN
       CALL MUMPS_LOW_LEVEL_INIT_ERR_STR(DIM_ERR_STR_OOC,ERR_STR_OOC)
       CALL DMUMPS_614(id)
@@ -746,7 +763,7 @@ C
      &     stat=allocok)
       IF (allocok .GT. 0) THEN
          IF (ICNTL1.GT.0)
-     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_INIT_OOC'
+     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_586'
          id%INFO(1) = -13
          id%INFO(2) = id%KEEP(28)
          RETURN
@@ -813,7 +830,7 @@ C
      &     stat=allocok)
       IF (allocok .GT. 0) THEN
          IF (ICNTL1.GT.0)
-     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_INIT_OOC_SOLVE'
+     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_586'
          id%INFO(1) = -13
          id%INFO(2) = 9*(NB_Z+1)
          RETURN
@@ -831,7 +848,7 @@ C
       REQ_ID=-9999
       IF (allocok .GT. 0) THEN
          IF (ICNTL1.GT.0)
-     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_INIT_OOC_SOLVE'
+     &   WRITE(ICNTL1,*) 'PB allocation in DMUMPS_586'
          id%INFO(1) = -13
          id%INFO(2) = 6*(NB_Z+1)
          RETURN
@@ -871,12 +888,14 @@ C
       REQ_ACT=0
       OOC_STATE_NODE(1:KEEP_OOC(28))=NOT_IN_MEM
       IF(KEEP_OOC(38).NE.0)THEN
-         MASTER_ROOT=MUMPS_275(STEP_OOC( KEEP_OOC(38)),
-     &        PROCNODE_OOC, SLAVEF_OOC )
+         MASTER_ROOT=MUMPS_275(
+     &                  PROCNODE_OOC(STEP_OOC( KEEP_OOC(38))),
+     &                  SLAVEF_OOC )
          SPECIAL_ROOT_NODE=KEEP_OOC(38)
       ELSEIF(KEEP_OOC(20).NE.0)THEN
-         MASTER_ROOT=MUMPS_275(STEP_OOC( KEEP_OOC(20)),
-     &        PROCNODE_OOC, SLAVEF_OOC )
+         MASTER_ROOT=MUMPS_275(
+     &                  PROCNODE_OOC(STEP_OOC( KEEP_OOC(20))),
+     &                  SLAVEF_OOC )
          SPECIAL_ROOT_NODE=KEEP_OOC(20)
       ELSE
          MASTER_ROOT=-111111
@@ -935,7 +954,7 @@ C
       INTEGER(8) :: LA
       DOUBLE PRECISION A(LA)
       INTEGER(8) :: PTRFAC(NSTEPS)
-      INTEGER ZONE,SIZE,DEST,FLAG
+      INTEGER ZONE
       CALL DMUMPS_603(ZONE)
       IERR=0
       CALL DMUMPS_611(ZONE,A,LA,PTRFAC,NSTEPS,IERR)
@@ -991,9 +1010,8 @@ C
       INTEGER (8) :: PTRFAC(NSTEPS)
       INTEGER (8) :: LAST, POS_IN_S, J
       INTEGER ZONE
-      INTEGER POS,POS_REQ,I,TMP_NODE,POS_IN_MANAGE
+      INTEGER POS_REQ,I,TMP_NODE,POS_IN_MANAGE
       INTEGER (8) SIZE
-      INTEGER STATUS
       LOGICAL DONT_USE
       EXTERNAL MUMPS_330,MUMPS_275
       INTEGER MUMPS_330,MUMPS_275
@@ -1018,16 +1036,16 @@ C
             DONT_USE=
      &           (((MTYPE_OOC.EQ.1).AND.(KEEP_OOC(50).EQ.0).AND.
      &           (SOLVE_STEP.EQ.1).AND.
-     &           ((MUMPS_330(STEP_OOC(TMP_NODE),PROCNODE_OOC,
+     &           ((MUMPS_330(PROCNODE_OOC(STEP_OOC(TMP_NODE)),
      &           SLAVEF_OOC).EQ.2).AND.(MUMPS_275(
-     &           STEP_OOC(TMP_NODE),PROCNODE_OOC,SLAVEF_OOC).NE.
+     &           PROCNODE_OOC(STEP_OOC(TMP_NODE)),SLAVEF_OOC).NE.
      &           MYID_OOC)))
      &           .OR.
      &           ((MTYPE_OOC.NE.1).AND.(KEEP_OOC(50).EQ.0).AND.
      &           (SOLVE_STEP.EQ.0).AND.
-     &           ((MUMPS_330(STEP_OOC(TMP_NODE),PROCNODE_OOC,
+     &           ((MUMPS_330(PROCNODE_OOC(STEP_OOC(TMP_NODE)),
      &           SLAVEF_OOC).EQ.2).AND.(MUMPS_275(
-     &           STEP_OOC(TMP_NODE),PROCNODE_OOC,SLAVEF_OOC).NE.
+     &           PROCNODE_OOC(STEP_OOC(TMP_NODE)),SLAVEF_OOC).NE.
      &           MYID_OOC)))).OR.
      &           (OOC_STATE_NODE(STEP_OOC(TMP_NODE)).EQ.ALREADY_USED)
             IF(DONT_USE)THEN
@@ -1083,7 +1101,7 @@ C
       INTEGER(8) :: SIZE
       INTEGER(8) :: PTRFAC(NSTEPS)
       INTEGER(8) :: DEST, LOCAL_DEST, J8
-      INTEGER I,TMP_NUM_FILE,TMP_NODE,LOC_I,POS_REQ,NB
+      INTEGER I,TMP_NODE,LOC_I,POS_REQ,NB
       INTEGER(8)::LAST
       INTEGER, intent(out) :: IERR
       IERR=0
@@ -1245,9 +1263,8 @@ C
       INTEGER INODE,NSTEPS
       INTEGER(8) :: PTRFAC(NSTEPS)
       LOGICAL FLAG
-      INTEGER(8) FREE_SIZE, FREE_HOLE_POS
+      INTEGER(8) FREE_SIZE
       INTEGER TMP,TMP_NODE,I,ZONE,J, FREE_HOLE_FLAG
-      LOGICAL CONTIGUOUS
       INTEGER WHICH
       INTEGER(8) :: DUMMY_SIZE
       DUMMY_SIZE=1_8
@@ -1269,10 +1286,12 @@ C
       INODE_TO_POS(STEP_OOC(INODE))=-TMP
       POS_IN_MEM(TMP)=-INODE
       PTRFAC(STEP_OOC(INODE))=-PTRFAC(STEP_OOC(INODE))
-      IF(OOC_STATE_NODE(STEP_OOC(INODE)).NE.PERMUTED)THEN
+      IF (KEEP_OOC(237).eq.0) THEN
+       IF(OOC_STATE_NODE(STEP_OOC(INODE)).NE.PERMUTED)THEN
          WRITE(*,*)MYID_OOC,': INTERNAL ERROR (53) in OOC',INODE,
      &        OOC_STATE_NODE(STEP_OOC(INODE))
          CALL MUMPS_ABORT()
+       ENDIF
       ENDIF
       OOC_STATE_NODE(STEP_OOC(INODE))=USED
       LRLUS_SOLVE(ZONE)=LRLUS_SOLVE(ZONE)+
@@ -1300,9 +1319,8 @@ C
                WHICH=1
             ELSEIF(TMP.GT.POS_HOLE_B(ZONE))THEN
                WHICH=0
-            ENDIF         
+            ENDIF
          ENDIF
-#if ! defined (OLD_OOC_CODE)
          IF(WHICH.EQ.1)THEN
             J=max(PDEB_SOLVE_Z(ZONE),POS_HOLE_T(ZONE))
             J=min(J,PDEB_SOLVE_Z(ZONE)+MAX_NB_NODES_FOR_ZONE-1)
@@ -1341,51 +1359,6 @@ C
             POS_HOLE_B(ZONE)=TMP
  777        CONTINUE
          ENDIF
-#else
-         IF((TMP.EQ.CURRENT_POS_T(ZONE)-1).OR.
-     &        (TMP.EQ.POS_HOLE_T(ZONE)-1))THEN
-            J=max(PDEB_SOLVE_Z(ZONE),CURRENT_POS_T(ZONE))
-            FREE_SIZE=0
-            DO I=CURRENT_POS_T(ZONE)-1,PDEB_SOLVE_Z(ZONE),-1
-               IF((POS_IN_MEM(I).LT.0).AND.(POS_IN_MEM(I).GT.
-     &              -(N_OOC+1)*NB_Z))THEN
-                  TMP_NODE=-POS_IN_MEM(I)
-                  FREE_SIZE=FREE_SIZE+SIZE_OF_BLOCK(STEP_OOC(TMP_NODE),
-     &                 OOC_FCT_TYPE)
-               ELSEIF(POS_IN_MEM(I).NE.0)THEN
-                  GOTO 666
-               ENDIF
-               J=J-1
-            ENDDO
- 666        CONTINUE
-            POS_HOLE_T(ZONE)=max(J,PDEB_SOLVE_Z(ZONE))
-            IF(POS_HOLE_T(ZONE).EQ.PDEB_SOLVE_Z(ZONE))THEN
-               CURRENT_POS_B(ZONE)=-9999
-               POS_HOLE_B(ZONE)=-9999
-               LRLU_SOLVE_B(ZONE)=0
-            ENDIF
-         ELSEIF(TMP.GT.POS_HOLE_B(ZONE))THEN
-            J=max(POS_HOLE_B(ZONE),PDEB_SOLVE_Z(ZONE))
-            FREE_SIZE=0
-            DO I=TMP,J,-1
-               IF((POS_IN_MEM(I).LT.0).AND.(POS_IN_MEM(I).GT.
-     &              -(N_OOC+1)*NB_Z))THEN
-                  TMP_NODE=-POS_IN_MEM(I)
-                  FREE_SIZE=FREE_SIZE+SIZE_OF_BLOCK(STEP_OOC(TMP_NODE),
-     &                 OOC_FCT_TYPE)
-               ELSEIF(POS_IN_MEM(I).NE.0)THEN
-                  IF(J.EQ.PDEB_SOLVE_Z(ZONE))THEN
-                     POS_HOLE_B(ZONE)=-9999
-                     LRLU_SOLVE_B(ZONE)=0
-                  ENDIF
-                  GOTO 777
-               ENDIF
-            ENDDO
-         POS_HOLE_B(ZONE)=TMP
- 777     CONTINUE
-      ENDIF
-#endif
- 222  CONTINUE
       IERR=0
       ENDIF
       IF((NB_Z.GT.1).AND.FLAG)THEN
@@ -1412,7 +1385,6 @@ C
       DOUBLE PRECISION A(LA)
       INTEGER (8) :: PTRFAC(NSTEPS)
       INTEGER DMUMPS_726
-      INTEGER ZONE
       IERR=0
       IF(INODE_TO_POS(STEP_OOC(INODE)).GT.0)THEN
          IF(OOC_STATE_NODE(STEP_OOC(INODE)).EQ.PERMUTED)THEN
@@ -1470,10 +1442,13 @@ C
       SUBROUTINE DMUMPS_682(INODE)
       IMPLICIT NONE
       INTEGER INODE
-      IF(OOC_STATE_NODE(STEP_OOC(INODE)).NE.NOT_USED)THEN
+      IF ( (KEEP_OOC(237).EQ.0)
+     &     .AND. (KEEP_OOC(235).EQ.0) ) THEN
+       IF(OOC_STATE_NODE(STEP_OOC(INODE)).NE.NOT_USED)THEN
          WRITE(*,*)MYID_OOC,': INTERNAL ERROR (51) in OOC',INODE,
      &        OOC_STATE_NODE(STEP_OOC(INODE))
          CALL MUMPS_ABORT()
+       ENDIF
       ENDIF
       OOC_STATE_NODE(STEP_OOC(INODE))=PERMUTED
       END SUBROUTINE DMUMPS_682
@@ -1555,19 +1530,18 @@ C
       IMPLICIT NONE
       INTEGER INODE,KEEP(500)
       INTEGER, intent(out)::IERR
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER(8) :: PTRFAC(KEEP(28))
       DOUBLE PRECISION A(FACT_AREA_SIZE)
       INTEGER(8) :: REQUESTED_SIZE
       INTEGER ZONE,IFLAG
-      LOGICAL FLAG
       IERR=0
       IFLAG=0
       IF(SIZE_OF_BLOCK(STEP_OOC(INODE),OOC_FCT_TYPE)
      &     .EQ.0_8)THEN
          INODE_TO_POS(STEP_OOC(INODE))=1
          OOC_STATE_NODE(STEP_OOC(INODE))=NOT_USED
-         PTRFAC(STEP_OOC(INODE))=1
+         PTRFAC(STEP_OOC(INODE))=1_8
          RETURN
       ENDIF
       REQUESTED_SIZE=SIZE_OF_BLOCK(STEP_OOC(INODE),OOC_FCT_TYPE)
@@ -1672,7 +1646,6 @@ C
       DOUBLE PRECISION A(LA)
       INTEGER I,TMP_NODE,FREE_HOLE_FLAG, J
       INTEGER, intent(out)::IERR
-      LOGICAL FLAG_HOLE
       IERR=0
       FLAG=0
       IF(LRLU_SOLVE_T(ZONE).EQ.SIZE_SOLVE_Z(ZONE).AND.     
@@ -1964,12 +1937,10 @@ C
      &           KEEP,KEEP8, A,ZONE)
       IMPLICIT NONE
       INTEGER INODE,KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER(8) :: PTRFAC(KEEP(28))
       DOUBLE PRECISION A(FACT_AREA_SIZE)
-      INTEGER REQUESTED_SIZE
-      INTEGER ZONE,IFLAG
-      LOGICAL FLAG
+      INTEGER ZONE
       LRLU_SOLVE_T(ZONE)=LRLU_SOLVE_T(ZONE)-
      &     SIZE_OF_BLOCK(STEP_OOC(INODE),OOC_FCT_TYPE)
       LRLUS_SOLVE(ZONE)=LRLUS_SOLVE(ZONE)-
@@ -2007,12 +1978,10 @@ C
      &     A,ZONE)
       IMPLICIT NONE
       INTEGER INODE,KEEP(500)
-      INTEGER*8 KEEP8(150)
+      INTEGER(8) KEEP8(150)
       INTEGER(8) :: PTRFAC(KEEP(28))
       DOUBLE PRECISION A(FACT_AREA_SIZE)
-      INTEGER REQUESTED_SIZE
-      INTEGER ZONE,IFLAG,TMP_NODE
-      LOGICAL FLAG
+      INTEGER ZONE
       IF(POS_HOLE_B(ZONE).EQ.-9999)THEN
          WRITE(*,*)MYID_OOC,': Internal error (22) in OOC ',
      &        ' DMUMPS_607'
@@ -2053,7 +2022,7 @@ C
      &               FREE_HOLE_POS
       INTEGER J,I,TMP_NODE, NB_FREE, IPOS_FIRST_FREE
       INTEGER(8) :: K8, AREA_POINTER
-      INTEGER FREE_HOLE_FLAG,TMPP
+      INTEGER FREE_HOLE_FLAG
       IERR=0
       IF(LRLU_SOLVE_T(ZONE).EQ.SIZE_SOLVE_Z(ZONE))THEN
          RETURN
@@ -2212,7 +2181,6 @@ C
              IPOS_FIRST_FREE=IPOS_FIRST_FREE+1
          ENDIF
       ENDDO
- 777  CONTINUE
       LRLU_SOLVE_T(ZONE)=LRLU_SOLVE_T(ZONE)+SIZE_HOLE
       POSFAC_SOLVE(ZONE)=POSFAC_SOLVE(ZONE)-SIZE_HOLE
       CURRENT_POS_T(ZONE)=CURRENT_POS_T(ZONE)-NB_FREE
@@ -2255,10 +2223,6 @@ C
       ENDIF
       RETURN
       END SUBROUTINE DMUMPS_608
-      SUBROUTINE DMUMPS_581()
-      IMPLICIT NONE
-      IS_INIT_CALLED=.FALSE.
-      END SUBROUTINE DMUMPS_581
       SUBROUTINE DMUMPS_609(INODE,PTRFAC,NSTEPS,FLAG)
       IMPLICIT NONE
       INTEGER INODE,NSTEPS,FLAG
@@ -2328,8 +2292,6 @@ C
       INTEGER(8) :: NEEDED_SIZE
       INTEGER FLAG,TMP_FLAG,POS_SEQ,TMP_NODE,
      &     NB_NODES
-      EXTERNAL MUMPS_330,MUMPS_275
-      INTEGER MUMPS_330,MUMPS_275
       IERR=0
       TMP_FLAG=0
       FLAG=0
@@ -2428,9 +2390,6 @@ C
             FLAG=1
          ENDIF
       ENDIF
-#if defined (NEW_PREF_SCHEME)
-      DO WHILE (REQ_ACT.LE.MAX_NB_REQ)
-#endif         
       CALL DMUMPS_602(ZONE,SIZE,DEST,POS_SEQ,
      &     NB_NODES,FLAG,PTRFAC,NSTEPS)
       IF(SIZE.EQ.0_8)THEN
@@ -2444,9 +2403,6 @@ C
       IF(IERR.LT.0)THEN
          RETURN
       ENDIF
-#if defined (NEW_PREF_SCHEME)
-      ENDDO
-#endif
       END SUBROUTINE DMUMPS_611
       SUBROUTINE DMUMPS_602(ZONE,SIZE,DEST,POS_SEQ,
      &     NB_NODES,FLAG,PTRFAC,NSTEPS)
@@ -2454,7 +2410,7 @@ C
       INTEGER(8) :: SIZE, DEST
       INTEGER ZONE,FLAG,POS_SEQ,NSTEPS
       INTEGER(8) :: PTRFAC(NSTEPS), MAX_SIZE, LAST, J8
-      INTEGER I,TMP_NUM_FILE,START_NODE,K,TMP,MAX_NB,
+      INTEGER I,START_NODE,K,MAX_NB,
      &     NB_NODES
       INTEGER NB_NODES_LOC
       LOGICAL ALREADY
@@ -2764,12 +2720,47 @@ C
                         CALL MUMPS_ABORT()
                      ENDIF                     
                   ENDIF
+                 IF (KEEP_OOC(237).NE.0 .OR. KEEP_OOC(235).NE.0) 
+     &              THEN
+                  IF (OOC_STATE_NODE(STEP_OOC(J)).EQ.NOT_IN_MEM) THEN
+                     OOC_STATE_NODE(STEP_OOC(J)) = USED
+                     IF((SOLVE_STEP.NE.0).OR.(J.NE.SPECIAL_ROOT_NODE)
+     &                    .OR.(ZONE.NE.NB_Z))THEN
+                        CALL DMUMPS_599(J,PTRFAC,NSTEPS)
+                     ENDIF
+                     CYCLE
+                  ELSEIF(OOC_STATE_NODE(STEP_OOC(J)).EQ.ALREADY_USED)
+     &                    THEN
+                    COMPRESS_TO_BE_DONE         = .TRUE.
+                  ELSE
+                    WRITE(*,*)MYID_OOC,': Internal error Mila 4 ', 
+     &              ' wrong node status :', OOC_STATE_NODE(STEP_OOC(J)),
+     &              ' on node ', J
+                    CALL MUMPS_ABORT()
+                  ENDIF
+                 ENDIF
                  IF (KEEP_OOC(237).EQ.0 .AND. KEEP_OOC(235).EQ.0) THEN
                     CALL DMUMPS_599(J,PTRFAC,NSTEPS)
                  ENDIF
                ENDIF
             ENDIF 
       ENDDO
+         IF (KEEP_OOC(237).NE.0 .OR. KEEP_OOC(235).NE.0) 
+     &      THEN
+           IF (COMPRESS_TO_BE_DONE) THEN 
+             DO ZONE=1,NB_Z-1
+               CALL DMUMPS_608(A,LA,
+     &         DUMMY_SIZE,PTRFAC,
+     &         NSTEPS,ZONE,IERR)
+               IF (IERR .LT. 0) THEN
+                    WRITE(*,*)MYID_OOC,': Internal error Mila 5 ', 
+     &              ' IERR on return to DMUMPS_608 =', 
+     &              IERR
+                    CALL MUMPS_ABORT()
+               ENDIF
+             ENDDO
+           ENDIF
+         ENDIF
       RETURN
       END SUBROUTINE DMUMPS_612
       SUBROUTINE DMUMPS_583(PTRFAC,NSTEPS,MTYPE,
@@ -2781,18 +2772,14 @@ C
       DOUBLE PRECISION A(LA)
       INTEGER(8) :: PTRFAC(NSTEPS)
       LOGICAL DOPREFETCH
+      INTEGER MUMPS_808
+      EXTERNAL MUMPS_808
       IERR = 0
-      OOC_FCT_TYPE=1
-      OOC_SOLVE_TYPE_FCT=FCT
-      IF (KEEP_OOC(201).EQ.1) THEN
-       OOC_FCT_TYPE=1
-       OOC_SOLVE_TYPE_FCT=TYPEF_L-1
-      ENDIF
-      IF (KEEP_OOC(201).EQ.1) THEN
-       IF((MTYPE.NE.1).AND.(KEEP_OOC(50).EQ.0))THEN
-         OOC_SOLVE_TYPE_FCT=TYPEF_U-1
-         OOC_FCT_TYPE=2
-       ENDIF
+      OOC_FCT_TYPE=MUMPS_808("F",MTYPE,KEEP_OOC(201),
+     &                                    KEEP_OOC(50))
+      OOC_SOLVE_TYPE_FCT = OOC_FCT_TYPE - 1
+      IF (KEEP_OOC(201).NE.1) THEN
+        OOC_SOLVE_TYPE_FCT = FCT
       ENDIF
       SOLVE_STEP=0
       CUR_POS_SEQUENCE=1
@@ -2828,24 +2815,13 @@ C
       DOUBLE PRECISION A(LA)
       INTEGER(8) :: DUMMY_SIZE
       INTEGER ZONE
+      INTEGER MUMPS_808
+      EXTERNAL MUMPS_808
       IERR=0
-      OOC_FCT_TYPE=1
-      OOC_SOLVE_TYPE_FCT=FCT
-      IF (KEEP_OOC(201).EQ.1) THEN
-       IF(KEEP_OOC(50).EQ.0)THEN
-         OOC_SOLVE_TYPE_FCT=TYPEF_U-1
-         OOC_FCT_TYPE=2
-       ELSE
-         OOC_SOLVE_TYPE_FCT=TYPEF_L-1
-         OOC_FCT_TYPE=1
-       ENDIF
-      ENDIF
-      IF (KEEP_OOC(201).EQ.1) THEN
-       IF((MTYPE.NE.1).AND.(KEEP_OOC(50).EQ.0))THEN
-         OOC_FCT_TYPE=1
-         OOC_SOLVE_TYPE_FCT=TYPEF_L-1
-       ENDIF
-      ENDIF
+      OOC_FCT_TYPE=MUMPS_808("B",MTYPE,KEEP_OOC(201),
+     &                                    KEEP_OOC(50))
+      OOC_SOLVE_TYPE_FCT = OOC_FCT_TYPE - 1
+      IF (KEEP_OOC(201).NE.1) OOC_SOLVE_TYPE_FCT=FCT  
       SOLVE_STEP=1
       CUR_POS_SEQUENCE=TOTAL_NB_OOC_NODES(OOC_FCT_TYPE)
       MTYPE_OOC=MTYPE
@@ -2856,7 +2832,7 @@ C
      &  ) THEN
         CALL DMUMPS_612(PTRFAC,NSTEPS,A,LA)
         IF (I_WORKED_ON_ROOT) THEN
-          CALL DMUMPS_598( IROOT,
+          CALL DMUMPS_598 ( IROOT,
      &         PTRFAC, KEEP_OOC(28), A, LA,.FALSE.,IERR)
           IF (IERR .LT. 0) RETURN
           CALL DMUMPS_600(IROOT,
@@ -3044,25 +3020,22 @@ C
       USE DMUMPS_OOC_BUFFER
       IMPLICIT NONE
       INTEGER, intent(out) :: IERR
+      INTEGER I
       IERR=0
       IF(.NOT.WITH_BUF)THEN
          RETURN
       ENDIF
-      CALL DMUMPS_707(TYPEF_L_LOC,IERR)
-      IF (IERR < 0) RETURN
-      IF (KEEP_OOC(50).EQ.0) THEN
-         CALL DMUMPS_707(TYPEF_U_LOC,IERR)
-         IF (IERR < 0) RETURN
-      ENDIF
+      DO I=1,OOC_NB_FILE_TYPE
+         CALL DMUMPS_707(I,IERR)
+         IF (IERR < 0) RETURN         
+      ENDDO
       RETURN
       END SUBROUTINE DMUMPS_681
        SUBROUTINE DMUMPS_683(NSTEPS,
      &     KEEP38, KEEP20)
       IMPLICIT NONE
-      INTEGER MASTER
-      PARAMETER(MASTER=0)
       INTEGER NSTEPS
-      INTEGER I, TMPNODE, TMP, ZONE, J
+      INTEGER I, J
       INTEGER(8) :: TMP_SIZE8
       INTEGER KEEP38, KEEP20
       INODE_TO_POS = 0
@@ -3120,28 +3093,30 @@ C
       DOUBLE PRECISION, INTENT(IN) :: AFAC(LAFAC)
       INTEGER,   INTENT(INOUT) :: LNextPiv2beWritten, 
      &     UNextPiv2beWritten
-      INTEGER*8, INTENT(INOUT) :: FILESIZE
+      INTEGER(8), INTENT(INOUT) :: FILESIZE
       INTEGER,   INTENT(OUT) :: IERR
       LOGICAL,   INTENT(IN)  :: LAST_CALL
-      INTEGER(8) :: L_TailleEcrite, U_TailleEcrite
-      INTEGER(8) :: L_AddVirtNodeI8
-      INTEGER(8) :: U_AddVirtNodeI8
       INTEGER(8) :: TMPSIZE_OF_BLOCK
       INTEGER :: TempFTYPE
       LOGICAL WRITE_L, WRITE_U
       LOGICAL DO_U_FIRST
       INCLUDE 'mumps_headers.h'
       IERR = 0                  
-      WRITE_L =  (TYPEFile.EQ.TYPEF_BOTH_LU .OR. TYPEFile.EQ.TYPEF_L)
+      IF (KEEP_OOC(50).EQ.0 
+     &         .AND.KEEP_OOC(251).EQ.2) THEN 
+        WRITE_L = .FALSE.
+      ELSE
+        WRITE_L =  (TYPEFile.EQ.TYPEF_BOTH_LU .OR. TYPEFile.EQ.TYPEF_L)
+      ENDIF
       WRITE_U =  (TYPEFile.EQ.TYPEF_BOTH_LU .OR. TYPEFile.EQ.TYPEF_U)
       DO_U_FIRST = .FALSE.
       IF ( TYPEFile.EQ.TYPEF_BOTH_LU ) THEN
-         IF ( LNextPiv2bewritten .GT. UNextPiv2beWritten ) THEN
+         IF ( LNextPiv2beWritten .GT. UNextPiv2beWritten ) THEN
             DO_U_FIRST = .TRUE.
          END IF
       END IF
       IF (DO_U_FIRST) GOTO 200
- 100  IF (WRITE_L) THEN
+ 100  IF (WRITE_L .AND. TYPEF_L > 0 ) THEN
          TempFTYPE  = TYPEF_L
          IF ((MonBloc%Typenode.EQ.2).AND.(.NOT.MonBloc%MASTER)) 
      &        THEN
@@ -3161,7 +3136,7 @@ C
      &        TempFTYPE, AFAC, LAFAC, MonBloc,
      &        IERR,
      &        LNextPiv2beWritten, 
-     &        OOC_VADDR(STEP_OOC(MonBloc%INODE),TEMPFTYPE),
+     &        OOC_VADDR(STEP_OOC(MonBloc%INODE),TempFTYPE),
      &        SIZE_OF_BLOCK(STEP_OOC(MonBloc%INODE),TempFTYPE),
      &        FILESIZE, LAST_CALL )
          IF (IERR .LT. 0) RETURN
@@ -3173,7 +3148,7 @@ C
      &        TempFTYPE, AFAC, LAFAC, MonBloc,
      &        IERR,
      &        UNextPiv2beWritten,
-     &        OOC_VADDR(STEP_OOC(MonBloc%INODE),TEMPFTYPE),
+     &        OOC_VADDR(STEP_OOC(MonBloc%INODE),TempFTYPE),
      &        SIZE_OF_BLOCK(STEP_OOC(MonBloc%INODE),TempFTYPE),
      &        FILESIZE, LAST_CALL) 
          IF (IERR .LT. 0) RETURN
@@ -3249,7 +3224,7 @@ C
      &     TYPEF.EQ.TYPEF_U.AND.
      &     .NOT. MonBloc%MASTER ) THEN
          WRITE(*,*) 'Internal error in DMUMPS_695',
-     &   MonBloc%MASTER,MonBloc%TYPENODE, TYPEF
+     &   MonBloc%MASTER,MonBloc%Typenode, TYPEF
          CALL MUMPS_ABORT()
       ENDIF
       HOLE_PROCESSED_BEFORE_CALL  = (LorUSIZE_OF_BLOCK .LT. 0_8)
@@ -3375,14 +3350,14 @@ C
       IMPLICIT NONE
       INTEGER,       INTENT(IN) :: STRAT, TYPEF, SIZE_PANEL
       INTEGER(8)                :: LAFAC
-      INTEGER*8,     INTENT(IN) ::  AddVirtCour
+      INTEGER(8),     INTENT(IN) ::  AddVirtCour
       DOUBLE PRECISION, INTENT(IN) :: AFAC(LAFAC)
       INTEGER,       INTENT(INOUT) :: NextPiv2beWritten
       TYPE(IO_BLOCK),INTENT(INOUT) :: MonBloc   
       INTEGER(8),      INTENT(OUT) :: TailleEcrite
       INTEGER, INTENT(OUT)  :: IERR
       INTEGER   :: I, NBeff, LPANELeff, IEND
-      INTEGER*8 :: AddVirtDeb
+      INTEGER(8) :: AddVirtDeb
       IERR = 0
       TailleEcrite = 0_8
       AddVirtDeb   = AddVirtCour
@@ -3403,10 +3378,6 @@ C
          ENDIF
       ENDIF
       IEND   = I + NBeff -1
-#if defined(check_vaddr)
-      WRITE(*,*) MYID_OOC,": Writing to buffer",AddVirtDeb
-      WRITE(*,*) " TYPEF, I, IEND= ",TYPEF, I,IEND
-#endif
       CALL DMUMPS_653( STRAT, TYPEF, MonBloc,
      &     AFAC, LAFAC,
      &     AddVirtDeb, I, IEND, LPANELeff,
@@ -3441,7 +3412,7 @@ C
       INTEGER(8) :: TOTSIZE
       TOTSIZE = 0_8
       IF (NFSorNPIV.EQ.0) GOTO 100
-      IF (.NOT. MonBloc%MASTER .OR. MonBloc%TYPENODE.EQ.3) THEN
+      IF (.NOT. MonBloc%MASTER .OR. MonBloc%Typenode.EQ.3) THEN
         TOTSIZE = int(NFSorNPIV,8) * int(NNMAX,8)
       ELSE
         I = 1
@@ -3511,4 +3482,20 @@ C
       ENDIF
       RETURN
       END SUBROUTINE DMUMPS_728
+      SUBROUTINE DMUMPS_809(N,KEEP201,
+     &           Pruned_List,nb_prun_nodes,STEP)
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: N, KEEP201, nb_prun_nodes
+      INTEGER, INTENT(IN) :: STEP(N),
+     &                       Pruned_List(nb_prun_nodes)
+      INTEGER I, ISTEP
+      IF (KEEP201 .GT. 0) THEN
+        OOC_STATE_NODE(:) = ALREADY_USED  
+        DO I = 1, nb_prun_nodes
+          ISTEP = STEP(Pruned_List(I))
+          OOC_STATE_NODE(ISTEP) = NOT_IN_MEM 
+        ENDDO
+      ENDIF
+      RETURN
+      END SUBROUTINE DMUMPS_809
       END MODULE DMUMPS_OOC
