@@ -4,15 +4,12 @@
 
 
 //*********************** MATRIX INITIALISATION ***********************//
-// This matrix has to be a SciSparse, otherwise it won't work.
-	exec('ex2.sci');
-	//voir pour les speyes
-	mat=sparse(a);
-	n = size(mat,1);
-	
+	n=10;
+	mat=sprand(n,n,.5)+speye(n,n);
+        size_schur=3;
+
 // Right Hand side setting
 	RHS = ones(n,1);
-
 
 	
 //****************** Initialisation of the Scilab MUMPS structure ******************//
@@ -23,11 +20,9 @@ timer();
 [id]=dmumps(id);
 
 id.RHS=RHS;
-id.VAR_SCHUR = [n-4:n];
-themax = max(max(abs(mat)));
-mat = mat+sparse([1:n;1:n]',3*themax*ones(1,n));
+id.VAR_SCHUR = [n-size_schur+1:n];
 
-//******************** CALL TO MUMPS FOR RESOLUTION ********************//
+//******************** CALL TO MUMPS FOR RESOLUTION ON INTERNAL PROBLEM ************//
 job=6;
 id.JOB=job;
 
@@ -35,12 +30,36 @@ id.JOB=job;
 
 // verification of the solution
 solution=id.SOL;
-norm1=norm(mat(1:n-5,1:n-5)*solution(1:n-5) - ones(n-5,1),'inf');
+norm1=norm(mat(1:n-size_schur,1:n-size_schur)*solution(1:n-size_schur) - ones(n-size_schur,1),'inf');
 if norm1> 10^(-9) then
-	write(%io(2),'WARNING: precision may not be OK');
+	write(%io(2),'WARNING: solution on internal problem may not be OK');
 else
-	write(%io(2),'SCHUR SOLUTION: CHECK OK');
+	write(%io(2),'SOLUTION on internal problem ok');
 end
+
+
+//******************* TRY REDUCED RHS FUNCTIONALITY **************//
+id.JOB=3;
+id.ICNTL(26)=1;
+
+// Forward
+[id]=dmumps(id,mat);
+
+// Solve the problem on the Schur complement
+id.REDRHS=id.SCHUR \ id.REDRHS;
+
+// and reinject it to MUMPS
+id.ICNTL(26)=2;
+[id]=dmumps(id,mat);
+solution=id.SOL;
+norm1=norm(mat*solution-RHS,'inf')
+if norm1> 10^(-9) then
+	write(%io(2),'WARNING: solution on complete problem may not be OK');
+else
+	write(%io(2),'SOLUTION on complete problem ok');
+end
+
+
 
 //****************** DESTRUCTION OF THE MUMPS INSTANCE ******************//
 job=-2;

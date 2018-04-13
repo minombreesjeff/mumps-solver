@@ -6,10 +6,10 @@ id = dmumps(id);
 load lhr01;
 mat = Problem.A;
 themax = max(max(abs(mat)));
+n = size(mat,1);
 mat = mat+sparse(1:n,1:n,3*themax*ones(n,1));
 
-% initailization of Schur option
-n = size(mat,1);
+% initialization of Schur option
 id.VAR_SCHUR = [n-9:n];
 
 % JOB = 6 means analysis+facto+solve
@@ -54,10 +54,39 @@ x = sol1-rhsx;
 sol = [x;y];
 r = mat*sol - ones(n,1);
 disp('*** check complete solution');
-if( norm(mat*sol - ones(n,1),'inf') > sqrt(eps))
+if( norm(r,'inf') > sqrt(eps))
 	disp('WARNING : precision may not be OK');
 else
 	disp('SCHUR SOLUTION CHECK2 OK');
 end
-norm(mat*sol - ones(n,1),'inf')
+norm(r,'inf')
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  NOW TRY REDUCED RHS FUNCTIONALITY 
+%  (easier to use than previous
+%   computations)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+id.JOB=3;
+% Do forward solution step to obtain a reduced RHS
+id.ICNTL(26)=1;
+RHS=mat*ones(n,1);
+id.RHS=RHS;
+id = dmumps(id,mat);
+% Solve the problem on the interface
+id.REDRHS = id.SCHUR \ id.REDRHS;
+
+% Do backward solution stage to expand the solution
+id.ICNTL(26)=2;
+id = dmumps(id,mat);
+r = mat*id.SOL-RHS;
+disp('*** check solution when REDRHS is used');
+if( norm(r,'inf') > sqrt(eps))
+	disp('WARNING : precision may not be OK');
+else
+	disp('SCHUR SOLUTION CHECK3 OK');
+end
+norm(r,'inf')
 

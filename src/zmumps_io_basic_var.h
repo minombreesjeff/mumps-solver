@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,11 +44,13 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
+/* $Id: zmumps_io_basic_var.h,v 1.16 2006/12/20 09:41:25 aguermou Exp $ */
+
 #include "zmumps_io_basic.h"
 
 
-#ifndef _WIN32
-#ifdef WITH_PFUNC
+#if ! defined (_WIN32) 
+#if defined(WITH_PFUNC) && ! defined (WITHOUT_PTHREAD)
 #include <pthread.h>
 pthread_mutex_t zmumps_io_pwrite_mutex;
 #endif
@@ -76,5 +78,5 @@ int zmumps_io_myid;
 /* int zmumps_io_nb_file; */
 int zmumps_io_flag_async;
 int zmumps_io_k211;
-int zmumps_flag_open;
+/* int zmumps_flag_open;*/
 int zmumps_directio_flag;

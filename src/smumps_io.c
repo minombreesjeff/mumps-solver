@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,13 +44,13 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/*    $Id: smumps_io.c,v 1.52 2006/06/13 13:32:03 jylexcel Exp $    */
+/*    $Id: smumps_io.c,v 1.55 2006/09/26 13:15:16 aguermou Exp $    */
 
 #include "smumps_io_basic_extern.h"
 #include "smumps_io_err_extern.h"
 #include "smumps_io.h"
 
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
 #include "smumps_io_thread_extern.h"
 
 #endif
@@ -72,7 +72,7 @@ void MUMPS_CALL smumps_is_there_finished_request(int* flag, int* ierr){
   case IO_SYNC: 
     printf("smumps_is_there_finished_request should not be called with strategy %d\n",smumps_io_flag_async);
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_is_there_finished_request_th(flag);
     if(*ierr<0){
@@ -102,7 +102,7 @@ void MUMPS_CALL smumps_clean_request(int* request_id,int *ierr){
   case IO_SYNC: 
     printf("smumps_clean_request should not be called with strategy %d\n",smumps_io_flag_async);
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_clean_request_th(request_id);
     if(*ierr<0){
@@ -132,7 +132,7 @@ void MUMPS_CALL smumps_test_request(int* request_id,int *flag,int* ierr){
   case IO_SYNC: 
     printf("smumps_test_request should not be called with strategy %d\n",smumps_io_flag_async);
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_test_request_th(request_id,flag);
     if(*ierr<0){
@@ -164,7 +164,7 @@ void MUMPS_CALL smumps_wait_request(int *request_id,int* ierr){
   case IO_SYNC: 
     printf("smumps_wait_request should not be called with strategy %d\n",smumps_io_flag_async);
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_wait_request_th(request_id);
     if(*ierr<0){
@@ -196,7 +196,7 @@ void MUMPS_CALL smumps_wait_all_requests(int *ierr){
   case IO_SYNC: 
     printf("smumps_wait_all_requests should not be called with strategy %d\n",smumps_io_flag_async);
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_wait_all_requests_th();
     if(*ierr<0){
@@ -224,6 +224,7 @@ void MUMPS_CALL smumps_low_level_init_prefix(int * dim, char * str, smumps_ftnle
   for(i=0;i<smumps_ooc_store_prefixlen;i++){
     smumps_ooc_store_prefix[i]=str[i];
   }
+  return;
 }
 
 void MUMPS_CALL smumps_low_level_init_tmpdir(int * dim, char * str, smumps_ftnlen l1){
@@ -233,6 +234,7 @@ void MUMPS_CALL smumps_low_level_init_tmpdir(int * dim, char * str, smumps_ftnle
   for(i=0;i<smumps_ooc_store_tmpdirlen;i++){
     smumps_ooc_store_tmpdir[i]=str[i];
   }
+  return;
 }
 
 
@@ -241,7 +243,7 @@ void MUMPS_CALL smumps_low_level_init_ooc_c(int* _myid, int* total_size_io,int* 
 /* Computes the number of files needed. Uses ceil value. */
 /*   smumps_io_nb_file=0; */
 /*   smumps_io_last_file_opened=-1; */
-#ifdef _WIN32
+#if defined (_WIN32) 
   printf("inside %d\n",*async);
   if(*async==IO_ASYNC_AIO||*async==IO_ASYNC_TH){
     smumps_io_is_init_called=0;
@@ -251,6 +253,18 @@ void MUMPS_CALL smumps_low_level_init_ooc_c(int* _myid, int* total_size_io,int* 
     return;
   }
 #endif
+
+#if defined (WITHOUT_PTHREAD)
+  printf("inside %d\n",*async);
+  if(*async==IO_ASYNC_TH){
+    smumps_io_is_init_called=0;
+    sprintf(error_str,"Error: Forbidden value of Async flag with WITHOUT_PTHREAD\n");
+    *ierr=-92;
+    smumps_io_prop_err_info(*ierr);
+    return;
+  }
+#endif
+
   total_vol=0;
   smumps_io_flag_async=*async;
   smumps_io_k211=*k211;
@@ -293,7 +307,7 @@ void MUMPS_CALL smumps_low_level_init_ooc_c(int* _myid, int* total_size_io,int* 
     case IO_SYNC: 
       printf("smumps_low_level_init_ooc_c should not be called with strategy %d\n",smumps_io_flag_async);
       break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
     case IO_ASYNC_TH:
       smumps_low_level_init_ooc_c_th(async,ierr);
       if(*ierr<0){
@@ -325,6 +339,7 @@ void MUMPS_CALL smumps_low_level_write_ooc_c(const int * strat_IO,
                                 int * file_number,
                                 int * inode,
                                 int * request_arg,
+                         	int * type,
                                 int * ierr){
    int ret_code=0;
 #ifndef _WIN32
@@ -333,9 +348,9 @@ void MUMPS_CALL smumps_low_level_write_ooc_c(const int * strat_IO,
 #endif
    if(smumps_io_flag_async){
      switch(*strat_IO){
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
      case IO_ASYNC_TH:
-       ret_code=smumps_async_write_th(strat_IO, address_block, block_size,pos_in_file,file_number,inode,request_arg,ierr);       
+       ret_code=smumps_async_write_th(strat_IO, address_block, block_size,pos_in_file,file_number,inode,request_arg,type,ierr);       
        if(ret_code<0){
          *ierr=ret_code;
          smumps_io_prop_err_info(ret_code);
@@ -350,7 +365,7 @@ void MUMPS_CALL smumps_low_level_write_ooc_c(const int * strat_IO,
        return;
      }
    }else{
-     ret_code=smumps_io_do_write_block(address_block,block_size,pos_in_file,file_number,ierr);   
+     ret_code=smumps_io_do_write_block(address_block,block_size,pos_in_file,file_number,type,ierr);   
      if(ret_code<0){
        *ierr=ret_code;
        smumps_io_prop_err_info(ret_code);
@@ -374,6 +389,7 @@ void MUMPS_CALL smumps_low_level_read_ooc_c(const int * strat_IO,
                                           int * file_number,
                                           int * inode,
                                           int * request_arg,
+					  int * type,
                                           int * ierr){
   int ret_code=0;
 #ifndef _WIN32
@@ -382,9 +398,9 @@ void MUMPS_CALL smumps_low_level_read_ooc_c(const int * strat_IO,
 #endif
   if(smumps_io_flag_async){
       switch(*strat_IO){
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
       case IO_ASYNC_TH:
-        ret_code=smumps_async_read_th(strat_IO,address_block,block_size,from_where,file_number,inode,request_arg,ierr);
+        ret_code=smumps_async_read_th(strat_IO,address_block,block_size,from_where,file_number,inode,request_arg,type,ierr);
         if(ret_code<0){
           *ierr=ret_code;
           smumps_io_prop_err_info(ret_code);
@@ -399,7 +415,7 @@ void MUMPS_CALL smumps_low_level_read_ooc_c(const int * strat_IO,
         return;
       }
   }else{
-    ret_code=smumps_io_do_read_block(address_block,block_size,from_where,file_number,ierr);
+    ret_code=smumps_io_do_read_block(address_block,block_size,from_where,file_number,type,ierr);
     if(ret_code<0){
       *ierr=ret_code;
       smumps_io_prop_err_info(ret_code);
@@ -418,15 +434,16 @@ void MUMPS_CALL smumps_low_level_direct_read(void * address_block,
                                 int * block_size,
                                 int * from_where,
                                 int * file_number,
+                                int * type,					    
                                 int * ierr){
   int ret_code=0;
   
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
     if(smumps_io_flag_async==IO_ASYNC_TH||smumps_io_flag_async==0){
 #else
     if(smumps_io_flag_async==0){
 #endif
-      ret_code=smumps_io_do_read_block(address_block,block_size,from_where,file_number,ierr);
+      ret_code=smumps_io_do_read_block(address_block,block_size,from_where,file_number,type,ierr);
       if(ret_code<0){
          *ierr=ret_code;
 	 smumps_io_prop_err_info(ret_code);
@@ -447,7 +464,7 @@ void MUMPS_CALL smumps_clean_io_data_c(int * myid,int *step,int *ierr){
   switch(smumps_io_flag_async){
   case IO_SYNC: 
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *ierr=smumps_clean_io_data_c_th(myid);
     if(*ierr<0){
@@ -484,7 +501,7 @@ void MUMPS_CALL smumps_get_max_nb_req(int *max,int *ierr){
   case IO_SYNC: 
     *max=1;
     break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   case IO_ASYNC_TH:
     *max=MAX_FINISH_REQ+MAX_IO;
     break;
@@ -543,7 +560,7 @@ void MUMPS_CALL smumps_ooc_alloc_pointers(int* dim,int* ierr){
 void MUMPS_CALL smumps_ooc_init_vars(int* myid_arg, int* nb_file_arg,
                         int* size_element,int* async, int* k211,
                         int *ierr){
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
   smumps_time_spent_in_sync=0;
 #endif
   smumps_io_k211=*k211;
@@ -564,7 +581,7 @@ void MUMPS_CALL smumps_ooc_start_low_level(int *ierr){
     switch(smumps_io_flag_async){
     case IO_SYNC: 
       break;
-#ifndef _WIN32
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
     case IO_ASYNC_TH:
       smumps_low_level_init_ooc_c_th(&smumps_io_flag_async,ierr);
       if(*ierr<0){

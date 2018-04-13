@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,9 +44,9 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/*    $Id: dmumps_io_thread.c,v 1.26 2006/04/12 12:28:55 jylexcel Exp $  */
+/*    $Id: dmumps_io_thread.c,v 1.29 2006/09/26 13:15:16 aguermou Exp $  */
 
-#ifndef _WIN32  
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)  
 
 #include "dmumps_io_basic_extern.h"
 #include "dmumps_io_thread_var.h"
@@ -91,6 +91,7 @@ void* _dmumps_async_thread_function (void* arg){
 				    &(current_io_request->size),
 				    (current_io_request->pos_in_file),
 				    (current_io_request->num_file),
+                                    &(current_io_request->file_type),
 				    &ierr);
 	  if(ret_code<0){
 	    break;
@@ -103,6 +104,7 @@ void* _dmumps_async_thread_function (void* arg){
 				     &(current_io_request->size),
 				     (current_io_request->pos_in_file),
 				     (current_io_request->num_file),
+                                     &(current_io_request->file_type),
 				     &ierr);
 	    if(ret_code<0){
 	      break;
@@ -182,6 +184,7 @@ void*  _dmumps_async_thread_function_with_sem (void* arg){
 				     &(current_io_request->size),
 				     (current_io_request->pos_in_file),
 				     (current_io_request->num_file),
+                                     &(current_io_request->file_type),
 				     &ierr);
 	   if(ret_code<0){
 	     goto end;
@@ -192,6 +195,7 @@ void*  _dmumps_async_thread_function_with_sem (void* arg){
 				   &(current_io_request->size),
 				   (current_io_request->pos_in_file),
 				   (current_io_request->num_file),
+                                   &(current_io_request->file_type),
 				   &ierr);
 	   if(ret_code<0){
 	     goto end;
@@ -478,10 +482,8 @@ int dmumps_low_level_init_ooc_c_th(int* async, int* ierr){
   if(*async){
     pthread_mutex_init(&io_mutex,NULL);
     dmumps_io_init_err_lock();
-#ifndef _WIN32  
 #ifdef WITH_PFUNC
     dmumps_io_init_pointers_lock();
-#endif
 #endif
 
     io_queue=(struct request_io *)malloc(MAX_IO*sizeof(struct request_io));
@@ -535,6 +537,7 @@ int dmumps_async_write_th(const int * strat_IO,
 			int * file_number,
 			int * inode,
 			int * request_arg,
+		        int * type,
 			int * ierr){
   int cur_req;
   *ierr=dmumps_check_error_th();
@@ -577,6 +580,7 @@ int dmumps_async_write_th(const int * strat_IO,
     io_queue[cur_req].pos_in_file=pos_in_file; 
     io_queue[cur_req].num_file=file_number; 
     io_queue[cur_req].io_type=0;
+    io_queue[cur_req].file_type=*type;
     if(with_sem==2){
       io_queue[cur_req].int_local_cond=0;      
     }
@@ -605,6 +609,7 @@ int dmumps_async_read_th(const int * strat_IO,
 		       int * file_number,
 		       int * inode,
 		       int * request_arg,
+         	       int * type,
 		       int * ierr){
   int cur_req;  
   *ierr=dmumps_check_error_th();
@@ -656,6 +661,7 @@ int dmumps_async_read_th(const int * strat_IO,
     io_queue[cur_req].pos_in_file=from_where; 
     io_queue[cur_req].num_file=file_number; 
     io_queue[cur_req].io_type=1;
+    io_queue[cur_req].file_type=*type;
     if(with_sem==2){
       io_queue[cur_req].int_local_cond=0;      
     }
@@ -693,10 +699,8 @@ int dmumps_clean_io_data_c_th(int *myid){
     pthread_join(io_thread,NULL);
     pthread_mutex_destroy(&io_mutex);
     dmumps_io_destroy_err_lock();
-#ifndef _WIN32  
 #ifdef WITH_PFUNC
     dmumps_io_destroy_pointers_lock();
-#endif
 #endif
 
     if(with_sem){
@@ -775,5 +779,5 @@ int _dmumps_post_sem(void *arg,pthread_cond_t *cond){
 }
 
 
-#endif /* _WIN32 */
+#endif /* _WIN32 && WITHOUT_PTHREAD */
 

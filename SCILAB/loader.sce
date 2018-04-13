@@ -26,10 +26,10 @@ end
 
 DIR_SCIMUMPS_DEM=DIR_SCIMUMPS+ "examples/";
 
-%helps=[%helps; path+"Help" ...
-		"Interface to the MUMPS package"];
 getf(DIR_SCIMUMPS+"initmumps.sci")
 getf(DIR_SCIMUMPS+"dmumps.sci")
 getf(DIR_SCIMUMPS+"zmumps.sci")
+
+add_help_chapter("Interface to the MUMPS package",path+"Help");
 
 

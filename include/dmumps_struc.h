@@ -1,6 +1,6 @@
 !
-!   THIS FILE IS PART OF DMUMPS VERSION 4.6.3
-!   This Version was built on Thu Jun 22 13:22:44 2006
+!   THIS FILE IS PART OF DMUMPS VERSION 4.7.3
+!   This Version was built on Fri May  4 15:54:01 2007
 !
 !
 !  This version of DMUMPS is provided to you free of charge. It is public
@@ -14,7 +14,7 @@
 !  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 !
 !  Up-to-date copies of the DMUMPS package can be obtained
-!  from the Web pages http://www.enseeiht.fr/apo/DMUMPS/
+!  from the Web pages http://mumps.enseeiht.fr/
 !  or http://graal.ens-lyon.fr/DMUMPS
 !
 !
@@ -29,7 +29,7 @@
 !  package. You shall use reasonable endeavours to notify
 !  the authors of the package of this publication.
 !
-!   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+!   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
 !   Multifrontal parallel distributed symmetric and unsymmetric solvers,
 !   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 !
@@ -42,7 +42,7 @@
 !   S. Pralet, Hybrid scheduling for the parallel solution of linear
 !   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 !
-!     $Id: dmumps_struc.h,v 1.65 2006/06/10 17:43:54 jylexcel Exp $
+!     $Id: dmumps_struc.h,v 1.72 2007/03/25 19:43:31 jylexcel Exp $
       INCLUDE 'dmumps_root.h'
       TYPE DMUMPS_STRUC
         SEQUENCE
@@ -111,13 +111,13 @@
 !    -------------
 !       right-hand side and solution
 !    -------------------------------------------------------
-         DOUBLE PRECISION, DIMENSION(:), POINTER :: RHS
+         DOUBLE PRECISION, DIMENSION(:), POINTER :: RHS, REDRHS
          DOUBLE PRECISION, DIMENSION(:), POINTER :: RHS_SPARSE
          DOUBLE PRECISION, DIMENSION(:), POINTER :: SOL_LOC
          INTEGER, DIMENSION(:), POINTER :: IRHS_SPARSE
          INTEGER, DIMENSION(:), POINTER :: IRHS_PTR
          INTEGER, DIMENSION(:), POINTER :: ISOL_LOC
-         INTEGER LRHS, NRHS, NZ_RHS, LSOL_LOC
+         INTEGER LRHS, NRHS, NZ_RHS, LSOL_LOC, LREDRHS
          INTEGER PADDING
 !    ----------------------------
 !    Control parameters,
@@ -126,7 +126,7 @@
          INTEGER ICNTL(40)
          INTEGER INFO(40) 
          INTEGER INFOG(40)
-         DOUBLE PRECISION CNTL(5)
+         DOUBLE PRECISION CNTL(15)
          DOUBLE PRECISION RINFO(20)
          DOUBLE PRECISION RINFOG(20)
 !        Cost (flops) of subtrees on local process
@@ -214,8 +214,12 @@
          INTEGER, DIMENSION(:),   POINTER :: ISTEP_TO_INIV2
          INTEGER, DIMENSION(:),   POINTER :: FUTURE_NIV2
          INTEGER, DIMENSION(:,:), POINTER :: TAB_POS_IN_PERE 
+	 LOGICAL, DIMENSION(:), POINTER :: I_AM_CAND
 !        For heterogeneous architecture
          INTEGER, DIMENSION(:), POINTER :: MEM_DIST
+!        Compressed RHS
+         INTEGER, DIMENSION(:),   POINTER :: POSINRHSCOMP
+         DOUBLE PRECISION, DIMENSION(:), POINTER :: RHSCOMP
 !        To save the matrix in a simple format
          CHARACTER(LEN=80) WRITE_PROBLEM
 !   ------------------------
@@ -245,8 +249,6 @@
          INTEGER OOC_NB_FILES
          CHARACTER,DIMENSION(:,:), POINTER :: OOC_FILE_NAMES  
          INTEGER,DIMENSION(:), POINTER :: OOC_FILE_NAME_LENGTH
-!    Other internal data
-         LOGICAL PB_ALLOC_ON_EXIT
 !    Indices of nul pivots
          INTEGER,DIMENSION(:), POINTER :: PIVNUL_LIST
 !    Internal control array
@@ -254,4 +256,6 @@
 !    Array needed to manage additionnal candidate processor 
 !    when using -DNEW_MAPPING
          INTEGER, DIMENSION(:,:), POINTER :: SUP_PROC
+!    Version number
+         CHARACTER(LEN=80) VERSION_NUMBER
       END TYPE DMUMPS_STRUC

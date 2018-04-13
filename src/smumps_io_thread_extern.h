@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,7 +44,9 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-#ifndef _WIN32  
+/* $Id: smumps_io_thread_extern.h,v 1.4 2006/07/21 17:30:28 jylexcel Exp $ */
+
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)  
 #include "smumps_io_thread.h"
 
 extern int io_flag_stop,current_req_num;

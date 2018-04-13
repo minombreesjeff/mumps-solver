@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,7 +44,7 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/*    $Id: zmumps_io_err.h,v 1.8 2006/06/15 15:06:24 jylexcel Exp $  */
+/*    $Id: zmumps_io_err.h,v 1.11 2006/08/02 15:44:46 jylexcel Exp $  */
 
 #include <errno.h>
 
@@ -56,18 +56,9 @@
 #define zmumps_low_level_init_err_str zmumps_low_level_init_err_str__
 #endif
 
-#ifdef _WIN32
-/*
- * Next line May be needed depending on your Windows environment:
- * #define MUMPS_CALL __stdcall
- */
-#else
-#define MUMPS_CALL
-#endif
+#include "zmumps_compat.h"
 
-#define zmumps_ftnlen int
-
-#ifndef _WIN32  
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD) 
 
 #include <pthread.h>
 
@@ -81,7 +72,7 @@ int zmumps_io_destroy_err_lock();
 
 int zmumps_check_error_th();
 
-#endif /*_WIN32*/
+#endif /* _WIN32 && WITHOUT_PTHREAD */
 
 int zmumps_io_prop_err_info(int ierr);
 

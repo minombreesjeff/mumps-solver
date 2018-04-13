@@ -1,12 +1,12 @@
 ===========================================
-MUMPS version 4.6.3
+MUMPS version 4.7.3
 ===========================================
 
-MUMPS 4.6.3 solves a sparse system of linear equations A x = b
+MUMPS 4.7.3 solves a sparse system of linear equations A x = b
 using Gaussian elimination. Please read this README file and
 the documentation (in ./doc/) for a complete list of
 functionalities. Documentation and publications related to
-MUMPS can also be found at http://www.enseeiht.fr/apo/MUMPS/
+MUMPS can also be found at http://mumps.enseeiht.fr/
 or at http://graal.ens-lyon.fr/MUMPS
 
 For installation problems, bug reports, and to report your
@@ -65,8 +65,8 @@ Installation
 
 The following steps can be applied.
 
-% tar zxvf MUMPS_4.6.3.tar.gz
-% cd MUMPS_4.6.3
+% tar zxvf MUMPS_4.7.3.tar.gz
+% cd MUMPS_4.7.3
 
 You then need to build a file called Makefile.inc corresponding
 to your achitecture. Various examples are available in the
@@ -130,7 +130,7 @@ the previous approaches do not work, compile the C example with
 "-DMAIN_COMP". This might not work well with some MPI implementations
 (see options in Makefiles and FAQ
 at http://graal.ens-lyon.fr/MUMPS and
-http://www.enseeiht.fr/apo/MUMPS).
+http://mumps.enseeiht.fr/).
 
 -DAdd_ , -DAdd__ and -DUPPER:
 These options are used for defining the calling
@@ -183,7 +183,7 @@ Otherwise some derived datatypes may not match.
 Platform dependencies
 ---------------------
 
-Versions of MUMPS_4.6.3 have been tested on CRAY, IBM, SGI,
+Versions of MUMPS have been tested on CRAY, IBM, SGI,
 COMPAQ, and Linux systems.  We could potentially generate
 versions for any other platform with Fortran 90, MPI, BLACS,
 and ScaLAPACK installed, but the code has only been tested
@@ -231,6 +231,11 @@ of more than 1 processor.
 Release history
 ---------------
 
+Release 4.7.3           : May 2007
+Release 4.7.2           : April 2007
+Release 4.7.1           : April 2007
+Release 4.7             : April 2007
+Release 4.6.4           : January 2007
 Release 4.6.3           : June 2006
 Release 4.6.2           : April 2006
 Release 4.6.1           : February 2006
@@ -272,6 +277,55 @@ Version 2.0.4     : Mar 24, 1998
 Version 2.0.3     : Feb 28, 1998
 Version 2.0.1     : Feb 20, 1998
 Version 2.0       : Feb 11, 1998
+
+
+Changes from Version 4.7.2 to Version 4.7.3
+* detection of null pivots for unsymmetric matrices corrected
+* improved pivoting in parallel symmetric solver
+* possible problem when Schur on and out-of-core : Schur was splitted
+* type of parameters of intrinsic function MAX not compatible in 
+  single precision arithmetic versions.
+* minor changes for Windows
+* correction with reduced RHS functionality in parallel case
+
+Changes from Version 4.7.1 to Version 4.7.2
+* negative loads suppressed in mumps distribution
+
+Changes from Version 4.7 to Version 4.7.1
+* Release number in Fortran interface corrected
+* "Negative load !!" message replaced by a warning
+
+Changes from Version 4.6.4 to Version 4.7
+* New functionality: build reduced RHS / use partial solution
+* New functionality: detection of zero pivots
+* Memory reduced (especially communication buffers)
+* Problem of integer overflow "MEMORY_SENT" corrected
+* Error code -20 used when receive buffer too small
+  (instead of -17 in some cases)
+* Erroneous memory access with singular matrices (since 4.6.3) corrected
+* Minor bug correction in hybrid scheduler
+* Parallel solution step uses less memory
+* Performance and memory usage of solution step improved
+* String containing the version number now available as a
+  component of the MUMPS structure
+* Case of error "-9964" has disappeared
+
+Changes from Version 4.6.3 to Version 4.6.4
+* Avoid name clashes (F_INT, ...) when C interface is used and
+  user wants to include, say, smumps_c.h, zmumps_c.h (etc.) at
+  the same time
+* Avoid large array copies (by some compilers) in distributed
+  matrix entry functionality
+* Default ordering less dependent on number of processors
+* New garbage collector for contribution blocks
+* Original matrix in "arrowhead form" on candidate processors
+  only (assembled case)
+* Corrected bug occurring rarely, on large number of
+  processors, and that depended on value of uninitialized
+  data
+* Parallel LDL^t factorization numerically improved
+* Less memory allocation in mapping phase (in some cases)
+
 
 Changes from Version 4.6.2 to Version 4.6.3
 * Reduced memory usage for symmetric matrices (compressed CB)

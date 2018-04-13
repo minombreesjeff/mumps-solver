@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,17 +44,15 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/* $Id: smumps_c.h,v 1.28 2006/06/13 11:06:00 jylexcel Exp $ */
+/* $Id: smumps_c.h,v 1.35 2007/03/25 19:43:31 jylexcel Exp $ */
 /* Mostly written in march 2002 (JYL) */
 
 #if ( ! defined SMUMPS_C_H )
 #define SMUMPS_C_H
 
 /* Complex datatypes */
-typedef struct {float r,i;} smumps_complex;
-typedef struct {double r,i;} smumps_double_complex;
 
-/* Next line defines F_INT, F_DOUBLE and F_DOUBLE2 */
+/* Next line defines SMUMPS_INT, SMUMPS_DOUBLE and SMUMPS_DOUBLE2 */
 #include "smumps_prec.h"
 /*
  * Definition of the (simplified)
@@ -62,63 +60,64 @@ typedef struct {double r,i;} smumps_double_complex;
  */
 typedef struct
   {
-    F_INT sym, par, job;
-    F_INT comm_fortran;    /* Fortran communicator */
-    F_INT icntl[40];
-    F_DOUBLE2 cntl[5];
-    F_INT n;
+    SMUMPS_INT sym, par, job;
+    SMUMPS_INT comm_fortran;    /* Fortran communicator */
+    SMUMPS_INT icntl[40];
+    SMUMPS_DOUBLE2 cntl[15];
+    SMUMPS_INT n;
    
-    F_INT nz_alloc; /* used in matlab interface to decide if
+    SMUMPS_INT nz_alloc; /* used in matlab interface to decide if
                        we free + malloc when we have large variation */
 
     /* Assembled entry */
-    F_INT nz; F_INT *irn; F_INT *jcn; F_DOUBLE *a;
+    SMUMPS_INT nz; SMUMPS_INT *irn; SMUMPS_INT *jcn; SMUMPS_DOUBLE *a;
     /* Distributed entry */
-    F_INT nz_loc; F_INT *irn_loc; F_INT *jcn_loc; F_DOUBLE *a_loc;
+    SMUMPS_INT nz_loc; SMUMPS_INT *irn_loc; SMUMPS_INT *jcn_loc; SMUMPS_DOUBLE *a_loc;
     /* Element entry */
-    F_INT nelt; F_INT *eltptr; F_INT *eltvar; F_DOUBLE *a_elt;
+    SMUMPS_INT nelt; SMUMPS_INT *eltptr; SMUMPS_INT *eltvar; SMUMPS_DOUBLE *a_elt;
 
     /* Ordering, if given by user */
-    F_INT *perm_in;
+    SMUMPS_INT *perm_in;
 
     /* Orderings returned to user */
     /* symmetric permutation */
-    F_INT *sym_perm;
+    SMUMPS_INT *sym_perm;
     /* column permutation */
-    F_INT *uns_perm;
+    SMUMPS_INT *uns_perm;
 
     /* Scaling (input only in this version) */
-    F_DOUBLE *colsca; F_DOUBLE *rowsca;
+    SMUMPS_DOUBLE *colsca; SMUMPS_DOUBLE *rowsca;
     /* RHS, solution, ouptput data and statistics */
-    F_DOUBLE *rhs, *rhs_sparse, *sol_loc;
-    F_INT *irhs_sparse, *irhs_ptr, *isol_loc;
-    F_INT nrhs, lrhs, nz_rhs, lsol_loc;
-  F_INT schur_mloc, schur_nloc, schur_lld;
-  F_INT mblock, nblock, nprow, npcol;
-    F_INT info[40],infog[40];
-    F_DOUBLE2 rinfo[20], rinfog[20];
+    SMUMPS_DOUBLE *rhs, *redrhs, *rhs_sparse, *sol_loc;
+    SMUMPS_INT *irhs_sparse, *irhs_ptr, *isol_loc;
+    SMUMPS_INT nrhs, lrhs, lredrhs, nz_rhs, lsol_loc;
+  SMUMPS_INT schur_mloc, schur_nloc, schur_lld;
+  SMUMPS_INT mblock, nblock, nprow, npcol;
+    SMUMPS_INT info[40],infog[40];
+    SMUMPS_DOUBLE2 rinfo[20], rinfog[20];
     /* Null space */
-    F_INT deficiency; F_DOUBLE * nullspace; F_INT * mapping;
+    SMUMPS_INT deficiency; SMUMPS_INT * pivnul_list; SMUMPS_INT * mapping;
     /* Schur */
-    F_INT size_schur; F_INT *listvar_schur; F_DOUBLE *schur;
+    SMUMPS_INT size_schur; SMUMPS_INT *listvar_schur; SMUMPS_DOUBLE *schur;
     /* Internal parameters */
-    F_INT instance_number;
+    SMUMPS_INT instance_number;
     /* For out-of-core */
     char ooc_tmpdir[151];
     char ooc_prefix[151];
+    char version_number[80];
   } SMUMPS_STRUC_C;
 
 
 #if defined(UPPER) || defined(_WIN32)
 #define smumps_f77_ SMUMPS_F77
 #define smumps_affect_mapping_ SMUMPS_AFFECT_MAPPING
-#define smumps_affect_nullspace_ SMUMPS_AFFECT_NULLSPACE
+#define smumps_affect_pivnul_list_ SMUMPS_AFFECT_PIVNUL_LIST
 #define smumps_affect_colsca_ SMUMPS_AFFECT_COLSCA
 #define smumps_affect_rowsca_ SMUMPS_AFFECT_ROWSCA 
 #define smumps_affect_uns_perm_     SMUMPS_AFFECT_UNS_PERM
 #define smumps_affect_sym_perm_     SMUMPS_AFFECT_SYM_PERM
 #define smumps_nullify_c_mapping_   SMUMPS_NULLIFY_C_MAPPING
-#define smumps_nullify_c_nullspace_ SMUMPS_NULLIFY_C_NULLSPACE
+#define smumps_nullify_c_pivnul_list_ SMUMPS_NULLIFY_C_PIVNUL_LIST
 #define smumps_nullify_c_sym_perm_  SMUMPS_NULLIFY_C_SYM_PERM
 #define smumps_nullify_c_uns_perm_  SMUMPS_NULLIFY_C_UNS_PERM
 #define smumps_nullify_c_colsca_    SMUMPS_NULLIFY_C_COLSCA
@@ -126,13 +125,13 @@ typedef struct
 #elif defined(Add__)
 #define smumps_f77_ smumps_f77__
 #define smumps_affect_mapping_ smumps_affect_mapping__
-#define smumps_affect_nullspace_ smumps_affect_nullspace__
+#define smumps_affect_pivnul_list_ smumps_affect_pivnul_list__
 #define smumps_affect_colsca_ smumps_affect_colsca__
 #define smumps_affect_rowsca_ smumps_affect_rowsca__
 #define smumps_affect_uns_perm_     smumps_affect_uns_perm__     
 #define smumps_affect_sym_perm_     smumps_affect_sym_perm__     
 #define smumps_nullify_c_mapping_   smumps_nullify_c_mapping__    
-#define smumps_nullify_c_nullspace_ smumps_nullify_c_nullspace__  
+#define smumps_nullify_c_pivnul_list_ smumps_nullify_c_pivnul_list__  
 #define smumps_nullify_c_sym_perm_  smumps_nullify_c_sym_perm__   
 #define smumps_nullify_c_uns_perm_  smumps_nullify_c_uns_perm__   
 #define smumps_nullify_c_colsca_    smumps_nullify_c_colsca__     
@@ -143,70 +142,73 @@ typedef struct
 /* Name without underscore is used */
 #define smumps_f77_ smumps_f77
 #define smumps_affect_mapping_ smumps_affect_mapping
-#define smumps_affect_nullspace_ smumps_affect_nullspace
+#define smumps_affect_pivnul_list_ smumps_affect_pivnul_list
 #define smumps_affect_colsca_ smumps_affect_colsca
 #define smumps_affect_rowsca_ smumps_affect_rowsca
 #define smumps_affect_uns_perm_     smumps_affect_uns_perm     
 #define smumps_affect_sym_perm_     smumps_affect_sym_perm     
 #define smumps_nullify_c_mapping_   smumps_nullify_c_mapping    
-#define smumps_nullify_c_nullspace_ smumps_nullify_c_nullspace  
+#define smumps_nullify_c_pivnul_list_ smumps_nullify_c_pivnul_list
 #define smumps_nullify_c_sym_perm_  smumps_nullify_c_sym_perm   
 #define smumps_nullify_c_uns_perm_  smumps_nullify_c_uns_perm   
 #define smumps_nullify_c_colsca_    smumps_nullify_c_colsca     
 #define smumps_nullify_c_rowsca_    smumps_nullify_c_rowsca
 #endif
 
+#ifndef MUMPS_CALL
 #if defined(_WIN32)
-/* 
- * Next line May be needed depending on your Windows environment:
- * #define MUMPS_CALL __stdcall
- */
+/* Modify/choose between next 2 lines depending
+ * on your Windows calling conventions */
+/* #define MUMPS_CALL __stdcall */
+#define MUMPS_CALL
 #else
 #define MUMPS_CALL
 #endif
+#endif
 
 void MUMPS_CALL smumps_c(SMUMPS_STRUC_C * smumps_par);
-void MUMPS_CALL smumps_affect_mapping_(F_INT * f77mapping);
-void MUMPS_CALL smumps_affect_nullspace_(F_DOUBLE * f77nullspace);
-void MUMPS_CALL smumps_affect_uns_perm_(F_INT * f77sym_perm);
-void MUMPS_CALL smumps_affect_sym_perm_(F_INT * f77uns_perm);
+void MUMPS_CALL smumps_affect_mapping_(SMUMPS_INT * f77mapping);
+void MUMPS_CALL smumps_affect_pivnul_list_(SMUMPS_INT * f77pivnul_list);
+void MUMPS_CALL smumps_affect_uns_perm_(SMUMPS_INT * f77sym_perm);
+void MUMPS_CALL smumps_affect_sym_perm_(SMUMPS_INT * f77uns_perm);
 void MUMPS_CALL smumps_nullify_c_mapping_();
-void MUMPS_CALL smumps_nullify_c_nullspace_();
+void MUMPS_CALL smumps_nullify_c_pivnul_list_();
 void MUMPS_CALL smumps_nullify_c_sym_perm_();
 void MUMPS_CALL smumps_nullify_c_uns_perm_();
 #ifdef return_scaling
-void MUMPS_CALL smumps_affect_colsca_(F_DOUBLE * f77colsca);
-void MUMPS_CALL smumps_affect_rowsca_(F_DOUBLE * f77rowsca);
+void MUMPS_CALL smumps_affect_colsca_(SMUMPS_DOUBLE * f77colsca);
+void MUMPS_CALL smumps_affect_rowsca_(SMUMPS_DOUBLE * f77rowsca);
 void MUMPS_CALL smumps_nullify_c_colsca_();
 void MUMPS_CALL smumps_nullify_c_rowsca_();
 #endif
 
-void MUMPS_CALL smumps_f77_(F_INT *job, F_INT *sym, F_INT *par, F_INT * comm_fortran,
-F_INT *n, F_INT *icntl,
-F_DOUBLE2 *cntl, F_INT *nz, F_INT *irn, F_INT *irn_avail,
-F_INT *jcn, F_INT *jcn_avail, F_DOUBLE *a, F_INT *a_avail,
-  F_INT *nz_loc, F_INT * irn_loc, F_INT * irn_loc_avail,
-  F_INT * jcn_loc, F_INT * jcn_loc_avail, F_DOUBLE *a_loc,
-  F_INT * a_loc_avail, F_INT * nelt, F_INT * eltptr,
-  F_INT * eltptr_avail, F_INT * eltvar, F_INT * eltvar_avail,
-  F_DOUBLE * a_elt, F_INT * a_elt_avail, F_INT * perm_in,
-  F_INT * perm_in_avail, F_DOUBLE * rhs, F_INT * rhs_avail,
-  F_INT * info, F_DOUBLE2 * rinfo, F_INT * infog, F_DOUBLE2 * rinfog,
-  F_INT * deficiency, F_INT * size_schur, F_INT * listvar_schur,
-  F_INT * listvar_schur_avail, F_DOUBLE * schur,
-  F_INT * schur_avail, F_DOUBLE * colsca, F_INT * colsca_avail,
-  F_DOUBLE * rowsca, F_INT * rowsca_avail, F_INT * instance_number,
-  F_INT * nrhs, F_INT * lrhs, F_DOUBLE * rhs_sparse, F_INT * rhs_sparse_avail,
-  F_DOUBLE * sol_loc, F_INT * sol_loc_avail, F_INT * irhs_sparse,
-  F_INT * irhs_sparse_avail, F_INT * irhs_ptr, F_INT * irhs_ptr_avail,
-  F_INT * isol_loc, F_INT * isol_loc_avail, F_INT * nz_rhs, F_INT * lsol_loc
-  ,F_INT * schur_mloc, F_INT *schur_nloc, F_INT * schur_lld,
-  F_INT * schur_mblock, F_INT * schur_nblock, F_INT * schur_nprow,
-  F_INT * schur_npcol,
-  F_INT * ooc_tmpdir,
-  F_INT * ooc_prefix,
-  F_INT * ooc_tmpdirlen,
-  F_INT * ooc_prefixlen
+void MUMPS_CALL smumps_f77_(SMUMPS_INT *job, SMUMPS_INT *sym, SMUMPS_INT *par, SMUMPS_INT * comm_fortran,
+SMUMPS_INT *n, SMUMPS_INT *icntl,
+SMUMPS_DOUBLE2 *cntl, SMUMPS_INT *nz, SMUMPS_INT *irn, SMUMPS_INT *irn_avail,
+SMUMPS_INT *jcn, SMUMPS_INT *jcn_avail, SMUMPS_DOUBLE *a, SMUMPS_INT *a_avail,
+  SMUMPS_INT *nz_loc, SMUMPS_INT * irn_loc, SMUMPS_INT * irn_loc_avail,
+  SMUMPS_INT * jcn_loc, SMUMPS_INT * jcn_loc_avail, SMUMPS_DOUBLE *a_loc,
+  SMUMPS_INT * a_loc_avail, SMUMPS_INT * nelt, SMUMPS_INT * eltptr,
+  SMUMPS_INT * eltptr_avail, SMUMPS_INT * eltvar, SMUMPS_INT * eltvar_avail,
+  SMUMPS_DOUBLE * a_elt, SMUMPS_INT * a_elt_avail, SMUMPS_INT * perm_in,
+  SMUMPS_INT * perm_in_avail, SMUMPS_DOUBLE * rhs, SMUMPS_INT * rhs_avail,
+  SMUMPS_DOUBLE * redrhs, SMUMPS_INT * redrhs_avail,
+  SMUMPS_INT * info, SMUMPS_DOUBLE2 * rinfo, SMUMPS_INT * infog, SMUMPS_DOUBLE2 * rinfog,
+  SMUMPS_INT * deficiency, SMUMPS_INT * size_schur, SMUMPS_INT * listvar_schur,
+  SMUMPS_INT * listvar_schur_avail, SMUMPS_DOUBLE * schur,
+  SMUMPS_INT * schur_avail, SMUMPS_DOUBLE * colsca, SMUMPS_INT * colsca_avail,
+  SMUMPS_DOUBLE * rowsca, SMUMPS_INT * rowsca_avail, SMUMPS_INT * instance_number,
+  SMUMPS_INT * nrhs, SMUMPS_INT * lrhs, SMUMPS_INT * lredrhs, SMUMPS_DOUBLE * rhs_sparse, SMUMPS_INT * rhs_sparse_avail,
+  SMUMPS_DOUBLE * sol_loc, SMUMPS_INT * sol_loc_avail, SMUMPS_INT * irhs_sparse,
+  SMUMPS_INT * irhs_sparse_avail, SMUMPS_INT * irhs_ptr, SMUMPS_INT * irhs_ptr_avail,
+  SMUMPS_INT * isol_loc, SMUMPS_INT * isol_loc_avail, SMUMPS_INT * nz_rhs, SMUMPS_INT * lsol_loc
+  ,SMUMPS_INT * schur_mloc, SMUMPS_INT *schur_nloc, SMUMPS_INT * schur_lld,
+  SMUMPS_INT * schur_mblock, SMUMPS_INT * schur_nblock, SMUMPS_INT * schur_nprow,
+  SMUMPS_INT * schur_npcol,
+  SMUMPS_INT * ooc_tmpdir,
+  SMUMPS_INT * ooc_prefix,
+  SMUMPS_INT * ooc_tmpdirlen,
+  SMUMPS_INT * ooc_prefixlen
   );
 #endif
 

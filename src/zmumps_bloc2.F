@@ -1,6 +1,6 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-C   This Version was built on Thu Jun 22 13:22:44 2006
+C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+C   This Version was built on Fri May  4 15:54:01 2007
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -14,7 +14,7 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+C  from the Web pages http://mumps.enseeiht.fr/
 C  or http://graal.ens-lyon.fr/MUMPS
 C
 C
@@ -29,7 +29,7 @@ C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
 C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
 C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 C
@@ -195,10 +195,6 @@ C
             IF ( WHAT == 2 ) MAXSURFCB = ABS(KEEP(10))
          ENDIF
       ELSE
-#if defined(perfnal)
-        WRITE(*,*) "UNDEFINED KEEP(48) STRATEGY"
-        CALL ZMUMPS_ABORT()
-#endif
         NBROWMAX = NCB
         IF (WHAT == 2) MAXSURFCB = NCB * NCB
       ENDIF 
@@ -453,8 +449,8 @@ C
           NPIV = NFRONT - NCB
           IF ( K50.EQ.0 ) THEN
            WK_SLAVE = DBLE( NPIV ) * DBLE( NCB ) *
-     *         ( 2.0d0 * NFRONT - NPIV ) / NSLAVES
-           WK_MASTER = 0.6667d0 * NPIV*NPIV*NPIV+
+     *         ( 2.0D0 * NFRONT - NPIV ) / NSLAVES
+           WK_MASTER = 0.6667D0 * NPIV*NPIV*NPIV+
      *                NPIV*NPIV*NCB
           ELSE
            WK_SLAVE = ZMUMPS_45(NCB,NFRONT,NPIV)

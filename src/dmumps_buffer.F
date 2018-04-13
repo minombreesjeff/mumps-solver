@@ -1,6 +1,6 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-C   This Version was built on Thu Jun 22 13:22:44 2006
+C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+C   This Version was built on Fri May  4 15:54:01 2007
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -14,7 +14,7 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+C  from the Web pages http://mumps.enseeiht.fr/
 C  or http://graal.ens-lyon.fr/MUMPS
 C
 C
@@ -29,7 +29,7 @@ C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
 C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
 C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 C
@@ -63,10 +63,8 @@ C
      *   DMUMPS_524, DMUMPS_469,
      *   DMUMPS_460, DMUMPS_502,
      *   DMUMPS_519
-#if defined(PARPIV)
      *   ,DMUMPS_620
      *   ,DMUMPS_617
-#endif
         INTEGER NEXT, REQ, CONTENT, OVHSIZE
         PARAMETER( NEXT = 0, REQ = 1, CONTENT = 2, OVHSIZE = 2 )
         INTEGER, SAVE :: SIZEofINT, BUF_MYID
@@ -78,16 +76,15 @@ C
         TYPE ( DMUMPS_BUFFER_TYPE ), SAVE :: BUF_SMALL
         TYPE ( DMUMPS_BUFFER_TYPE ), SAVE :: BUF_LOAD
         INTEGER, SAVE :: SIZE_RBUF_BYTES
-#if defined(PARPIV)
         INTEGER BUF_LMAX_ARRAY
         DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: BUF_MAX_ARRAY
         PUBLIC :: BUF_LMAX_ARRAY, BUF_MAX_ARRAY
-#endif
       CONTAINS
         SUBROUTINE DMUMPS_528( MYID )
         IMPLICIT NONE
         INTEGER MYID
         BUF_MYID  = MYID
+        RETURN
         END SUBROUTINE DMUMPS_528
         SUBROUTINE DMUMPS_61( IntSize )
         IMPLICIT NONE
@@ -136,11 +133,12 @@ C
         IMPLICIT NONE
         INTEGER IERR
         CALL DMUMPS_3( BUF_LOAD, IERR )
+        RETURN
         END SUBROUTINE DMUMPS_58
-#if defined(PARPIV)
         SUBROUTINE DMUMPS_620()
         IMPLICIT NONE
         IF (ALLOCATED( BUF_MAX_ARRAY)) DEALLOCATE( BUF_MAX_ARRAY )
+        RETURN
         END SUBROUTINE DMUMPS_620
         SUBROUTINE DMUMPS_617(NFS4FATHER,IERR)
         IMPLICIT NONE
@@ -152,8 +150,8 @@ C
         ENDIF
         ALLOCATE(BUF_MAX_ARRAY(NFS4FATHER),stat=IERR)
         BUF_LMAX_ARRAY=NFS4FATHER
+        RETURN
         END SUBROUTINE DMUMPS_617
-#endif
         SUBROUTINE DMUMPS_57( IERR )
         IMPLICIT NONE
         INTEGER IERR
@@ -253,7 +251,7 @@ C
            RETURN
         ENDIF
           IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2
+             IERR = -3
              RETURN
           ENDIF
         POSITION = 0
@@ -566,7 +564,7 @@ C
         IF ( .NOT. FLAG
      *    ) THEN
           IERR = -1
-          IF ( MSG_SIZE_INT .GT. B%LBUF_INT ) IERR = -2
+          IF ( MSG_SIZE_INT .GT. B%LBUF_INT - 1 ) IERR = -2
           IPOS = -1
           IREQ = -1
           RETURN
@@ -714,7 +712,7 @@ C
         ENDIF
         IF (NELIM.NE.0) THEN
           IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2 
+             IERR = -2
              RETURN
           ENDIF
         ENDIF
@@ -807,25 +805,25 @@ C
        DOUBLE PRECISION TMP
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_tags.h'
-        INTEGER LROW, NELIM, ITMP
-        INTEGER NPIV, NFRONT, HS
-        INTEGER SIZE, SIZE1, SIZE2, POSITION,I
-        INTEGER APOS, IPOS_IN_SLAVE
-        INTEGER INDICE_PERE, NROW, IPOS, IREQ, NOSLA
-        INTEGER IONE, J, THIS_ROW_LENGTH
-        INTEGER PDEST2(1)
-        PARAMETER ( IONE=1 )
-        INTEGER XSIZE
-        PARAMETER (XSIZE=3)
-        DOUBLE PRECISION ZERO
-        PARAMETER (ZERO = 0.0D0)
-#if defined(PARPIV)
-      CALL DMUMPS_617(NFS4FATHER,IERR)
-      IF (IERR .NE. 0) THEN
-        IERR         = -3
-        RETURN
+      INTEGER LROW, NELIM, ITMP, SIZFR
+      INTEGER NPIV, NFRONT, HS
+      INTEGER SIZE, SIZE1, SIZE2, POSITION,I
+      INTEGER APOS, IPOS_IN_SLAVE
+      INTEGER LDA_SON, SHIFTCB_SON, STATE_SON
+      INTEGER INDICE_PERE, NROW, IPOS, IREQ, NOSLA
+      INTEGER IONE, J, THIS_ROW_LENGTH
+      INTEGER PDEST2(1)
+      PARAMETER ( IONE=1 )
+      INCLUDE 'mumps_headers.h'
+      DOUBLE PRECISION ZERO
+      PARAMETER (ZERO = 0.0D0)
+      IF (KEEP(219).NE.0) THEN
+        CALL DMUMPS_617(NFS4FATHER,IERR)
+        IF (IERR .NE. 0) THEN
+          IERR         = -4
+          RETURN
+        ENDIF
       ENDIF
-#endif
         PDEST2(1) = PDEST
         IERR   = 0
         LROW   = IW_CBSON( 1 + XSIZE)
@@ -837,6 +835,18 @@ C
         NROW   = IW_CBSON( 3 + XSIZE)
         NFRONT = LROW + NPIV
         HS     = 6 + IW_CBSON( 6 + XSIZE) + XSIZE
+        SIZFR  = IW_CBSON( 1 + XXR)
+        STATE_SON = IW_CBSON(1+XXS)
+        IF (STATE_SON .EQ. S_NOLCBCONTIG) THEN
+               LDA_SON     = LROW
+               SHIFTCB_SON = NPIV*NROW
+        ELSE IF (STATE_SON .EQ. S_NOLCLEANED) THEN
+               LDA_SON     = LROW
+               SHIFTCB_SON = 0
+        ELSE
+               LDA_SON      = NFRONT
+               SHIFTCB_SON = NPIV
+        ENDIF
         IF ( PDEST .EQ. PDEST_MASTER ) THEN
           IF (KEEP(50) == 0 ) THEN
           CALL MPI_PACK_SIZE( NBROW + 4, MPI_INTEGER,
@@ -869,26 +879,26 @@ C
          SIZE2=0
          ENDIF
         ENDIF
-#if defined(PARPIV)
-        COMPUTE_MAX = KEEP(50).EQ.2 .AND.
-     *       PDEST.EQ.PDEST_MASTER
-        IF(COMPUTE_MAX) THEN
-           CALL MPI_PACK_SIZE(1, MPI_INTEGER,
+        IF (KEEP(219).NE.0) THEN
+          COMPUTE_MAX = KEEP(50).EQ.2 .AND.
+     *         PDEST.EQ.PDEST_MASTER
+          IF(COMPUTE_MAX) THEN
+             CALL MPI_PACK_SIZE(1, MPI_INTEGER,
      *          COMM, PS1, IERR )
-           IF(NFS4FATHER .GT. 0) THEN
-              CALL MPI_PACK_SIZE( NFS4FATHER, MPI_DOUBLE_PRECISION,
+             IF(NFS4FATHER .GT. 0) THEN
+                CALL MPI_PACK_SIZE( NFS4FATHER, MPI_DOUBLE_PRECISION,
      *             COMM, SIZE3, IERR )
-           ELSE
-              SIZE3=0
-           ENDIF
-           SIZE3 = SIZE3+PS1
+             ELSE
+                SIZE3=0
+             ENDIF
+             SIZE3 = SIZE3+PS1
+          ELSE
+             SIZE3 = 0
+          ENDIF
+          SIZE = SIZE1 + SIZE2 + SIZE3
         ELSE
-           SIZE3 = 0
+          SIZE = SIZE1 + SIZE2
         ENDIF
-        SIZE = SIZE1 + SIZE2 + SIZE3
-#else
-        SIZE = SIZE1 + SIZE2
-#endif
         CALL DMUMPS_4( BUF_CB, IPOS, IREQ, SIZE, IERR, 
      &                 IONE , PDEST2
      &               )
@@ -896,7 +906,7 @@ C
            RETURN
         ENDIF
           IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2
+             IERR = -3
              RETURN
           ENDIF
         POSITION = 0
@@ -993,7 +1003,7 @@ C
      *              ( LROW - NROW ) * ( LROW - NROW + 1 )/2
              ENDIF
             ELSE
-             APOS = ( I - 1 ) * NFRONT + NPIV + 1
+             APOS = ( I - 1 ) * LDA_SON + SHIFTCB_SON + 1
             ENDIF
          ENDIF
          CALL MPI_PACK( A_CBSON( APOS ), THIS_ROW_LENGTH,
@@ -1001,7 +1011,7 @@ C
      *        BUF_CB%CONTENT( IPOS ), SIZE,
      *        POSITION, COMM, IERR )
         ENDDO
-#if defined(PARPIV)
+      IF (KEEP(219).NE.0) THEN
         IF(COMPUTE_MAX) THEN
            CALL MPI_PACK(NFS4FATHER,1,
      *          MPI_INTEGER,
@@ -1016,14 +1026,12 @@ C
                  IF (DESC_IN_LU) THEN
                    IF (COMPRESSCB) THEN
                     APOS   = (NELIM+PS1) * (NELIM+PS1-1) / 2 + 1
-                    OFFSET = 0
                     NCA    = -44444
                     ASIZE  = NROW * (NROW+1)/2 -
      *                       (NELIM+PS1) * (NELIM+PS1-1) / 2
                     LROW1  = PS1
                    ELSE
                     APOS = ( PS1 + NELIM - 1 ) * LROW + 1
-                    OFFSET = 0
                     NCA = LROW 
                     ASIZE = NCA * (NROW-PS1+1)
                     LROW1 = LROW
@@ -1038,20 +1046,20 @@ C
                       ITMP = PS1 + LROW - NROW
                       APOS = ITMP * (ITMP - 1) / 2 + 1 -
      *                      (LROW-NROW)*(LROW-NROW+1)/2
-                      ASIZE = NROW*(NROW+1)/2-PS1*(PS1-1)/2
+                      ASIZE = LROW*(LROW+1)/2-ITMP*(ITMP-1)/2
                       NCA   = -555555
-                      OFFSET = 0
                     ELSE
-                      APOS = ( PS1 - 1 ) * NFRONT + 1
-                      OFFSET = NPIV
-                      NCA = NFRONT
-                      ASIZE = ( NROW-PS1+1 ) * NFRONT
+                      APOS = ( PS1 - 1 ) * LDA_SON + 1 + SHIFTCB_SON
+                      NCA = LDA_SON
+                      ASIZE = SIZFR - (SHIFTCB_SON - (PS1-1) * LDA_SON)
                       LROW1=-666666
                     ENDIF
                  ENDIF
-                 CALL DMUMPS_618(
-     *                A_CBSON(APOS),ASIZE,OFFSET,NCA,NROW-PS1+1,
+                 IF ( NROW-PS1+1 .NE. 0 ) THEN
+                   CALL DMUMPS_618(
+     *                A_CBSON(APOS),ASIZE,NCA,NROW-PS1+1,
      *                BUF_MAX_ARRAY,NFS4FATHER,COMPRESSCB,LROW1)
+                 ENDIF
               ENDIF
               CALL MPI_PACK(BUF_MAX_ARRAY, NFS4FATHER,
      *             MPI_DOUBLE_PRECISION,
@@ -1059,7 +1067,7 @@ C
      *             POSITION, COMM, IERR )
            ENDIF
         ENDIF
-#endif  
+      ENDIF !PARPIV
         CALL MPI_ISEND( BUF_CB%CONTENT( IPOS ), POSITION, MPI_PACKED,
      *                  PDEST, CONTSIPERENIV2, COMM,
      *                  BUF_CB%CONTENT( IREQ ), IERR )
@@ -1118,7 +1126,7 @@ C
              RETURN
           ENDIF
           IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2
+             IERR = -3
              RETURN
           END IF
               POSITION = IPOS
@@ -1196,7 +1204,7 @@ C
                  CALL DMUMPS_ABORT()
               END IF
               IF (SIZE.GT.SIZE_RBUF_BYTES) THEN
-                 IERR = -2
+                 IERR = -3
                  RETURN
               ENDIF
               POSITION = IPOS
@@ -1510,7 +1518,7 @@ C
            RETURN
         ENDIF
         IF (SIZE.GT.SIZE_RBUF_BYTES ) THEN
-             IERR = -2
+             IERR = -3
              RETURN
         ENDIF
         POSITION = 0
@@ -1665,7 +1673,7 @@ C
            RETURN
         ENDIF
           IF (SIZE.GT.SIZE_RBUF_BYTES) THEN
-             IERR = -2
+             IERR = -3
              RETURN
           ENDIF
         POSITION = IPOS
@@ -1754,6 +1762,7 @@ C
      *                  MPI_PACKED,
      *                  DEST, ROOT_2SLAVE, COMM,
      *                  BUF_SMALL%CONTENT( IREQ ), IERR )
+        RETURN
         END SUBROUTINE DMUMPS_73
         SUBROUTINE DMUMPS_63
      *             ( NRHS, INODE, W, LW, LD_W, DEST,MSGTAG,COMM,IERR )
@@ -1915,6 +1924,7 @@ C
         END IF
         IF ( SIZE .NE. POSITION )
      *  CALL DMUMPS_1( BUF_LOAD, POSITION )
+        RETURN
         END SUBROUTINE DMUMPS_77
         SUBROUTINE DMUMPS_460
      *             ( WHAT, COMM, NPROCS, 

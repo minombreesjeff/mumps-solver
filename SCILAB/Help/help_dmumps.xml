@@ -57,6 +57,10 @@ of the MUMPS user's guide
       within the interface: id.ICNTL(19) which controls the Schur 
       complement option and id.ICNTL(20) which controls the 
       format of the right-hand side.
+      Note that parameters id.ICNTL(1:4) may not work properly
+      depending on your compiler and your environment. In case of
+      problem, we recommand to swith printing off by setting
+      id.ICNL(1:4)=-1.
   </PARAM_DESCRIPTION> 
   </PARAM_ITEM>	
   <PARAM_ITEM>
@@ -94,6 +98,20 @@ of the MUMPS user's guide
 for more details).
   </PARAM_DESCRIPTION> 
   </PARAM_ITEM> 
+  <PARAM_ITEM>
+  <PARAM_NAME>id.REDRHS</PARAM_NAME>
+<PARAM_DESCRIPTION>
+(input parameter only if id.VAR_SCHUR was provided during the factorization and
+if ICNTL(26)=2 on entry to the solve phase): partial
+solution on the variables corresponding to the Schur complement. It is provided
+by the user and normally results from both the Schur complement and the reduced right-hand
+side that were returned by MUMPS in a previous call. When ICNTL(26)=2, MUMPS uses this information
+to build the solution id.SOL on the complete problem.
+See Section ``Schur complement''
+of the MUMPS user's guide
+for more details.
+  </PARAM_DESCRIPTION> 
+  </PARAM_ITEM> 
   </PARAM_INDENT>
   </PARAM>
   <PARAM target="out">
@@ -108,6 +126,18 @@ id.SCHUR corresponds to a dense array of size
 ``Input and output parameters''
 of the MUMPS user's guide
 for more details). The user does not have to initialize it. 
+  </PARAM_DESCRIPTION> 
+  </PARAM_ITEM>
+  <PARAM_ITEM>
+  <PARAM_NAME>id.REDRHS</PARAM_NAME>
+<PARAM_DESCRIPTION>
+(output parameter only if ICNTL(26)=1 and id.VAR_SCHUR was defined): Reduced right-hand side (or
+condensed right-hand side on the variables associated to the Schur complement). It
+is computed by MUMPS during the solve stage if ICNTL(26)=1. It can then be used
+outside MUMPS, together with the Schur complement, to build a solution on the interface.
+See Section ``Schur complement''
+of the MUMPS user's guide
+for more details.
   </PARAM_DESCRIPTION> 
   </PARAM_ITEM> 
   <PARAM_ITEM>

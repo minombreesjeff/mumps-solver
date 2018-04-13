@@ -1,11 +1,11 @@
-// $Id: builder_source.sce,v 1.5 2006/06/21 08:11:31 afevre Exp $
+// $Id: builder_source.sce,v 1.11 2007/05/02 11:17:44 jylexcel Exp $
 
 
 //******************* VARIABLE PART TO COSTUMIZE ***************************//
 
 // -- MUMPS:
 
-MUMPS_DIR = home + "/MUMPS_4.6.3/";
+MUMPS_DIR = home + "/MUMPS_4.7.3/";
 MUMPS_INC_DIR = MUMPS_DIR+"include/"; //path until dmumps_c.h and zmumps_c.h
 MUMPS_LIB_DIR = MUMPS_DIR+"lib/";     //path until libdmumps.a, libzmumps.a and libpord.a
 DMUMPS_LIB = MUMPS_LIB_DIR+"libdmumps.a";
@@ -34,11 +34,14 @@ COMPILER_= "gcc -c -O";
 
 // -- FORTRAN RUNTIME LIBRARIES
 
-//---- g95 
+// -- g95 
 FORT_LIB_DIR = "/home/afevre/compil/g95-install/lib/gcc-lib/i686-pc-linux-gnu/4.0.1/";
 FORT_LIB = FORT_LIB_DIR+"libf95.a"+" "+FORT_LIB_DIR+"libgcc.a";
-//+" "+FORT_LIB_DIR+"crtbegin.o"+" "+FORT_LIB_DIR+"crtend.o"+" "+FORT_LIB_DIR+"crtendS.o"+" "+FORT_LIB_DIR+"libgcc_s.so"+" "+FORT_LIB_DIR+"libgcc_s.so.1";
- 
+
+// -- gfortran compiler
+//FORT_LIB_DIR= "/usr/lib/";
+//FORT_LIB=FORT_LIB_DIR+"libgfortran.a";
+
 // --  ifort compiler 
 //FORT_LIB_DIR = "/opt/intel/fc/9.0/lib/";
 //FORT_LIB = FORT_LIB_DIR+"libifcore.a"+" "+FORT_LIB_DIR+"libimf.a"+" "+FORT_LIB_DIR+"libguide.a"+" "+FORT_LIB_DIR+"libirc.a";

@@ -2,6 +2,7 @@
 #include "stack-c.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "zmumps_c.h"
 
 #define dmumps_c      zmumps_c
@@ -10,7 +11,7 @@
 #define DMUMPS_alloc    ZMUMPS_alloc     
 #define DMUMPS_free     ZMUMPS_free
 #define double2         mumps_double_complex
-#define nb_RHS 11
+#define nb_RHS 12
 
 #define MYFREE(ptr)\
 if(ptr){	\
@@ -44,9 +45,8 @@ CreateVar(nb_RHS+num,"i",&one,&one,&ptr_scilab);        				\
 CreateVar(nb_RHS+num,"i",&length1,&length2,&ptr_scilab);				\
 int l=length1*length2;  								\
 for (i=0;i<l;i++){ 									\
-   *istk(ptr_scilab+i)=0;                                  				\
    *istk(ptr_scilab+i)=(mumpspointer)[i];}                      			\
-}                                                   				\
+}                                            				\
 LhsVar(num)=nb_RHS+num;                                 			\
     
 #define EXTRACT_DOUBLE_FROM_C_TO_SCILAB(num,it,ptr_scilab1,ptr_scilab2,mumpspointer,length1,length2,one)\
@@ -79,7 +79,7 @@ if(ptr_scilab1[0] != -9999){                                                    
 
 #define EXTRACT_CMPLX_FROM_C_TO_SCILAB(num,it,ptr_scilab1,ptr_scilab2,mumpspointer,length1,length2,one) \
   if(it!=1){												\
-    Scierror(999,"Internal error, the variable built must be complex.");}  				\
+    Scierror(999,"Internal error, the variable built must be complex.\n");}  				\
   if(mumpspointer == 0){                                                        			\
     CreateCVar(nb_RHS+num,"d",&it, &one,&one,&ptr_scilab1,&ptr_scilab2);         			\
     *stk(ptr_scilab1) = -9999;  									\
@@ -113,7 +113,7 @@ void DMUMPS_free(DMUMPS_STRUC_C **dmumps_par){
   MYFREE( (*dmumps_par)->perm_in );
   MYFREE( (*dmumps_par)->colsca );
   MYFREE( (*dmumps_par)->rowsca  );
-  MYFREE( (*dmumps_par)->nullspace );
+  MYFREE( (*dmumps_par)->pivnul_list );
   MYFREE( (*dmumps_par)->listvar_schur );
   MYFREE( (*dmumps_par)->sym_perm );
   MYFREE( (*dmumps_par)->uns_perm );
@@ -121,6 +121,7 @@ void DMUMPS_free(DMUMPS_STRUC_C **dmumps_par){
   MYFREE( (*dmumps_par)->irhs_sparse);
   MYFREE( (*dmumps_par)->rhs_sparse);
   MYFREE( (*dmumps_par)->rhs);
+  MYFREE( (*dmumps_par)->redrhs);
   MYFREE(*dmumps_par);
   }
 }
@@ -141,10 +142,11 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
   (*dmumps_par)->colsca  = NULL;
   (*dmumps_par)->rowsca  = NULL;
   (*dmumps_par)->rhs  = NULL;
+  (*dmumps_par)->redrhs  = NULL;
   (*dmumps_par)->irhs_ptr  = NULL;
   (*dmumps_par)->irhs_sparse  = NULL;
   (*dmumps_par)->rhs_sparse  = NULL;
-  (*dmumps_par)->nullspace  = NULL;
+  (*dmumps_par)->pivnul_list  = NULL;
   (*dmumps_par)->listvar_schur  = NULL;
   (*dmumps_par)->schur  = NULL;
   (*dmumps_par)->sym_perm  = NULL;
@@ -157,7 +159,8 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
 
  
   /* RhsVar parameters */
-  int njob, mjob, ljob, mint, nint, lint, nsym, msym, lsym, nA, mA, nRHS, mRHS,lRHS, liRHS;
+  int njob, mjob, ljob, mint, nint, lint, nsym, msym, lsym, nA, mA, nRHS, nREDRHS, mRHS,lRHS, liRHS;
+  int mREDRHS,lREDRHS,liREDRHS;
   int nicntl, micntl, licntl, ncntl, mcntl, lcntl, nperm, mperm, lperm;
   int ncols, mcols, lcols, licols, nrows, mrows, lrows, lirows, ns_schu , ms_schu, ls_schu;
   int nv_schu, mv_schu, lv_schu, nschu, mschu, lschu;
@@ -165,15 +168,20 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
 
   /* LhsVar parameters */
   int linfog, lrinfog, lrhsout,lrhsouti, linstout, lschurout, lschurouti, ldef;
-  int lnullsp, lnullspi, lmapp, lsymperm, lunsperm;
-  int one=1, temp1=40, temp2=20, temp3, temp4, temp5;
-  int it, itRHS; /* parameter for real/complex types */
+  int lpivnul_list, lmapp, lsymperm, lunsperm;
+  int one=1, temp1=40, temp2=20, temp3, temp4; 
+  int it, itRHS, itREDRHS; /* parameter for real/complex types */
   
   int i,j,k1,k2, nb_in_row,netrue;
   int *ptr_int;
   double *ptr_double;
   double *ptr_scilab;
   double * ptri_scilab;
+
+  /* Temporary length variables */
+  int len1, len2;
+  /* Temporary pointers in stack */
+  int stkptr, stkptri;
 
   /* C pointer for input parameters */
   int inst_adress;
@@ -186,15 +194,17 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
   int *irhs_sparse;
   double *rhs_sparse;
   double *im_rhs_sparse;
+  char * function_name="zmumpsc";
 
   SciSparse A;
   SciSparse RHS_SPARSE;
   DMUMPS_STRUC_C *dmumps_par;
   
   int dosolve=0;
+  int donullspace=0;
   int doanal = 0;
   /* Check number of input parameters */
-  CheckRhs(10,11);
+  CheckRhs(11,12);
 
   /* Get job value. njob/mjob are the dimensions of variable job. */
   GetRhsVar(2,"i",&mjob,&njob,&ljob);
@@ -211,8 +221,6 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
     dmumps_par->nz = -1;
     dmumps_par->nz_alloc=-1;
     it=1;
-    EXTRACT_CMPLX_FROM_C_TO_SCILAB(5,it,lschurout,lschurouti,(dmumps_par->schur),one,one,one);    
-
   }else{
     /* Obtain pointer on instance */ 
     GetRhsVar(10,"i",&mint,&nint,&lint);
@@ -226,10 +234,10 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
       DMUMPS_free(&dmumps_par);
     }else{
       /* Get the sparse matrix A */
-      GetRhsVar(11,"s",&mA,&nA,&A);
+      GetRhsVar(12,"s",&mA,&nA,&A);
 
       if (nA != mA || mA<1 ){
-	Scierror(999,"%s : Bad dimensions for the matrix",fname, 12);
+	Scierror(999,"%s: Bad dimensions for mat\n",function_name);
 	return 0;
       }
       
@@ -295,7 +303,7 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
 	  while(nb_in_row<(A.mnel)[k2-1]){
             if( k2 >= (A.icol)[i]){
 	      if(k1>=netrue){	
-	 	Scierror(999," The matrix must be symmetric ",fname, 13);
+	        Scierror(999,"%s: The matrix must be symmetric\n",function_name);
 	  	return 0;
 	      }
               (dmumps_par->jcn)[k1]=(A.icol)[i];
@@ -321,36 +329,71 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
 	EXTRACT_FROM_SCILAB_TOARR(istk(licntl),dmumps_par->icntl,int,40);
 
 	GetRhsVar(4,"d",&mcntl,&ncntl,&lcntl);
-	EXTRACT_FROM_SCILAB_TOARR(stk(lcntl),dmumps_par->cntl,double,5);
+	EXTRACT_FROM_SCILAB_TOARR(stk(lcntl),dmumps_par->cntl,double,15);
 	
         GetRhsVar(5,"i",&mperm, &nperm, &lperm);
-	EXTRACT_FROM_SCILAB_TOPTR(A.it,istk(lperm),istk(lperm),(dmumps_par->perm_in),int,nA);
+	EXTRACT_FROM_SCILAB_TOPTR(IT_NOT_USED,istk(lperm),istk(lperm),(dmumps_par->perm_in),int,nA);
 
 	GetRhsCVar(6,"d",&it,&mcols,&ncols,&lcols,&licols);
         EXTRACT_CMPLX_FROM_SCILAB_TOPTR(it,stk(lcols),stk(licols),(dmumps_par->colsca),double2,nA);
 	
         GetRhsCVar(7,"d",&it,&mrows,&nrows,&lrows,&lirows);
         EXTRACT_CMPLX_FROM_SCILAB_TOPTR(it,stk(lrows),stk(lirows),(dmumps_par->rowsca),double2,nA);
-       
-	
-        if(GetType(8)!=5){
+
+
+/*
+ * To follow the "spirit" of the Matlab/Scilab interfaces, treat case of null
+ * space separately. In that case, we initialize lrhs and nrhs automatically,
+ * allocate the space needed, and do not rely on what is provided by the user
+ * in component RHS, that is not touched.
+ * Note that at the moment the user should not call the solution step combined
+ * with the factorization step when he/she sets icntl[25] to a non-zero value.
+ * Hence we suppose infog[28-1] is available and we can use it.
+ * 
+ * For users of scilab/matlab, it would still be nice to be able to set ICNTL(25)=-1,
+ * and use JOB=6. If we want to make this functionality available, we should
+ * call separately job=2 and job=3 even if job=5 or 6 and set nrhs (and allocate
+ * space correctly) between job=2 and job=3 calls to MUMPS.
+ *
+ */
+      if ( dmumps_par->icntl[25-1] == -1 && dmumps_par->infog[28-1] > 0) {
+          dmumps_par->nrhs=dmumps_par->infog[28-1];
+          donullspace = dosolve;
+         }
+      else if ( dmumps_par->icntl[25-1] > 0 && dmumps_par->icntl[25-1] <= dmumps_par->infog[28-1] ) {
+           dmumps_par->nrhs=1;
+           donullspace = dosolve;
+         }
+      else {
+            donullspace=0;
+         }
+      if (donullspace) {
+        nRHS=dmumps_par->nrhs;
+        dmumps_par->lrhs=dmumps_par->n;
+        dmumps_par->rhs=(double2 *)malloc((dmumps_par->n)*(dmumps_par->nrhs)*sizeof(double2));
+        dmumps_par->icntl[19]=0;
+         }
+
+      else if(GetType(8)!=5){
+/*        Dense RHS */
           GetRhsCVar(8,"d",&itRHS,&mRHS,&nRHS,&lRHS,&liRHS);
       
           if((!dosolve) || (stk(lRHS)[0]) == -9999){
+          /* Could be dangerous ? See comment in Matlab interface */
             EXTRACT_CMPLX_FROM_SCILAB_TOPTR(itRHS,stk(lRHS),stk(liRHS),(dmumps_par->rhs),double2,one);
           }else{
   
             dmumps_par->nrhs = nRHS;
             dmumps_par->lrhs = mRHS;
             if(mRHS!=nA){
-              Scierror(999,"Incompatible number of rows in RHS",fname,8);}
+	      Scierror(999,"%s: Incompatible number of rows in RHS\n",function_name);
+            }
             dmumps_par->icntl[19]=0;            
             EXTRACT_CMPLX_FROM_SCILAB_TOPTR(itRHS,stk(lRHS),stk(liRHS),(dmumps_par->rhs),double2,(nRHS*mRHS));
           }
         }else{
+/*        Sparse RHS */
           GetRhsVar(8,"s",&mRHS,&nRHS,&RHS_SPARSE);
-          if((stk(lRHS)[0]) == -9999){
-            EXTRACT_CMPLX_FROM_SCILAB_TOPTR(it,stk(lRHS),stk(liRHS),(dmumps_par->rhs),double2,one);}
           dmumps_par->icntl[19]=1;
           dmumps_par->nrhs = nRHS;
           dmumps_par->lrhs = mRHS;
@@ -403,47 +446,64 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
 	
 	GetRhsVar(9,"i",&nv_schu,&mv_schu,&lv_schu);
 	dmumps_par-> size_schur=mv_schu;
-	EXTRACT_FROM_SCILAB_TOPTR(A.it,istk(lv_schu),istk(lv_schu),(dmumps_par->listvar_schur),int,dmumps_par->size_schur);
+	EXTRACT_FROM_SCILAB_TOPTR(IT_NOT_USED,istk(lv_schu),istk(lv_schu),(dmumps_par->listvar_schur),int,dmumps_par->size_schur);
 	if(!dmumps_par->listvar_schur) dmumps_par->size_schur=0;
 
-        if((dmumps_par->size_schur)>0){
+        if(dmumps_par->size_schur > 0){
 	  MYFREE(dmumps_par->schur);	
           if(!(dmumps_par->schur=(double2 *)malloc((dmumps_par->size_schur*dmumps_par->size_schur)*sizeof(double2)))){
-            sciprint("Malloc failed in intmumpsc.c");
+	    Scierror(999,"%s: malloc Schur failed in intmumpsc.c\n",function_name);
           }
           dmumps_par->icntl[18]=1;
         }else{
           dmumps_par->icntl[18]=0;
         }
-  
-	dmumps_c(dmumps_par);
+
+        /* Reduced RHS */
+        if ( dmumps_par->size_schur > 0 && dosolve ) {
+
+          if ( dmumps_par->icntl[26-1] == 2 ) {
+            /* REDRHS is on input */
+            GetRhsCVar(11,"d",&itREDRHS,&mREDRHS,&nREDRHS,&lREDRHS,&liREDRHS);
+            if (mREDRHS != dmumps_par->size_schur || nREDRHS != dmumps_par->nrhs ) {
+             Scierror(999,"%s: bad dimensions for REDRHS\n");
+            }
+            /* Fill dmumps_par->redrhs */
+            EXTRACT_CMPLX_FROM_SCILAB_TOPTR(itREDRHS,stk(lREDRHS),stk(liREDRHS),(dmumps_par->redrhs),double2,(nREDRHS*mREDRHS));
+            dmumps_par->lrhs=mREDRHS;
+          }
+
+          if ( dmumps_par->icntl[26-1] == 1 ) {
+            /* REDRHS on output. Must be allocated before the call */
+            MYFREE(dmumps_par->redrhs);
+            if(!(dmumps_par->redrhs=(double2 *)malloc((dmumps_par->size_schur*dmumps_par->nrhs)*sizeof(double2)))){
+              Scierror(999,"%s: malloc redrhs failed in intmumpsc.c\n",function_name);
+            }
+          }
+        }
+
+        /* call C interface to MUMPS */
+        dmumps_c(dmumps_par);
+
       }
     }
     
     if(*istk(ljob)==-2){
       return 0;
-    }else{    
+    }else{
       
-      CheckLhs(9,9);    
+      CheckLhs(11,11);    
       
       EXTRACT_INT_FROM_C_TO_SCILAB(1,linfog,(dmumps_par->infog),one,temp1,one);
       
       EXTRACT_DOUBLE_FROM_C_TO_SCILAB(2,it,lrinfog,lrinfog,(dmumps_par->rinfog),one,temp2,one);
       
-      if(dmumps_par->rhs && dosolve){ /* Just to know if solution step was called */
-	it=1;
-        CreateCVar(nb_RHS+3,"d",&it,&nA,&nRHS,&lrhsout,&lrhsouti);
-        for(i=0;i<nRHS;i++){
-          posrhs=i*nA;
-          for(j=0;j<nA;j++){
-            *stk(lrhsout+posrhs+j)=((dmumps_par->rhs)[posrhs+j]).r;
-            *stk(lrhsouti+posrhs+j)=((dmumps_par->rhs)[posrhs+j]).i;
-          }
-        }
-        LhsVar(3)=nb_RHS+3;  
+       if(dmumps_par->rhs && dosolve){ /* Just to know if solution step was called */
+        it =1;
+        EXTRACT_CMPLX_FROM_C_TO_SCILAB(3,it,lrhsout,lrhsouti,(dmumps_par->rhs),nA,nRHS,one);
+
       }else{
         it=1;
-        temp5=(dmumps_par->n)*(dmumps_par->nrhs);
         EXTRACT_CMPLX_FROM_C_TO_SCILAB(3,it,lrhsout,lrhsouti,(dmumps_par->rhs),one,one,one);
       }
 
@@ -451,39 +511,51 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
       inst_adress = (int) ptr_int;
       EXTRACT_INT_FROM_C_TO_SCILAB(4,linstout,&inst_adress,one,one,one);
       
+
       temp4=dmumps_par->size_schur;
       if(temp4>0){
-        CreateCVar(nb_RHS+5,"d",&it,&temp4,&temp4,&lschurout,&lschurouti);
-        for(i=0;i<temp4;i++){
-          posschur=i*temp4;
-          for(j=0;j<temp4;j++){
-            *stk(lschurout+posschur+j)=((dmumps_par->schur)[posschur+j]).r;
-            *stk(lschurouti+posschur+j)=((dmumps_par->schur)[posschur+j]).i;
-          }
-        }
-LhsVar(5)=nb_RHS+5;
-      }else{
         it=1;
-          EXTRACT_CMPLX_FROM_C_TO_SCILAB(5,it,lschurout,lschurouti,(dmumps_par->schur),one,one,one);
+        EXTRACT_CMPLX_FROM_C_TO_SCILAB(5,it,lschurout,lschurouti,(dmumps_par->schur),temp4,temp4,one);
+   }else{
+        it=1;
+        EXTRACT_CMPLX_FROM_C_TO_SCILAB(5,it,lschurout,lschurouti,(dmumps_par->schur),one,one,one);
       }
-      
+
+      /* REDRHS on output */
+      it=1;
+      if ( dmumps_par->icntl[26-1]==1 && dmumps_par->size_schur > 0 && dosolve ) {
+        len1=dmumps_par->size_schur;
+        len2=dmumps_par->nrhs;
+      }
+      else {
+        len1=1;
+        len2=1;
+      }
+      it=1;
+      EXTRACT_CMPLX_FROM_C_TO_SCILAB(6,it,stkptr,stkptri,(dmumps_par->redrhs),len1,len2,one)
+
+
+      MYFREE(dmumps_par->redrhs);
       MYFREE(dmumps_par->schur);
       MYFREE(dmumps_par->irhs_ptr);
       MYFREE(dmumps_par->irhs_sparse);
       MYFREE(dmumps_par->rhs_sparse);
       MYFREE(dmumps_par->rhs);
-      
-      EXTRACT_INT_FROM_C_TO_SCILAB(6,ldef, &(dmumps_par->deficiency),one,one,one);       
-      
-      temp3=dmumps_par->deficiency;
-      EXTRACT_CMPLX_FROM_C_TO_SCILAB(7,it,lnullsp,lnullspi,(dmumps_par->nullspace),one,temp3,one);       
-      
-      EXTRACT_INT_FROM_C_TO_SCILAB(8,lsymperm,(dmumps_par->sym_perm),one,nA,one);   
-      
-      EXTRACT_INT_FROM_C_TO_SCILAB(9,lunsperm,(dmumps_par->uns_perm),one,nA,one); 
-          
+
+      /* temp3=dmumps_par->deficiency;*/
+      temp3=dmumps_par->infog[27];
+      EXTRACT_INT_FROM_C_TO_SCILAB(7,lpivnul_list,(dmumps_par->pivnul_list),one,temp3,one);
+
+      EXTRACT_INT_FROM_C_TO_SCILAB(8,lsymperm,(dmumps_par->sym_perm),one,nA,one);
+
+      EXTRACT_INT_FROM_C_TO_SCILAB(9,lunsperm,(dmumps_par->uns_perm),one,nA,one);
+ 
+      nicntl=40;
+      EXTRACT_INT_FROM_C_TO_SCILAB(10,licntl,(dmumps_par->icntl),one,nicntl,one);
+      ncntl=15;
+      EXTRACT_DOUBLE_FROM_C_TO_SCILAB(11,it,lcntl,lcntl,(dmumps_par->cntl),one,ncntl,one);
       return 0;
-         
+
     }
 }
 

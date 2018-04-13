@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,7 +44,7 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/*    $Id: cmumps_io_basic.h,v 1.46 2006/06/05 14:54:49 aguermou Exp $  */
+/*    $Id: cmumps_io_basic.h,v 1.50 2006/12/20 09:41:25 aguermou Exp $  */
 
 #define MAX_FILE_SIZE 1879048192 /* (2^31)-1-(2^27) */
 
@@ -72,7 +72,7 @@
 #endif
 
 #ifndef _WIN32
-#define CMUMPS_IO_FLAG_TRY_O_DIRECT O_RDWR
+#define CMUMPS_IO_FLAG_O_DIRECT 0
 #endif
 
 
@@ -108,13 +108,18 @@ typedef struct __mumps_file_struct{
 #ifndef _WIN32  
   int file;
 #else
-  FILE** file;
+  FILE* file;
 #endif
   char name[150];
 }cmumps_file_struct;
 
 
 typedef struct __mumps_file_type{
+#ifndef _WIN32
+  int cmumps_flag_open;
+#else
+  char cmumps_flag_open[6];
+#endif
   int cmumps_io_current_file_number;
   int cmumps_io_last_file_opened;
   int cmumps_io_nb_file;
@@ -127,8 +132,8 @@ int _cmumps_next_file(int type);
 void _cmumps_update_current_file_position(cmumps_file_struct* file_arg);
 int _cmumps_compute_where_to_write(const double to_be_written,const int type);
 int _cmumps_prepare_pointers_for_write(double to_be_written,int * pos_in_file, int * file_number,const int type);
-int cmumps_io_do_write_block(void * address_block,int * block_size,int * pos_in_file,int * file_number,int * ierr);
-int cmumps_io_do_read_block(void * address_block,int * block_size,int * from_where,int * file_number,int * ierr);
+int cmumps_io_do_write_block(void * address_block,int * block_size,int * pos_in_file,int * file_number,int * type,int * ierr);
+int cmumps_io_do_read_block(void * address_block,int * block_size,int * from_where,int * file_number,int * type,int * ierr);
 int _cmumps_compute_nb_concerned_files(int * block_size, int * nb_concerned_files);
 int cmumps_free_file_pointers();
 int cmumps_init_file_structure(int* _myid, int* total_size_io,int* size_element);
@@ -144,7 +149,7 @@ int cmumps_io_set_last_file(int* dim,int* type);
 
 int cmumps_io_write__(void *file, void *loc_add, size_t write_size, int where);
 
-#ifndef _WIN32
+#if ! defined (_WIN32)
 int cmumps_io_write_os_buff__(void *file, void *loc_add, size_t write_size, int where);
 int cmumps_io_write_direct_io__(void *file, void *loc_addr, size_t write_size, int where);
 int cmumps_io_flush_write__();
@@ -154,7 +159,7 @@ int cmumps_io_write_win32__(void *file, void *loc_add, size_t write_size, int wh
 
 
 int cmumps_io_read__(void * file,void * loc_addr,size_t size,int local_offset);
-#ifndef _WIN32
+#if ! defined (_WIN32)
 int cmumps_io_read_os_buff__(void * file,void * loc_addr,size_t size,int local_offset);
 int cmumps_io_read_direct_io__(void * file,void * loc_addr,size_t size,int local_offset);
 #else
@@ -163,7 +168,8 @@ int cmumps_io_read_win32__(void * file,void * loc_addr,size_t size,int local_off
 
 
 
-#ifndef _WIN32  
+ 
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
 #ifdef WITH_PFUNC
 
 int cmumps_io_protect_pointers();

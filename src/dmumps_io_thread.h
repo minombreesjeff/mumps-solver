@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -45,8 +45,8 @@
 
 */
 
-/*    $Id: dmumps_io_thread.h,v 1.21 2006/03/27 16:46:59 jylexcel Exp $  */
-#ifndef _WIN32  
+/*    $Id: dmumps_io_thread.h,v 1.23 2006/09/26 13:15:16 aguermou Exp $  */
+#if ! defined (_WIN32) && ! defined (WITHOUT_PTHREAD)
 
 #include <unistd.h>
 #include <pthread.h>
@@ -73,6 +73,7 @@ struct request_io{
   int* pos_in_file; /*offset in the swap file*/
   int* num_file; /* file number*/
   int io_type; /*read or write*/
+  int file_type; /* cb or lu or ... */
   pthread_cond_t local_cond;
   int int_local_cond;
 };
@@ -88,9 +89,9 @@ int   dmumps_wait_request_th(int *request_id);
 int   dmumps_wait_all_requests_th();
 int   dmumps_low_level_init_ooc_c_th(int* async, int* ierr);
 int   dmumps_async_write_th(const int * strat_IO,void * address_block,int * block_size,int * pos_in_file,
-                           int * file_number,int * inode,int * request_arg,int * ierr);
+                           int * file_number,int * inode,int * request_arg,int * type,int * ierr);
 int   dmumps_async_read_th(const int * strat_IO,void * address_block,int * block_size,int * from_where,
-                          int * file_number,int * inode,int * request_arg,int * ierr);
+                          int * file_number,int * inode,int * request_arg,int * type,int * ierr);
 int dmumps_clean_io_data_c_th(int *myid);
 
 int _dmumps_get_sem(void *arg,int *value);
@@ -101,5 +102,5 @@ int _dmumps_post_sem(void *arg,pthread_cond_t *cond);
 
 int _dmumps_clean_finished_queue_th();
 
-#endif /*_WIN32*/
+#endif /*_WIN32 && WITHOUT_PTHREAD*/
 

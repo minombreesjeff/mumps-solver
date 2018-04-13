@@ -1,6 +1,6 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-C   This Version was built on Thu Jun 22 13:22:44 2006
+C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+C   This Version was built on Fri May  4 15:54:01 2007
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -14,7 +14,7 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+C  from the Web pages http://mumps.enseeiht.fr/
 C  or http://graal.ens-lyon.fr/MUMPS
 C
 C
@@ -29,7 +29,7 @@ C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
 C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
 C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 C
@@ -64,6 +64,8 @@ C
    20 CONTINUE
       RETURN
       END
+#if defined(perfnal)
+#if defined(NOT_USED)
       SUBROUTINE ZMUMPS_443(JOB,M,N,NE,IP,IRN,A,NUM,PERM,LIW,IW,LDW,DW,
      &           ICNTL,CNTL,INFO)
       IMPLICIT NONE
@@ -404,6 +406,8 @@ C
  9033 FORMAT (' DW(1:M)     = ',5(F11.3)/(15X,5(F11.3)))
  9034 FORMAT (' DW(M+1:M+N) = ',5(F11.3)/(15X,5(F11.3)))
       END
+#endif
+#endif
       SUBROUTINE ZMUMPS_444
      &(M,N,NE,IP,IRN,A,IPERM,NUM,JPERM,PR,Q,L,D,RINF) 
       IMPLICIT NONE
@@ -784,6 +788,8 @@ C
       L(I) = POS
       RETURN
       END
+#if defined(perfnal)
+#if defined(NOT_USED)
       SUBROUTINE ZMUMPS_458(M,N,NE,IP,IRN,A,MODE,PERM,IW,INFO)
       IMPLICIT NONE
       INTEGER M,N,NE,MODE,INFO
@@ -886,6 +892,8 @@ C
   290 CONTINUE
   299 RETURN
       END
+#endif
+#endif
       SUBROUTINE ZMUMPS_450(IP,LENL,LENH,W,WLEN,A,NVAL,VAL)
       IMPLICIT NONE
       INTEGER WLEN,NVAL
@@ -1598,24 +1606,6 @@ C
         I = RW(K)
         IPERM(I) = -J
    40 CONTINUE
-      RETURN
-      END
-      SUBROUTINE ZMUMPS_456(N,PERM,IW,INFO)
-      IMPLICIT NONE
-      INTEGER N,PERM(N),IW(N),INFO 
-      INTEGER I,J
-      DO 20 J = 1,N
-        IW(J) = 0
-   20 CONTINUE
-      DO 30 J = 1,N
-        I = PERM(J)
-        IF (I.LT.1 .OR. I.GT.N) GO TO 99
-        IF (IW(I).NE.0) GO TO 99
-        IW(I) = 1
-   30 CONTINUE
-      INFO = 0
-      RETURN
-   99 INFO = -1
       RETURN
       END
       INTEGER FUNCTION ZMUMPS_IZAMAX(n,zx,incx)

@@ -1,7 +1,7 @@
 /*
 
-   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-   This Version was built on Thu Jun 22 13:22:44 2006
+   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+   This Version was built on Fri May  4 15:54:01 2007
 
 
   This version of MUMPS is provided to you free of charge. It is public
@@ -15,7 +15,7 @@
   Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 
   Up-to-date copies of the MUMPS package can be obtained
-  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+  from the Web pages http://mumps.enseeiht.fr/
   or http://graal.ens-lyon.fr/MUMPS
 
 
@@ -30,7 +30,7 @@
   package. You shall use reasonable endeavours to notify
   the authors of the package of this publication.
 
-   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
    Multifrontal parallel distributed symmetric and unsymmetric solvers,
    in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 
@@ -44,7 +44,7 @@
    systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 
 */
-/*    $Id: zmumps_io.h,v 1.26 2006/06/13 13:32:03 jylexcel Exp $ */
+/*    $Id: zmumps_io.h,v 1.30 2006/12/06 12:05:49 jylexcel Exp $ */
 
 #if defined(_WIN32) || defined (UPPER)
 #define zmumps_is_there_finished_request ZMUMPS_IS_THERE_FINISHED_REQUEST
@@ -120,23 +120,14 @@
 #define zmumps_ooc_end_write zmumps_ooc_end_write_
 #endif
 
-#if defined(_WIN32)
-/*
- * Next line May be needed depending on your Windows environment:
- * #define MUMPS_CALL __stdcall
- */
-#else
-#define MUMPS_CALL
-#endif
-
-#define zmumps_ftnlen int
+#include "zmumps_compat.h"
 
 /*
  *  Two character arrays that are used by low_level_init_prefix
  *  and low_level_init_tmpdir to store intermediate file names.
  *  They are passed to zmumps_io_basic.c inside the routine
  *  zmumps_low_level_init_ooc_c.
- *  Note that both low_level_init_prefix and low_level_init_prefix
+ *  Note that both low_level_init_prefix and low_level_init_tmpdir
  *  MUST be called before low_level_init_ooc_c.
  * 
  */
@@ -166,6 +157,7 @@ void MUMPS_CALL zmumps_low_level_write_ooc_c( const int * strat_IO,
                                  int * file_number,
                                  int * inode,
                                  int * request_arg,
+                                 int * type,
                                  int * ierr);
 
 void MUMPS_CALL zmumps_low_level_read_ooc_c( const int * strat_IO, 
@@ -175,12 +167,14 @@ void MUMPS_CALL zmumps_low_level_read_ooc_c( const int * strat_IO,
                                  int * file_number,
                                  int * inode,
                                  int * request_arg,
+                                 int * type,
                                  int * ierr);
 
 void MUMPS_CALL zmumps_low_level_direct_read(void * address_block,
                                  int * block_size,
                                  int * from_where,
                                  int * file_number,
+                                 int * type,
                                  int * ierr);
 
 void MUMPS_CALL zmumps_clean_io_data_c(int* myid,int* step,int* ierr);

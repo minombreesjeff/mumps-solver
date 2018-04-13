@@ -26,7 +26,7 @@ if(id.JOB == -2)
        disp('You are trying to call CMPLX/DBL version on a DBL/CMPLX instance');
        return;
      end
-     zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST);
+     zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,id.REDRHS);
      id = [];
      return;
 end
@@ -37,17 +37,19 @@ if(id.JOB == -1)
          disp('Allready initialized instance');
          return;
      end
-     [inform,rinform,sol,inst,schur,def,nullspace,sym_perm,uns_perm] = zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST);
+     [inform,rinform,sol,inst,schur,redrhs,pivnul_list,sym_perm,uns_perm,icntl,cntl] = zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,id.REDRHS);
      id.INFOG = inform;
      id.RINFOG = rinform;
      id.SOL = sol;
      id.INST = inst;
      id.SCHUR = schur;
-     id.DEFICIENCY = def;
-     id.NULLSPACE = nullspace;
+     id.REDRHS = redrhs;
+     id.PIVNUL_LIST = pivnul_list;
      id.SYM_PERM = sym_perm;
      id.UNS_PERM = uns_perm;
      id.TYPE = prectype;
+     id.ICNTL=icntl;
+     id.CNTL=cntl;
      return;
 end
 
@@ -61,7 +63,7 @@ if(id.TYPE ~= prectype)
    return;
 end
 
-[inform,rinform,sol,inst,schur,def,nullspace,sym_perm,uns_perm] = zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,mat);
+[inform,rinform,sol,inst,schur,redrhs,pivnul_list,sym_perm,uns_perm,icntl,cntl] = zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,id.REDRHS,mat);
 id.INFOG = inform;
 id.RINFOG = rinform;
 id.SOL = sol;
@@ -73,8 +75,9 @@ if(id.JOB == 2 | id.JOB == 4 | id.JOB == 6)
         id.SCHUR = triu(schur)+tril(schur',-1);
   end
 end
-id.DEFICIENCY = def;
-id.NULLSPACE = nullspace;
+id.REDRHS = redrhs;
+id.PIVNUL_LIST = pivnul_list;
 id.SYM_PERM(sym_perm) = [1:size(mat,1)];
 id.UNS_PERM = uns_perm;
-
+id.ICNTL=icntl;
+id.CNTL=cntl;

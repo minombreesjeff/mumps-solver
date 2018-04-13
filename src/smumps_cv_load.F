@@ -1,6 +1,6 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.6.3
-C   This Version was built on Thu Jun 22 13:22:44 2006
+C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
+C   This Version was built on Fri May  4 15:54:01 2007
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
@@ -14,7 +14,7 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://www.enseeiht.fr/apo/MUMPS/
+C  from the Web pages http://mumps.enseeiht.fr/
 C  or http://graal.ens-lyon.fr/MUMPS
 C
 C
@@ -29,7 +29,7 @@ C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent (1998),
+C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
 C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
 C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
 C
@@ -184,13 +184,14 @@ C
       END SUBROUTINE SMUMPS_188
       SUBROUTINE SMUMPS_472(
      *  NCBSON_MAX, SLAVEF,
-     *  KEEP,KEEP8,
+     *  KEEP,KEEP8,ICNTL,
      *  CAND_OF_NODE,
      *  MEM_DISTRIB, NCB, NFRONT, NSLAVES_NODE,
      *  TAB_POS, SLAVES_LIST, SIZE_SLAVES_LIST,INODE)
        IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
       INTEGER*8 KEEP8(150)
+      INTEGER, intent(in) :: ICNTL(40)
       INTEGER, intent(in) :: SLAVEF, NFRONT, NCB
       INTEGER, intent(in) :: CAND_OF_NODE(SLAVEF+1)
       INTEGER, intent(in) :: MEM_DISTRIB(0:SLAVEF-1),INODE
@@ -199,6 +200,9 @@ C
       INTEGER, intent(out):: TAB_POS(SLAVEF+2)
       INTEGER, intent(out):: NSLAVES_NODE
       INTEGER I
+      INTEGER LP,MP
+      LP=ICNTL(4)
+      MP=ICNTL(2)
       IF ( KEEP(48) == 0 .OR. KEEP(48) .EQ. 3 ) THEN
          CALL SMUMPS_499(
      *        SLAVEF,
@@ -227,7 +231,8 @@ C
      *        KEEP,KEEP8,
      *        CAND_OF_NODE,
      *        MEM_DISTRIB, NCB, NFRONT, NSLAVES_NODE,
-     *        TAB_POS, SLAVES_LIST, SIZE_SLAVES_LIST,MYID,INODE)
+     *        TAB_POS, SLAVES_LIST, SIZE_SLAVES_LIST,MYID,INODE,
+     *        MP,LP)
          DO I=1,NSLAVES_NODE
             IF(TAB_POS(I+1)-TAB_POS(I).LE.0)THEN
                WRITE(*,*)'problem with partition in
@@ -317,7 +322,7 @@ C
       DOUBLE PRECISION ZERO
       DOUBLE PRECISION MEMORY_SENT
       INTEGER,DIMENSION(:),POINTER:: KEEP
-      PARAMETER( ZERO=0.0 )
+      PARAMETER( ZERO=0.0d0 )
       INTEGER MEMORY_MD,la,WHAT
       STEP_TO_NIV2_LOAD=>id%ISTEP_TO_INIV2
       CAND_LOAD=>id%CANDIDATES
@@ -336,7 +341,8 @@ C
       MEMORY_MD=MEMORY_MD_ARG
       LA=id%MAXS
       MAX_SURF_MASTER=id%MAX_SURF_MASTER+
-     & INT(DBLE(id%KEEP(12))*DBLE(id%MAX_SURF_MASTER)/100.0E0)
+     & INT(DBLE(id%KEEP(12))*DBLE(id%MAX_SURF_MASTER)/100.0d0)
+      COMM_LD = id%COMM_LOAD
       K69  = KEEP(69)
       IF ( KEEP(47) .le. 0 .OR. KEEP(47) .gt. 4 ) THEN
         write(*,*) "Internal error 1 in SMUMPS_185"
@@ -390,7 +396,6 @@ C
          ENDIF
       ENDIF
       K50      = id%SYM
-      COMM_LD = id%COMM_LOAD
       CALL MPI_COMM_RANK( COMM_LD, MYID, IERR )
       NPROCS = id%NSLAVES
       DM_SUMLU=ZERO
@@ -628,9 +633,10 @@ C
      *      - MAX( DBLE(LA) * DBLE(3) / DBLE(100),
      *      DBLE(2) * DBLE(MAX(KEEP(5),KEEP(6))) * DBLE(KEEP(127)))
          IF (KEEP(12) > 25) THEN
-           MEMORY_SENT=MEMORY_SENT - DBLE(KEEP(12))*0.2E0*DBLE(LA)
+           MEMORY_SENT = MEMORY_SENT -
+     *                   DBLE(KEEP(12))*0.2d0*DBLE(LA)/100.0d0
          ENDIF
-         TAB_MAXS(MYID)=MEMORY_SENT
+         TAB_MAXS(MYID)=INT(MEMORY_SENT)
          CALL SMUMPS_460( WHAT,
      *        COMM_LD, NPROCS,
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -651,7 +657,7 @@ C
       INTEGER CHECK_FLOPS
       INTEGER IERR
       DOUBLE PRECISION ZERO, SEND_MEM, SEND_LOAD,SBTR_TMP
-      PARAMETER( ZERO=0.0 )
+      PARAMETER( ZERO=0.0d0 )
       INTRINSIC MAX, ABS
       IF (INC_LOAD == 0) THEN
          IF(REMOVE_NODE_FLAG)THEN
@@ -739,8 +745,8 @@ C
            IF ( IERR == -1 )THEN
              CALL SMUMPS_467(COMM_LD, KEEP)
              GOTO 111
-           ELSE IF ( IERR == -2 ) THEN
-             WRITE(*,*) "Internal Error in SMUMPS_190"
+           ELSE IF ( IERR .NE.0 ) THEN
+             WRITE(*,*) "Internal Error in SMUMPS_190",IERR
              CALL SMUMPS_ABORT()
            ENDIF
          IF ( IERR .EQ. 0 ) THEN
@@ -768,7 +774,7 @@ C
       INTEGER IERR, KEEP(500)
       INTEGER*8 KEEP8(150)
       DOUBLE PRECISION ZERO, SEND_MEM, TMP_MEM, SBTR_TMP
-      PARAMETER( ZERO=0.0 )
+      PARAMETER( ZERO=0.0d0 )
       INTRINSIC MAX, ABS
       INTEGER INC_MEM
       LOGICAL PROCESS_BANDE
@@ -851,7 +857,7 @@ C
  888  CONTINUE
       IF ((KEEP(48).NE.5).OR.
      $     ((KEEP(48).EQ.5).AND.(ABS(DELTA_MEM)
-     $      .GE.DBLE(0.1*DBLE(LRLU)))))THEN
+     $      .GE.0.1d0*DBLE(LRLU))))THEN
          IF ( ABS(DELTA_MEM) > DM_THRES_MEM ) THEN
             SEND_MEM = DELTA_MEM
 #else
@@ -867,7 +873,7 @@ C
       IF ((KEEP(48).NE.5).OR.
      $     ((KEEP(48).EQ.5).AND.
      $      (ABS(TMP_MEM-DM_LAST_MEM_SENT).GE.
-     $     DBLE(0.1*DBLE(LRLU)))))THEN
+     $     0.1d0*DBLE(LRLU))))THEN
          IF ( ABS( TMP_MEM-DM_LAST_MEM_SENT) >
      *     DM_THRES_MEM )  THEN
             IERR = 0
@@ -892,9 +898,9 @@ C
             IF ( IERR == -1 )THEN
                CALL SMUMPS_467(COMM_LD, KEEP)
                GOTO 111
-           ELSE IF ( IERR == -2 ) THEN
-               WRITE(*,*) "Internal Error in SMUMPS_471"
-               CALL SMUMPS_ABORT()
+           ELSE IF ( IERR .NE. 0 ) THEN
+             WRITE(*,*) "Internal Error in SMUMPS_471",IERR
+             CALL SMUMPS_ABORT()
            ENDIF
            IF ( IERR .EQ. 0 ) THEN
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -1485,52 +1491,52 @@ C
       IMPLICIT NONE
       INTEGER K69
       IF (K69 .LE. 4) THEN
-         ALPHA = 0.0
-         BETA = 0.0
+         ALPHA = 0.0d0
+         BETA = 0.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 5) THEN
-         ALPHA = 0.5
-         BETA = 50000.0
+         ALPHA = 0.5d0
+         BETA = 50000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 6) THEN
-         ALPHA = 0.5
-         BETA = 100000.0
+         ALPHA = 0.5d0
+         BETA = 100000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 7) THEN
-         ALPHA = 0.5
-         BETA = 150000.0
+         ALPHA = 0.5d0
+         BETA = 150000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 8) THEN
-         ALPHA = 1.0
-         BETA = 50000.0
+         ALPHA = 1.0d0
+         BETA = 50000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 9) THEN
-         ALPHA = 1.0
-         BETA = 100000.0
+         ALPHA = 1.0d0
+         BETA = 100000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 10) THEN
-         ALPHA = 1.0
-         BETA = 150000.0
+         ALPHA = 1.0d0
+         BETA = 150000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 11) THEN
-         ALPHA = 1.5
-         BETA = 50000.0
+         ALPHA = 1.5d0
+         BETA = 50000.0d0
          RETURN
       ENDIF
       IF (K69 .EQ. 12) THEN
-         ALPHA = 1.5
-         BETA = 100000.0
+         ALPHA = 1.5d0
+         BETA = 100000.0d0
          RETURN
       ENDIF
-      ALPHA = 1.5
-      BETA = 150000.0
+      ALPHA = 1.5d0
+      BETA = 150000.0d0
       RETURN
       END SUBROUTINE SMUMPS_425
       SUBROUTINE SMUMPS_426(MEM_DISTRIB,MSG_SIZE,ARRAY_ADM,LEN)
@@ -1540,7 +1546,7 @@ C
       DOUBLE PRECISION MSG_SIZE,FORBIGMSG
       INTEGER ARRAY_ADM(LEN)
       DOUBLE PRECISION MY_LOAD
-      FORBIGMSG = 1.0E0
+      FORBIGMSG = 1.0d0
       IF (K69 .lt.2) THEN
          RETURN
       ENDIF
@@ -1550,7 +1556,7 @@ C
          MY_LOAD=LOAD_FLOPS(MYID)
       ENDIF
       IF((MSG_SIZE * K35 ) .gt. 3200000.0) THEN
-         FORBIGMSG = 2.0E0
+         FORBIGMSG = 2.0d0
       ENDIF
       IF (K69 .le. 4) THEN
          DO I = 1,LEN
@@ -1614,8 +1620,9 @@ C
         IF (IERR == -1 ) THEN
           CALL SMUMPS_467(COMM_LD, KEEP)
           GOTO 112
-        ELSE IF ( IERR == -2 ) THEN
-          WRITE(*,*) "Internal Error in SMUMPS_461"
+        ELSE IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) "Internal Error in SMUMPS_461",
+     *    IERR
           CALL SMUMPS_ABORT()
         ENDIF
       TAB_MAXS(MYID) = TAB_MAXS(MYID) + MAX_SURF_MASTER
@@ -1683,8 +1690,9 @@ C
         IF ( IERR == -1 ) THEN
           CALL SMUMPS_467(COMM_LD, KEEP)
           GOTO 111
-        ELSE IF ( IERR == -2 ) THEN
-          WRITE(*,*) "Internal Error in SMUMPS_461"
+        ELSE IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) "Internal Error in SMUMPS_461",
+     *    IERR
           CALL SMUMPS_ABORT()
         ENDIF
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -1808,8 +1816,9 @@ C
         IF ( IERR == -1 )THEN
           CALL SMUMPS_467(COMM_LD, KEEP)
           GOTO 111
-        ELSE IF ( IERR == -2 ) THEN
-          WRITE(*,*) "Internal Error in SMUMPS_500"
+        ELSE IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) "Internal Error in SMUMPS_500",
+     *    IERR
           CALL SMUMPS_ABORT()
         ENDIF
       ENDIF
@@ -1826,7 +1835,7 @@ C
       LOGICAL OK
       DOUBLE PRECISION ZERO,COST
       LOGICAL FLAG
-      PARAMETER(ZERO = 0.0)
+      PARAMETER(ZERO = 0.0d0)
       EXTERNAL SMUMPS_283,SMUMPS_170
       LOGICAL SMUMPS_283,SMUMPS_170
       IF((INODE.LE.0).OR.(INODE.GT.N_LOAD)) THEN
@@ -1863,9 +1872,10 @@ C
             IF ( IERR == -1 )THEN
                CALL SMUMPS_467(COMM_LD, KEEP)
                GOTO 111
-            ELSE IF ( IERR == -2 ) THEN
+            ELSE IF ( IERR .NE. 0 ) THEN
                WRITE(*,*)
-     *              "Internal Error 1 in SMUMPS_501"
+     *         "Internal Error 1 in SMUMPS_501",
+     *         IERR
                CALL SMUMPS_ABORT()
             ENDIF
          ENDIF
@@ -1890,9 +1900,10 @@ C
                IF ( IERR == -1 )THEN
                   CALL SMUMPS_467(COMM_LD, KEEP)
                   GOTO 112
-               ELSE IF ( IERR == -2 ) THEN
+               ELSE IF ( IERR .NE. 0 ) THEN
                   WRITE(*,*)
-     *        "Internal Error 3 in SMUMPS_501"
+     *        "Internal Error 3 in SMUMPS_501",
+     *        IERR
                   CALL SMUMPS_ABORT()
                ENDIF
             ENDIF
@@ -2481,7 +2492,7 @@ C
      &      (NCBSON_MAX,SLAVEF,KEEP,KEEP8,
      *       PROCS,MEM_DISTRIB,NCB,NFRONT,
      $       NSLAVES_NODE,TAB_POS,
-     $       SLAVES_LIST,SIZE_SLAVES_LIST,MYID,INODE)
+     $       SLAVES_LIST,SIZE_SLAVES_LIST,MYID,INODE,MP,LP)
       IMPLICIT NONE
       INTEGER, intent(in) :: KEEP(500),SIZE_SLAVES_LIST
       INTEGER*8 KEEP8(150)
@@ -2489,6 +2500,7 @@ C
       INTEGER, intent(in) :: NCBSON_MAX
       INTEGER, intent(in) :: PROCS(SLAVEF+1)
       INTEGER, intent(in) :: MEM_DISTRIB(0:SLAVEF-1),INODE
+      INTEGER, intent(in) :: MP,LP
       INTEGER, intent(out):: SLAVES_LIST(SIZE_SLAVES_LIST)
       INTEGER, intent(out):: TAB_POS(SLAVEF+2)
       INTEGER, intent(out):: NSLAVES_NODE
@@ -2515,7 +2527,8 @@ C
       LOGICAL HAVE_TYPE1_SON
       DOUBLE PRECISION MIN_LOAD,MAX_LOAD,TEMP_MAX_LOAD
       DOUBLE PRECISION MPI_WTIME
-      DOUBLE PRECISION BUF_SIZE,MEM_SIZE(SLAVEF),NELIM_MEM_SIZE
+      DOUBLE PRECISION BUF_SIZE,NELIM_MEM_SIZE
+      DOUBLE PRECISION MEM_SIZE_STRONG(SLAVEF),MEM_SIZE_WEAK(SLAVEF)
       INTEGER SMUMPS_330
       EXTERNAL SMUMPS_330
       K10=ABS(KEEP(10))
@@ -2543,6 +2556,13 @@ C
            DO I=1,PROCS(SLAVEF+1)
               WLOAD(I)=LOAD_FLOPS(PROCS(I))
               IDWLOAD(I)=PROCS(I)
+              IF (WLOAD(I) < -0.5d0 ) THEN
+                 IF((MP.GT.0).AND.(LP.GE.2))THEN
+                    WRITE(MP,*)MYID,': Warning: negative load ',
+     $                   WLOAD(I)
+                 ENDIF
+              ENDIF 
+              WLOAD(I)=MAX(WLOAD(I),0.0d0)
            ENDDO
            NUMBER_OF_PROCS=PROCS(SLAVEF+1)
             OTHERS=NUMBER_OF_PROCS
@@ -2551,6 +2571,13 @@ C
             WLOAD(1:SLAVEF) = LOAD_FLOPS(0:NUMBER_OF_PROCS-1)
             DO I=1,NUMBER_OF_PROCS
                IDWLOAD(I) = I - 1
+               IF (WLOAD(I) < -0.5d0 ) THEN
+                  IF((MP.GT.0).AND.(LP.GE.2))THEN
+                     WRITE(MP,*)MYID,': Negative load ',
+     $                    WLOAD(I)
+                  ENDIF
+               ENDIF 
+               WLOAD(I)=MAX(WLOAD(I),0.0d0)
             ENDDO
             OTHERS=NUMBER_OF_PROCS-1
          ENDIF
@@ -2635,65 +2662,95 @@ C
             TEMP_ID=IDWLOAD
          ENDIF
         IF(BDC_MD)THEN
-         BUF_SIZE=K10
-      IF (KEEP(201).NE.0) THEN
-         A=INT((DBLE(KEEP(100))/DBLE(2))/DBLE(NELIM))
-         IF(K50.EQ.0)THEN
-            BUF_SIZE=MIN(BUF_SIZE,DBLE(INT(A*DBLE(NCB))))               
-         ELSE
-            BUF_SIZE=MIN(BUF_SIZE,DBLE(INT(A*A)))
-         ENDIF
-      ENDIF
-         DO I=1,NUMBER_OF_PROCS
-            A=DBLE(INT(MD_MEM(TEMP_ID(I))/
-     $           DBLE(NELIM)))
-            A=A*DBLE(NFRONT)
-            IF(K50.EQ.0)THEN
-               B=DBLE((INT(DBLE(NCB)/DBLE(NUMBER_OF_PROCS))+1)*
-     $              DBLE(NFRONT))
-            ELSE
-               WHAT = 5 
-               x=OTHERS
-               CALL SMUMPS_503(
-     &              WHAT, KEEP,KEEP8, NCB, NFRONT, x,
-     &              J, X )
-               B=DBLE(X)+(DBLE(J)*DBLE(NELIM))
-            ENDIF
-            NELIM_MEM_SIZE=A+B
-            MEM_SIZE(I)=NELIM_MEM_SIZE
+           BUF_SIZE=K10
+           IF (KEEP(201).NE.0) THEN
+              A=INT((DBLE(KEEP(100))/DBLE(2))/DBLE(NELIM))
+              IF(K50.EQ.0)THEN
+                 BUF_SIZE=MIN(BUF_SIZE,DBLE(INT(A*DBLE(NCB))))               
+              ELSE
+                 BUF_SIZE=MIN(BUF_SIZE,DBLE(INT(A*A)))
+              ENDIF
+           ENDIF
+           BUF_SIZE=K10
+           DO I=1,NUMBER_OF_PROCS
+              A=DBLE(INT(MD_MEM(TEMP_ID(I))/
+     $             DBLE(NELIM)))
+              A=A*DBLE(NFRONT)
+              IF(K50.EQ.0)THEN
+                 B=DBLE((INT(DBLE(NCB)/DBLE(NUMBER_OF_PROCS))+1)*
+     $                DBLE(NFRONT))
+              ELSE
+                 WHAT = 5 
+                 x=OTHERS
+                 CALL SMUMPS_503(WHAT, KEEP,KEEP8, NCB,
+     $                NFRONT, MIN(NCB,OTHERS), J, X)
+                 B=DBLE(X)+(DBLE(J)*DBLE(NELIM))
+              ENDIF
+              NELIM_MEM_SIZE=A+B
+              MEM_SIZE_WEAK(I)=NELIM_MEM_SIZE
             IF((SBTR_WHICH_M.EQ.0).OR.(.NOT.BDC_SBTR))THEN
                IF(BDC_M2_MEM)THEN
-                  MEM_SIZE(I)=MIN(MEM_SIZE(I),
+                  MEM_SIZE_STRONG(I)=
      $                 TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
-     $                 LU_USAGE(TEMP_ID(I))-NIV2(TEMP_ID(I)+1))
+     $                 LU_USAGE(TEMP_ID(I))-NIV2(TEMP_ID(I)+1)
                ELSE
-                  MEM_SIZE(I)=MIN(MEM_SIZE(I),
+                  MEM_SIZE_STRONG(I)=
      $                 TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
-     $                 LU_USAGE(TEMP_ID(I)))
+     $                 LU_USAGE(TEMP_ID(I))
                ENDIF
             ELSE
                IF(BDC_SBTR)THEN
                   IF(BDC_M2_MEM)THEN
-                     MEM_SIZE(I)=MIN(MEM_SIZE(I),
+                     MEM_SIZE_STRONG(I)=
      $                    TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
      $                    LU_USAGE(TEMP_ID(I))-NIV2(TEMP_ID(I)+1)-
-     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I))))
+     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I)))
                   ELSE
-                     MEM_SIZE(I)=MIN(MEM_SIZE(I),
+                     MEM_SIZE_STRONG(I)=
      $                    TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
      $                    LU_USAGE(TEMP_ID(I))-
-     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I))))
+     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I)))
                   ENDIF
                ENDIF
             ENDIF
-             IF(MEM_SIZE(I).LT.0)THEN
-                MEM_SIZE(I)=0
+            IF(MIN(MEM_SIZE_STRONG(I),MEM_SIZE_WEAK(I)).LT.0)THEN
+                IF(MEM_SIZE_STRONG(I).LT.0)THEN
+                   MEM_SIZE_STRONG(I)=0
+                ELSE
+                   MEM_SIZE_WEAK(I)=0                   
+                ENDIF
              ENDIF
           ENDDO
        ELSE
           BUF_SIZE=K10
           DO I=1,NUMBER_OF_PROCS
-             MEM_SIZE(I)=BUF_SIZE
+            IF((SBTR_WHICH_M.EQ.0).OR.(.NOT.BDC_SBTR))THEN
+               IF(BDC_M2_MEM)THEN
+                  MEM_SIZE_STRONG(I)=
+     $                 TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
+     $                 LU_USAGE(TEMP_ID(I))-NIV2(TEMP_ID(I)+1)
+               ELSE
+                  MEM_SIZE_STRONG(I)=
+     $                 TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
+     $                 LU_USAGE(TEMP_ID(I))
+               ENDIF
+            ELSE
+               IF(BDC_SBTR)THEN
+                  IF(BDC_M2_MEM)THEN
+                     MEM_SIZE_STRONG(I)=
+     $                    TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
+     $                    LU_USAGE(TEMP_ID(I))-NIV2(TEMP_ID(I)+1)-
+     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I)))
+                  ELSE
+                     MEM_SIZE_STRONG(I)=
+     $                    TAB_MAXS(TEMP_ID(I))-DM_MEM(TEMP_ID(I))-
+     $                    LU_USAGE(TEMP_ID(I))-
+     $                    (SBTR_MEM(TEMP_ID(I))-SBTR_CUR(TEMP_ID(I)))                     
+                  ENDIF
+               ENDIF
+            ENDIF
+            MEM_SIZE_STRONG(I)=MAX(DBLE(0),MEM_SIZE_STRONG(I))
+            MEM_SIZE_WEAK(I)=HUGE(MEM_SIZE_WEAK(I))
           ENDDO
        ENDIF
        IF((((NUMBER_OF_PROCS.LE.K83).AND.force_cand).AND.
@@ -2772,12 +2829,12 @@ C
                NB_ZERO=0
                DO I=1,SMALL_SET
                   IF(K50.EQ.0)THEN
-                     X=INT(K10/(NCB+1))-1
+                     X=INT(BUF_SIZE/(NCB+1))-1
                      BANDE_K10=X*NFRONT
                   ELSE
                      A=1
                      B=DBLE(ACC+2)
-                     C=DBLE(-K10+ACC+NELIM)
+                     C=DBLE(-BUF_SIZE+ACC+NELIM)
                      DELTA=(B*B)-(4*A*C)
                      x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                      IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -2785,12 +2842,12 @@ C
                   ENDIF
                   IF(HAVE_TYPE1_SON)THEN
                      IF(K50.EQ.0)THEN
-                        X=INT((K10-NFRONT)/(NFRONT+1))
+                        X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                         BANDE_K10=X*NFRONT
                      ELSE
                         A=1
                         B=DBLE(ACC+2+NELIM)
-                        C=DBLE(-K10+ACC+NELIM)
+                        C=DBLE(-BUF_SIZE+ACC+NELIM)
                         DELTA=(B*B)-(4*A*C)
                         x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                         IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -2799,7 +2856,9 @@ C
                   ENDIF
                   MAX_MEM_ALLOW=BANDE_K10
                   IF(BDC_MD)THEN
-                     MAX_MEM_ALLOW=MIN(MEM_SIZE(I),DBLE(BANDE_K10))
+                     MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
+     $                    DBLE(BANDE_K10))
                      MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                   ENDIF
                   IF(K50.EQ.0)THEN
@@ -2920,7 +2979,7 @@ C
                           DO J=1,SMALL_SET
                              A=1
                              B=DBLE(ACC+2)
-                             C=DBLE(-K10+ACC+NELIM)
+                             C=DBLE(-BUF_SIZE+ACC+NELIM)
                              DELTA=(B*B)-(4*A*C)
                              x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                              IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -2928,7 +2987,7 @@ C
                              IF(HAVE_TYPE1_SON)THEN
                                 A=1
                                 B=DBLE(ACC+2+NELIM)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -2936,7 +2995,8 @@ C
                              ENDIF
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                                MAX_MEM_ALLOW=MIN(
+     $                        MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3042,7 +3102,7 @@ C
                                 J=J-NB_ROWS(I)
                                 A=1
                                 B=DBLE(J+2)
-                                C=DBLE(-K10+J+NELIM)
+                                C=DBLE(-BUF_SIZE+J+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-J) X=NCB-J
@@ -3050,7 +3110,7 @@ C
                                 IF(HAVE_TYPE1_SON)THEN
                                    A=1
                                    B=DBLE(J+2+NELIM)
-                                   C=DBLE(-K10+J+NELIM)
+                                   C=DBLE(-BUF_SIZE+J+NELIM)
                                    DELTA=(B*B)-(4*A*C)
                                    x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                    IF(X.GT.NCB-J) X=NCB-J
@@ -3058,7 +3118,8 @@ C
                                 ENDIF
                                 MAX_MEM_ALLOW=BANDE_K10
                                 IF(BDC_MD)THEN
-                                   MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                                   MAX_MEM_ALLOW=MIN(
+     $                         MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                                  DBLE(BANDE_K10))
                                    MAX_MEM_ALLOW=MAX(DBLE(0),
      $                                  MAX_MEM_ALLOW)
@@ -3116,7 +3177,7 @@ C
                           IF((TEMP(I).LE.MAX_LOAD))THEN
                              A=1
                              B=DBLE(ACC+2)
-                             C=DBLE(-K10+ACC+NELIM)
+                             C=DBLE(-BUF_SIZE+ACC+NELIM)
                              DELTA=(B*B)-(4*A*C)
                              x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                              IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3124,7 +3185,7 @@ C
                              IF(HAVE_TYPE1_SON)THEN
                                 A=1
                                 B=DBLE(ACC+2+NELIM)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3132,7 +3193,8 @@ C
                              ENDIF
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3170,7 +3232,7 @@ C
                              DO J=1,I
                                 A=1
                                 B=DBLE(ACC+2)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3178,7 +3240,7 @@ C
                                 IF(HAVE_TYPE1_SON)THEN
                                    A=1
                                    B=DBLE(ACC+2+NELIM)
-                                   C=DBLE(-K10+ACC+NELIM)
+                                   C=DBLE(-BUF_SIZE+ACC+NELIM)
                                    DELTA=(B*B)-(4*A*C)
                                    x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                    IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3186,7 +3248,8 @@ C
                                 ENDIF
                                 MAX_MEM_ALLOW=BANDE_K10
                                 IF(BDC_MD)THEN
-                                   MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                                   MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                                  DBLE(BANDE_K10))
                                    MAX_MEM_ALLOW=MAX(DBLE(0),
      $                                  MAX_MEM_ALLOW)
@@ -3258,7 +3321,7 @@ C
                           DO I=1,OTHERS
                              A=1
                              B=DBLE(ACC+2)
-                             C=DBLE(-K10+ACC+NELIM)
+                             C=DBLE(-BUF_SIZE+ACC+NELIM)
                              DELTA=(B*B)-(4*A*C)
                              x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                              IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3266,7 +3329,7 @@ C
                              IF(HAVE_TYPE1_SON)THEN
                                 A=1
                                 B=DBLE(ACC+2+NELIM)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3274,7 +3337,8 @@ C
                              ENDIF
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3334,7 +3398,7 @@ C
                           DO I=1,OTHERS
                              A=1
                              B=DBLE(ACC+2)
-                             C=DBLE(-K10+ACC+NELIM)
+                             C=DBLE(-BUF_SIZE+ACC+NELIM)
                              DELTA=(B*B)-(4*A*C)
                              x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                              IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3342,7 +3406,7 @@ C
                              IF(HAVE_TYPE1_SON)THEN
                                 A=1
                                 B=DBLE(ACC+2+NELIM)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3350,10 +3414,8 @@ C
                              ENDIF
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                               TAB_MAXS(TEMP_ID(I))-
-     $                               INT(DM_MEM(TEMP_ID(I)))-
-     $                               LU_USAGE(TEMP_ID(I)))
+                                MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                               MEM_SIZE_STRONG(I))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
                              ENDIF
@@ -3404,7 +3466,7 @@ C
                              DO I=1,OTHERS
                                 A=1
                                 B=DBLE(ACC+2)
-                                C=DBLE(-K10+ACC+NELIM)
+                                C=DBLE(-BUF_SIZE+ACC+NELIM)
                                 DELTA=(B*B)-(4*A*C)
                                 x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                 IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3412,7 +3474,7 @@ C
                                 IF(HAVE_TYPE1_SON)THEN
                                    A=1
                                    B=DBLE(ACC+2+NELIM)
-                                   C=DBLE(-K10+ACC+NELIM)
+                                   C=DBLE(-BUF_SIZE+ACC+NELIM)
                                    DELTA=(B*B)-(4*A*C)
                                    x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                    IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3420,10 +3482,8 @@ C
                                 ENDIF
                                 MAX_MEM_ALLOW=BANDE_K10
                                 IF(BDC_MD)THEN
-                                   MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                                  TAB_MAXS(TEMP_ID(I))-
-     $                                  INT(DM_MEM(TEMP_ID(I)))-
-     $                                  LU_USAGE(TEMP_ID(I)))
+                                   MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                                  MEM_SIZE_STRONG(I))
                                    MAX_MEM_ALLOW=MAX(DBLE(0),
      $                                  MAX_MEM_ALLOW)
                                 ENDIF
@@ -3464,7 +3524,7 @@ C
                             DO I=1,CHOSEN
                                A=1
                                B=DBLE(ACC+2)
-                               C=DBLE(-K10+ACC+NELIM)
+                               C=DBLE(-BUF_SIZE+ACC+NELIM)
                                DELTA=(B*B)-(4*A*C)
                                x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3472,7 +3532,7 @@ C
                                IF(HAVE_TYPE1_SON)THEN
                                   A=1
                                   B=DBLE(ACC+2+NELIM)
-                                  C=DBLE(-K10+ACC+NELIM)
+                                  C=DBLE(-BUF_SIZE+ACC+NELIM)
                                   DELTA=(B*B)-(4*A*C)
                                   x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                                   IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -3547,15 +3607,16 @@ C
                  IF(NB_SAT.EQ.SMALL_SET) GOTO 777
                  DO I=1,SMALL_SET
                     IDWLOAD(I)=I
-                    AFFECTED=INT(K10/(NCB+1))-1
+                    AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                     BANDE_K10=AFFECTED*NFRONT
                     IF(HAVE_TYPE1_SON)THEN
-                       AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                       AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                        BANDE_K10=AFFECTED*NFRONT
                     ENDIF
                     MAX_MEM_ALLOW=BANDE_K10
                     IF(BDC_MD)THEN
-                       MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                       MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                      DBLE(BANDE_K10))
                        MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                     ENDIF
@@ -3665,15 +3726,16 @@ C
                        X=X+1
                     ENDIF
                     DO I=1,SMALL_SET
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                          MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                         DBLE(BANDE_K10))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
@@ -3701,15 +3763,16 @@ C
                  DO WHILE ((ADDITIONNAL_ROWS.NE.0)
      *                .AND.(I.LE.NUMBER_OF_PROCS))
                     IF((TEMP(I).LE.MAX_LOAD))THEN
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                          MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                         DBLE(BANDE_K10))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
@@ -3749,16 +3812,18 @@ C
                           J=1
                           DO WHILE ((ADDITIONNAL_ROWS.NE.0)
      *                         .AND.(J.LT.I))
-                             AFFECTED=INT(K10/(NCB+1))-1
+                             AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                              BANDE_K10=AFFECTED*NFRONT
                              IF(HAVE_TYPE1_SON)THEN
-                                AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                                AFFECTED=INT((BUF_SIZE-NFRONT)/
+     $                               (NFRONT+1))
                                 BANDE_K10=AFFECTED*NFRONT
                              ENDIF
                              AFFECTED=X
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3788,10 +3853,11 @@ C
                           J=1
                           DO WHILE ((ADDITIONNAL_ROWS.NE.0)
      *                         .AND.(J.LT.I))
-                             AFFECTED=INT(K10/(NCB+1))-1
+                             AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                              BANDE_K10=AFFECTED*NFRONT
                              IF(HAVE_TYPE1_SON)THEN
-                                AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                                AFFECTED=INT((BUF_SIZE-NFRONT)/
+     $                               (NFRONT+1))
                                 BANDE_K10=AFFECTED*NFRONT
                              ENDIF
                              AFFECTED=((DBLE(NELIM)* DBLE(NB_ROWS(J)))
@@ -3807,7 +3873,8 @@ C
                              AFFECTED=X
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3868,15 +3935,16 @@ C
                     DO WHILE ((ADDITIONNAL_ROWS.NE.0)
      *                   .AND.(I.LE.NUMBER_OF_PROCS))
                        IF(TEMP(I).LE.MAX_LOAD)THEN
-                          AFFECTED=INT(K10/(NCB+1))-1
+                          AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=AFFECTED*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                             AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=AFFECTED*NFRONT
                           ENDIF
                           MAX_MEM_ALLOW=BANDE_K10
                           IF(BDC_MD)THEN
-                             MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                             MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                            DBLE(BANDE_K10))
                              MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                           ENDIF
@@ -3924,15 +3992,16 @@ C
                           J=1
                           DO WHILE ((ADDITIONNAL_ROWS.NE.0)
      *                         .AND.(J.LT.I))
-                             X=INT(K10/(NCB+1))-1
+                             X=INT(BUF_SIZE/(NCB+1))-1
                              BANDE_K10=X*NFRONT
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(HAVE_TYPE1_SON)THEN
-                                X=INT((K10-NFRONT)/(NFRONT+1))
+                                X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                                 BANDE_K10=X*NFRONT
                              ENDIF
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -3973,15 +4042,16 @@ C
                     IF(ADDITIONNAL_ROWS.NE.0)THEN
                        ACC=0
                        DO I=1,CHOSEN
-                          X=INT(K10/(NCB+1))-1
+                          X=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=X*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             X=INT((K10-NFRONT)/(NFRONT+1))
+                             X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=X*NFRONT
                           ENDIF
                           MAX_MEM_ALLOW=BANDE_K10
                           IF(BDC_MD)THEN
-                             MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                             MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                            DBLE(BANDE_K10))
                              MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                           ENDIF
@@ -4028,15 +4098,16 @@ C
                        X=MAX(X,1)
                        ACC=0
                        DO I=1,CHOSEN
-                          J=INT(K10/(NCB+1))-1
+                          J=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=J*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             J=INT((K10-NFRONT)/(NFRONT+1))
+                             J=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=J*NFRONT
                           ENDIF
                           MAX_MEM_ALLOW=BANDE_K10
                           IF(BDC_MD)THEN
-                             MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                             MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                            DBLE(BANDE_K10))
                              MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                           ENDIF
@@ -4073,15 +4144,16 @@ C
                        ENDDO
                        IF(ACC.GT.0)THEN
                           DO I=1,CHOSEN
-                             X=INT(K10/(NCB+1))-1
+                             X=INT(BUF_SIZE/(NCB+1))-1
                              BANDE_K10=X*NFRONT
                              IF(HAVE_TYPE1_SON)THEN
-                                X=INT((K10-NFRONT)/(NFRONT+1))
+                                X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                                 BANDE_K10=X*NFRONT
                              ENDIF
                              MAX_MEM_ALLOW=BANDE_K10
                              IF(BDC_MD)THEN
-                                MAX_MEM_ALLOW=MIN(MEM_SIZE(I),
+                                MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)),
      $                               DBLE(BANDE_K10))
                                 MAX_MEM_ALLOW=MAX(DBLE(0),
      $                               MAX_MEM_ALLOW)
@@ -4112,10 +4184,10 @@ C
                        ENDIF
                        DO I=1,CHOSEN
                           IDWLOAD(I)=I
-                          AFFECTED=INT(K10/(NCB+1))-1
+                          AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=AFFECTED*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                             AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=AFFECTED*NFRONT
                           ENDIF                          
                           WLOAD(I)=(BANDE_K10-(NB_ROWS(I)*NFRONT))
@@ -4126,17 +4198,15 @@ C
                        DO I=1,CHOSEN
                           X=INT(ADDITIONNAL_ROWS/(CHOSEN-NB_SAT))
                           X=MAX(X,1)
-                          AFFECTED=INT(K10/(NCB+1))-1
+                          AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=AFFECTED*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                             AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=AFFECTED*NFRONT
                           ENDIF
                           IF(BDC_MD)THEN
-                             MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                            TAB_MAXS(TEMP_ID(I))-
-     $                            INT(DM_MEM(TEMP_ID(I)))-
-     $                            LU_USAGE(TEMP_ID(I)))
+                             MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                            MEM_SIZE_STRONG(I))
                              MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                           ENDIF
                           KMAX=INT(MAX_MEM_ALLOW/(NFRONT))
@@ -4157,18 +4227,16 @@ C
                           IF(ADDITIONNAL_ROWS.EQ.0) GOTO 049
                        ENDDO
                        DO I=1,CHOSEN
-                          X=INT(K10/(NCB+1))-1
+                          X=INT(BUF_SIZE/(NCB+1))-1
                           BANDE_K10=X*NFRONT
                           IF(HAVE_TYPE1_SON)THEN
-                             X=INT((K10-NFRONT)/(NFRONT+1))
+                             X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                              BANDE_K10=X*NFRONT
                           ENDIF
                           MAX_MEM_ALLOW=BANDE_K10
                           IF(BDC_MD)THEN
-                             MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                            TAB_MAXS(TEMP_ID(I))-
-     $                            INT(DM_MEM(TEMP_ID(I)))-
-     $                            LU_USAGE(TEMP_ID(I)))
+                             MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                            MEM_SIZE_STRONG(I))
                              MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                           ENDIF
                           KMAX=INT(MAX_MEM_ALLOW/(NFRONT))
@@ -4225,12 +4293,12 @@ C
               TEMP_MAX_LOAD=DBLE(0)
               DO I=1,OTHERS
                  IF(K50.EQ.0)THEN
-                    X=INT(K10/(NCB+1))-1
+                    X=INT(BUF_SIZE/(NCB+1))-1
                     BANDE_K10=X*NFRONT
                  ELSE
                     A=1
                     B=DBLE(ACC+2)
-                    C=DBLE(-K10+ACC+NELIM)
+                    C=DBLE(-BUF_SIZE+ACC+NELIM)
                     DELTA=(B*B)-(4*A*C)
                     x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                     IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4238,12 +4306,12 @@ C
                  ENDIF
                  IF(HAVE_TYPE1_SON)THEN
                     IF(K50.EQ.0)THEN
-                       X=INT((K10-NFRONT)/(NFRONT+1))
+                       X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                        BANDE_K10=X*NFRONT
                     ELSE
                        A=1
                        B=DBLE(ACC+2+NELIM)
-                       C=DBLE(-K10+ACC+NELIM)
+                       C=DBLE(-BUF_SIZE+ACC+NELIM)
                        DELTA=(B*B)-(4*A*C)
                        x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                        IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4252,7 +4320,8 @@ C
                  ENDIF
                  MAX_MEM_ALLOW=BANDE_K10
                  IF(BDC_MD)THEN
-                    MAX_MEM_ALLOW=MIN(MEM_SIZE(I),DBLE(BANDE_K10))
+                    MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                    MIN(MEM_SIZE_WEAK(I),MEM_SIZE_STRONG(I)))
                     MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                  ENDIF
                  IF(K50.EQ.0)THEN
@@ -4321,15 +4390,16 @@ C
                  IF(K50.EQ.0)THEN
                     ADDITIONNAL_ROWS=NCB-ACC
                     DO J=1,CHOSEN
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(MEM_SIZE(J),
+                          MAX_MEM_ALLOW=MIN(
+     $                    MIN(MEM_SIZE_WEAK(J),MEM_SIZE_STRONG(J)),
      $                         DBLE(BANDE_K10))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
@@ -4349,18 +4419,16 @@ C
                     X=INT(ADDITIONNAL_ROWS/CHOSEN)
                     X=MAX(X,1)
                     DO J=1,CHOSEN
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                         TAB_MAXS(TEMP_ID(J))-
-     $                         INT(DM_MEM(TEMP_ID(J)))-
-     $                         LU_USAGE(TEMP_ID(J)))
+                          MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                         MEM_SIZE_STRONG(J))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
                        KMAX=INT(MAX_MEM_ALLOW/NFRONT)
@@ -4375,18 +4443,16 @@ C
                        IF(ADDITIONNAL_ROWS.EQ.0)GOTO 889
                     ENDDO 
                     DO I=1,CHOSEN
-                       X=INT(K10/(NCB+1))-1
+                       X=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=X*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          X=INT((K10-NFRONT)/(NFRONT+1))
+                          X=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=X*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                         TAB_MAXS(TEMP_ID(I))-
-     $                         INT(DM_MEM(TEMP_ID(I)))-
-     $                         LU_USAGE(TEMP_ID(I)))
+                          MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                         MEM_SIZE_STRONG(I))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
                        KMAX=INT(MAX_MEM_ALLOW/(NFRONT))
@@ -4402,10 +4468,10 @@ C
                     ENDDO
                     DO I=1,NUMBER_OF_PROCS
                        IDWLOAD(I)=I
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF                          
                        WLOAD(I)=(BANDE_K10-(NB_ROWS(I)*NFRONT))
@@ -4416,10 +4482,10 @@ C
                     DO I=1,CHOSEN
                        X=INT(ADDITIONNAL_ROWS/(CHOSEN-NB_SAT))
                        X=MAX(X,1)
-                       AFFECTED=INT(K10/(NCB+1))-1
+                       AFFECTED=INT(BUF_SIZE/(NCB+1))-1
                        BANDE_K10=AFFECTED*NFRONT
                        IF(HAVE_TYPE1_SON)THEN
-                          AFFECTED=INT((K10-NFRONT)/(NFRONT+1))
+                          AFFECTED=INT((BUF_SIZE-NFRONT)/(NFRONT+1))
                           BANDE_K10=AFFECTED*NFRONT
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
@@ -4447,7 +4513,7 @@ C
                     DO I=1,OTHERS
                        A=1
                        B=DBLE(ACC+2)
-                       C=DBLE(-K10+ACC+NELIM)
+                       C=DBLE(-BUF_SIZE+ACC+NELIM)
                        DELTA=(B*B)-(4*A*C)
                        x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                        IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4455,7 +4521,7 @@ C
                        IF(HAVE_TYPE1_SON)THEN
                           A=1
                           B=DBLE(ACC+2+NELIM)
-                          C=DBLE(-K10+ACC+NELIM)
+                          C=DBLE(-BUF_SIZE+ACC+NELIM)
                           DELTA=(B*B)-(4*A*C)
                           x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                           IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4463,10 +4529,8 @@ C
                        ENDIF
                        MAX_MEM_ALLOW=BANDE_K10
                        IF(BDC_MD)THEN
-                          MAX_MEM_ALLOW=MIN(BANDE_K10,
-     $                         TAB_MAXS(TEMP_ID(I))-
-     $                         INT(DM_MEM(TEMP_ID(I)))-
-     $                         LU_USAGE(TEMP_ID(I)))
+                          MAX_MEM_ALLOW=MIN(DBLE(BANDE_K10),
+     $                         MEM_SIZE_STRONG(I))
                           MAX_MEM_ALLOW=MAX(DBLE(0),MAX_MEM_ALLOW)
                        ENDIF
                        A=1
@@ -4481,10 +4545,6 @@ C
                        ACC=ACC+NB_ROWS(I)
                        CHOSEN=CHOSEN+1
                        IF(NCB.EQ.ACC) GOTO 889
-                       IF(NCB-ACC.LT.KMIN) THEN
-                          ADDITIONNAL_ROWS=NCB-ACC
-                          GOTO 993
-                       ENDIF
                     ENDDO
                     ADDITIONNAL_ROWS=NCB-ACC
                  ENDIF
@@ -4494,7 +4554,7 @@ C
                  DO I=1,OTHERS
                     A=1
                     B=DBLE(ACC+2)
-                    C=DBLE(-K10+ACC+NELIM)
+                    C=DBLE(-BUF_SIZE+ACC+NELIM)
                     DELTA=(B*B)-(4*A*C)
                     x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                     IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4502,7 +4562,7 @@ C
                     IF(HAVE_TYPE1_SON)THEN
                        A=1
                        B=DBLE(ACC+2+NELIM)
-                       C=DBLE(-K10+ACC+NELIM)
+                       C=DBLE(-BUF_SIZE+ACC+NELIM)
                        DELTA=(B*B)-(4*A*C)
                        x=INT((-B+SQRT(DELTA))/DBLE(2*A))
                        IF(X.GT.NCB-ACC) X=NCB-ACC
@@ -4521,14 +4581,19 @@ C
                     ACC=ACC+NB_ROWS(I)
                     CHOSEN=CHOSEN+1
                     IF(NCB.EQ.ACC) GOTO 889
-                    IF(NCB-ACC.LT.KMIN) THEN
-                       ADDITIONNAL_ROWS=NCB-ACC
-                       GOTO 994
-                    ENDIF
                  ENDDO
                  ADDITIONNAL_ROWS=NCB-ACC
  994             CONTINUE
-                 NB_ROWS(1)=NB_ROWS(1)+ADDITIONNAL_ROWS
+                 X=INT(DBLE(ADDITIONNAL_ROWS)/DBLE(OTHERS))
+                 IF((X*OTHERS).LT.ADDITIONNAL_ROWS)THEN
+                    X=X+1
+                 ENDIF
+                 DO I=1,OTHERS
+                    NB_ROWS(I)=NB_ROWS(I)+X
+                    ADDITIONNAL_ROWS=ADDITIONNAL_ROWS-X
+                    IF(ADDITIONNAL_ROWS.LT.X)X=ADDITIONNAL_ROWS
+                 ENDDO
+                 CHOSEN=OTHERS
               ENDIF
            ENDIF
  889       CONTINUE
@@ -4735,8 +4800,9 @@ C
       IF ( IERR == -1 )THEN
          CALL SMUMPS_467(COMM_LD, KEEP_LOAD)
          GOTO 111
-      ELSE IF ( IERR == -2 ) THEN
-         WRITE(*,*) "Internal Error in SMUMPS_500"
+      ELSE IF ( IERR .NE. 0 ) THEN
+         WRITE(*,*) "Internal Error in SMUMPS_500",
+     *   IERR
          CALL SMUMPS_ABORT()
       ENDIF
       END SUBROUTINE SMUMPS_515
@@ -4814,8 +4880,9 @@ C
       IF (IERR == -1 ) THEN
         CALL SMUMPS_467(COMM, KEEP)
         GOTO 111
-      ELSE IF ( IERR == -2 ) THEN
-        WRITE(*,*) "Internal Error in SMUMPS_461"
+      ELSE IF ( IERR .NE. 0 ) THEN
+        WRITE(*,*) "Internal Error in SMUMPS_461",
+     *  IERR
         CALL SMUMPS_ABORT()
       ENDIF 
  666  CONTINUE
@@ -5067,8 +5134,9 @@ C
       IF ( IERR == -1 ) THEN
           CALL SMUMPS_467(COMM_LD, KEEP)
           GOTO 111
-      ELSE IF ( IERR == -2 ) THEN
-         WRITE(*,*) "Internal Error in SMUMPS_533"
+      ELSE IF ( IERR .NE. 0 ) THEN
+         WRITE(*,*) "Internal Error in SMUMPS_533",
+     *   IERR
          CALL SMUMPS_ABORT()
       ENDIF
 #if ! defined(OLD_LOAD_MECHANISM)
@@ -5178,7 +5246,7 @@ C
          IF(BDC_SBTR)THEN
             MEM=MEM+SBTR_MEM(I)-SBTR_CUR(I)
          ENDIF
-         IF((MEM/TAB_MAXS(I)).GT.0.8)THEN
+         IF((MEM/TAB_MAXS(I)).GT.0.8d0)THEN
             FLAG=.TRUE.
             GOTO 666
          ENDIF

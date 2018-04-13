@@ -1,14 +1,16 @@
-MEX       = mex
-MUMPS_DIR = $(HOME)/MUMPS
+MEX       = /opt/matlab/bin/mex -g
+MUMPS_DIR = /home/jylexcel/MUMPS
 
-LMETISDIR = $(HOME)/METIS/metis
-LMETIS = -L$(LMETISDIR) -lmetisSUN
+LMETISDIR = /home/jylexcel/metis-4.0
+LMETIS = -L$(LMETISDIR) -lmetis
 LPORDDIR = $(MUMPS_DIR)/PORD/lib
-LPORD = -L$(LPORDDIR) -lpordSUN
+LPORD = -L$(LPORDDIR) -lpord
 LORDERINGS = $(LPORD) $(LMETIS)
 
-LIBSEQ  = -L$(MUMPS_DIR)/libseq -lmpiseqSUN
+LIBSEQ  = -L$(MUMPS_DIR)/libseq -lmpiseq
 
-LIBFORT = -L/opt2/SUNWspro7/lib -lsunperf -lfminvai -lfai2 -lfsu -lfmaxvai -lfmaxlai -lfai -lfsumai -lsunmath -lfui
+LIBFORTDIR= /home/afevre/compil/g95-install/lib/gcc-lib/i686-pc-linux-gnu/4.0.1
+LIBFORT = $(LIBFORTDIR)/libf95.a $(LIBFORTDIR)/libgcc.a 
 
-OPTC    = -v -g 
+OPTC    = -O 
+
