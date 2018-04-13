@@ -1,17 +1,17 @@
 /*
  *
- *  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+ *  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
  *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
  *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
- *  INRIA.
+ *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+ *  IRIT, and INRIA.
  *
- *  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
- *  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+ *  Current development team includes Patrick Amestoy, Alfredo Buttari,
+ *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -24,21 +24,17 @@
  *
  *  User documentation of any code that uses this software can
  *  include this complete notice. You can acknowledge (using
- *  references [1], [2], and [3]) the contribution of this package
+ *  references [1] and [2]) the contribution of this package
  *  in any scientific publication dependent upon the use of the
  *  package. You shall use reasonable endeavours to notify
  *  the authors of the package of this publication.
  *
- *   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
- *   Multifrontal parallel distributed symmetric and unsymmetric solvers,
- *   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
- *
- *   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+ *   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
  *   A fully asynchronous multifrontal solver using distributed dynamic
  *   scheduling, SIAM Journal of Matrix Analysis and Applications,
  *   Vol 23, No 1, pp 15-41 (2001).
  *
- *   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+ *   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
  *   S. Pralet, Hybrid scheduling for the parallel solution of linear
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
@@ -246,7 +242,8 @@ MUMPS_LOW_LEVEL_INIT_OOC_C(int* _myid, int* total_size_io, int* size_element,
 void MUMPS_CALL
 MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
                             void * address_block,
-                            int * block_size,
+                            int * block_size_int1,
+                            int * block_size_int2,
                             int * inode,
                             int * request_arg,
                             int * type,
@@ -255,7 +252,7 @@ MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
                             int * ierr)
 {
   int ret_code=0;
-  long long vaddr;
+  long long vaddr,block_size;
   char buf[64]; /* for error message */
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
@@ -267,6 +264,7 @@ MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
  * still some tests on *request_arg, which is not initialized.*/
   *request_arg=-1;
   mumps_convert_2fint_to_longlong(vaddr_int1,vaddr_int2,&vaddr);
+  mumps_convert_2fint_to_longlong(block_size_int1,block_size_int2,&block_size);
   if(mumps_io_flag_async){
     switch(*strat_IO){
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
@@ -293,7 +291,7 @@ MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
   gettimeofday(&end_time,NULL);
   mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
 #endif
-  write_op_vol=write_op_vol+((*block_size)*mumps_elementary_data_size);
+  write_op_vol=write_op_vol+((double)(block_size)*(double)mumps_elementary_data_size);
   return;
 }
 /**
@@ -302,7 +300,8 @@ MUMPS_LOW_LEVEL_WRITE_OOC_C(const int * strat_IO,
 void MUMPS_CALL
 MUMPS_LOW_LEVEL_READ_OOC_C(const int * strat_IO,
                            void * address_block,
-                           int * block_size,
+                           int * block_size_int1,
+                           int * block_size_int2,
                            int * inode,
                            int * request_arg,
                            int * type,
@@ -311,12 +310,13 @@ MUMPS_LOW_LEVEL_READ_OOC_C(const int * strat_IO,
                            int * ierr)
 {
   char buf[64]; /* for error message */
-  long long vaddr;
+  long long vaddr,block_size;
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
   gettimeofday(&start_time,NULL);
 #endif
   mumps_convert_2fint_to_longlong(vaddr_int1,vaddr_int2,&vaddr);
+  mumps_convert_2fint_to_longlong(block_size_int1,block_size_int2,&block_size);
   if(mumps_io_flag_async){
       switch(*strat_IO){
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
@@ -338,25 +338,27 @@ MUMPS_LOW_LEVEL_READ_OOC_C(const int * strat_IO,
   gettimeofday(&end_time,NULL);
   mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
 #endif
-  read_op_vol=read_op_vol+((*block_size)*mumps_elementary_data_size);
+  read_op_vol=read_op_vol+((double)(block_size)*(double)mumps_elementary_data_size);
   return;
 }
 /* Emergency read from the MUMPS thread during the solve phase.*/
 void MUMPS_CALL
 MUMPS_LOW_LEVEL_DIRECT_READ(void * address_block,
-                            int * block_size,
+                            int * block_size_int1,
+                            int * block_size_int2,
                             int * type,
                             int * vaddr_int1,
                             int * vaddr_int2,
                             int * ierr)
 {
     /*  int ret_code=0; */
-  long long vaddr;
+  long long vaddr,block_size;
 #if ! defined(MUMPS_WIN32)
   struct timeval start_time,end_time;
   gettimeofday(&start_time,NULL);
 #endif
   mumps_convert_2fint_to_longlong(vaddr_int1,vaddr_int2,&vaddr);
+  mumps_convert_2fint_to_longlong(block_size_int1,block_size_int2,&block_size);
 #if ! defined(MUMPS_WIN32) && ! defined(WITHOUT_PTHREAD)
     if(mumps_io_flag_async==IO_ASYNC_TH||mumps_io_flag_async==0)
 #else
@@ -375,7 +377,7 @@ MUMPS_LOW_LEVEL_DIRECT_READ(void * address_block,
   gettimeofday(&end_time,NULL);
   mumps_time_spent_in_sync=mumps_time_spent_in_sync+((double)end_time.tv_sec+((double)end_time.tv_usec/1000000))-((double)start_time.tv_sec+((double)start_time.tv_usec/1000000));
 #endif
-  read_op_vol=read_op_vol+((*block_size)*mumps_elementary_data_size);
+  read_op_vol=read_op_vol+((double)(block_size)*(double)mumps_elementary_data_size);
   return;
 }
 /* Cleans the thread/io management data*/
@@ -557,9 +559,9 @@ MUMPS_OOC_IS_ASYNC_AVAIL(int *flag)
  *   and MUMPS_OOC_CONVERT_VADDRTO2INT
  */
 MUMPS_INLINE int
-mumps_convert_2fint_to_longlong( int * vaddr_int1, int * vaddr_int2,
-                                 long long * vaddr )
+mumps_convert_2fint_to_longlong( int * short_int1, int * short_int2,
+                                 long long * long_int )
 {
-  *vaddr=((long long)(*vaddr_int1)*2000000000)+(long long)(*vaddr_int2);
+  *long_int=((long long)(*short_int1)*((long long)1073741824))+(long long)(*short_int2);
   return 0;
 }

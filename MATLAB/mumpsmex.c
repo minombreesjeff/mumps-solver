@@ -438,10 +438,12 @@ void mexFunction(int nlhs, mxArray *plhs[ ],
 #endif
 
 	  nz_rhs = irhs_ptr[nbrhs];
+	  dmumps_par->nz_rhs = nz_rhs;
 
 	  MYMALLOC((dmumps_par->irhs_ptr),(nbrhs+1),int);
 	  MYMALLOC((dmumps_par->irhs_sparse),nz_rhs,int);
 	  MYMALLOC((dmumps_par->rhs_sparse),nz_rhs,double2);
+          /* dmumps_par->rhs will store the solution*/
 	  MYMALLOC((dmumps_par->rhs),(nbrhs*ldrhs),double2);
 
 	  for(i=0;i<nbrhs;i++){

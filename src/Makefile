@@ -1,5 +1,5 @@
 #
-#  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+#  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
 #
 topdir = ..
 libdir = $(topdir)/lib
@@ -27,11 +27,13 @@ OBJS_COMMON = \
         mumps_common.o\
         mumps_ooc_common.o\
         mumps_orderings.o\
+        mumps_size.o\
         mumps_io.o\
         mumps_io_basic.o\
         mumps_io_thread.o\
         mumps_io_err.o\
-        mumps_static_mapping.o
+        mumps_static_mapping.o \
+	tools_common_mod.o
 
 OBJS = 	$(ARITH)mumps_part1.o\
         $(ARITH)mumps_part2.o\
@@ -79,7 +81,9 @@ $(ARITH)mumps_part8.o:	$(ARITH)mumps_comm_buffer.o \
 			$(ARITH)mumps_ooc.o
 
 $(ARITH)mumps_part5.o:	mumps_static_mapping.o
+$(ARITH)mumps_part5.o:	$(ARITH)mumps_part2.o
 
+$(ARITH)mumps_part2.o : tools_common_mod.o
 
 .SUFFIXES: .c .F .o
 .F.o:

@@ -1,16 +1,16 @@
 C
-C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
 C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
-C  INRIA.
+C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+C  IRIT, and INRIA.
 C
-C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
-C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+C  Current development team includes Patrick Amestoy, Alfredo Buttari,
+C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -23,21 +23,17 @@ C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3]) the contribution of this package
+C  references [1] and [2]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
-C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
-C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
-C
-C   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+C   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
 C   A fully asynchronous multifrontal solver using distributed dynamic
 C   scheduling, SIAM Journal of Matrix Analysis and Applications,
 C   Vol 23, No 1, pp 15-41 (2001).
 C
-C   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+C   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
 C   S. Pralet, Hybrid scheduling for the parallel solution of linear
 C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
@@ -150,6 +146,20 @@ C***********************************************************************
       CALL MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
       IF ( IERR .NE. 0 ) THEN
         WRITE(*,*) 'ERROR in MPI_REDUCE, DATATYPE=',DATATYPE
+        STOP
+      END IF
+      IERR = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE MPI_REDUCE_SCATTER( SENDBUF, RECVBUF, RCVCOUNT, 
+     *           DATATYPE, OP, COMM, IERR )
+      IMPLICIT NONE
+      INTEGER RCVCOUNT, DATATYPE, OP, ROOT, COMM, IERR
+      INTEGER SENDBUF(*), RECVBUF(*)
+      CALL MUMPS_COPY( RCVCOUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+      IF ( IERR .NE. 0 ) THEN
+        WRITE(*,*) 'ERROR in MPI_REDUCE_SCATTER, DATATYPE=',DATATYPE
         STOP
       END IF
       IERR = 0
@@ -909,37 +919,51 @@ C***********************************************************************
       RETURN
       END
 C***********************************************************************
-      DOUBLE PRECISION FUNCTION PCDOT( CONTXT, N, X, Y )
-      INTEGER CONTXT, N
-      COMPLEX X(*), Y(*)
-        PCDOT = (0.0e0,0.0e0)
-        WRITE(*,*) 'Error. PCDOT should not be called.'
-        STOP
-      RETURN
-      END
-C***********************************************************************
-      DOUBLE PRECISION FUNCTION PZDOT( CONTXT, N, X, Y )
-      INTEGER CONTXT, N
+      SUBROUTINE PZDOT
+     &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
+      IMPLICIT NONE
+      INTEGER N, IX, JX, IY, JY, INCX, INCY
+      INTEGER DESCX(*), DESCY(*)
       DOUBLE COMPLEX X(*), Y(*)
-        PZDOT = (0.0d0,0.0d0)
+      DOUBLE PRECISION DOT
+        DOT = 0.0d0
         WRITE(*,*) 'Error. PZDOT should not be called.'
         STOP
       RETURN
       END
 C***********************************************************************
-      DOUBLE PRECISION FUNCTION PDDOT( CONTXT, N, X, Y )
-      INTEGER CONTXT, N
-      DOUBLE PRECISION X(*), Y(*)
-        PDDOT = 0.0d0
+      SUBROUTINE PCDOT
+     &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
+      IMPLICIT NONE
+      INTEGER N, IX, JX, IY, JY, INCX, INCY
+      INTEGER DESCX(*), DESCY(*)
+      COMPLEX X(*), Y(*)
+      REAL DOT
+        DOT = 0.0e0
+        WRITE(*,*) 'Error. PCDOT should not be called.'
+        STOP
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE PDDOT
+     &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
+      IMPLICIT NONE
+      INTEGER N, IX, JX, IY, JY, INCX, INCY
+      INTEGER DESCX(*), DESCY(*)
+      DOUBLE PRECISION X(*), Y(*), DOT
+        DOT = 0.0d0
         WRITE(*,*) 'Error. PDDOT should not be called.'
         STOP
       RETURN
       END
 C***********************************************************************
-      DOUBLE PRECISION FUNCTION PSDOT( CONTXT, N, X, Y )
-      INTEGER CONTXT, N
-      REAL X(*), Y(*)
-        PSDOT = 0.0e0
+      SUBROUTINE PSDOT
+     &    ( N, DOT, X, IX, JX, DESCX, INCX, Y, IY, JY, DESCY, INCY )
+      IMPLICIT NONE
+      INTEGER N, IX, JX, IY, JY, INCX, INCY
+      INTEGER DESCX(*), DESCY(*)
+      REAL X(*), Y(*), DOT
+        DOT = 0.0e0
         WRITE(*,*) 'Error. PSDOT should not be called.'
         STOP
       RETURN

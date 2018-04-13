@@ -1,7 +1,33 @@
-
 -------------
 = ChangeLog =
 -------------
+
+Changes from 4.8.4 to 4.9
+* Parallel analysis available
+* Use of 64-bit integer addressing for large internal workarrays
+* overflow in computation of INFO(9) in out-of-core corrected
+* fixed Matlab and Scilab interfaces to sparse RHS functionality
+* time cost of analysis reduced for "optimisation" matrices
+* time to gather solution on processor 0 reduced and automatic copying
+  of some routine arguments by some compilers resolved.
+* extern "C" added to header file mpi.h of libseq for C++ compilers
+* Problem with NZ_loc=0 and scaling with ifort 10 solved
+* Statistics about current state of the factorization
+  produced/printed even in case of error.
+* Avoid using complex arrays as real workspace (complex versions)
+* New error code -40 (instead of -10) when SYM=1 is used and ScaLAPACK
+  detects a negative pivot
+* Solved problem of "Internal error 1" in [SDCZ]MUMPS_264 and [SDCZ]MUMPS_274
+* Solved undeterministic bug occurring with asynchronous OOC + panels
+  when uninitialized memory access had value -7777
+* Fixed a remaining problem with OOC filenames having more than 150 characters
+* Fixed some problems related to the usage of intrinsic functions inside PARAMETER
+  statements (HP-UX compilers)
+* Fixed problem of explicit interface in [SDCZ]MUMPS_521
+* Out-of-core strategy from 4.7.4 can be reactivated with -DOLD_OOC_NOPANEL
+* Message "problem with NIV2_FLOPS message" no more occurs
+* Avoid compilation problem with old versions of gfortran
+
 
 Changes from 4.8.3 to 4.8.4
 * Absolute threshold criterion for null pivot detection added to CNTL(3)
@@ -306,7 +332,7 @@ Changes from 4.0.4 to 4.1.4
 = Release history =
 -------------------
 
-
+Release 4.9              : July 2009
 Release 4.8.4            : December 2008
 Release 4.8.3            : September 2008
 Release 4.8.2            : September 2008

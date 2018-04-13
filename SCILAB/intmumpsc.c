@@ -435,6 +435,7 @@ void DMUMPS_alloc(DMUMPS_STRUC_C **dmumps_par){
           dmumps_par->nrhs = nRHS;
           dmumps_par->lrhs = mRHS;
           nz_RHS=RHS_SPARSE.nel;
+          dmumps_par->nz_rhs=nz_RHS;
           
           irhs_ptr=(int*)malloc((nRHS+1)*sizeof(int));
    

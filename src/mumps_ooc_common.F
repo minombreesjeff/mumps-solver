@@ -1,16 +1,16 @@
 C
-C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
 C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
-C  INRIA.
+C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+C  IRIT, and INRIA.
 C
-C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
-C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+C  Current development team includes Patrick Amestoy, Alfredo Buttari,
+C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -23,21 +23,17 @@ C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3]) the contribution of this package
+C  references [1] and [2]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
-C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
-C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
-C
-C   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+C   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
 C   A fully asynchronous multifrontal solver using distributed dynamic
 C   scheduling, SIAM Journal of Matrix Analysis and Applications,
 C   Vol 23, No 1, pp 15-41 (2001).
 C
-C   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+C   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
 C   S. Pralet, Hybrid scheduling for the parallel solution of linear
 C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
@@ -56,7 +52,7 @@ C
       LOGICAL,SAVE :: STRAT_IO_ASYNC,WITH_BUF,SOLVE,IS_INIT_CALLED
       INTEGER, DIMENSION(:),POINTER :: STEP_OOC,PROCNODE_OOC
       INTEGER, SAVE :: MYID_OOC,SLAVEF_OOC,LOW_LEVEL_STRAT_IO
-      INTEGER, SAVE :: HBUF_SIZE,DIM_BUF_IO
+      INTEGER(8), SAVE :: HBUF_SIZE, DIM_BUF_IO
       INTEGER ERR_STR_OOC_MAX_LEN
       PARAMETER(ERR_STR_OOC_MAX_LEN = 512)
       CHARACTER*1 ERR_STR_OOC(ERR_STR_OOC_MAX_LEN)
@@ -76,25 +72,25 @@ C
       INTEGER, PUBLIC :: STRAT_WRITE_MAX, STRAT_TRY_WRITE
       PARAMETER (STRAT_WRITE_MAX=1, STRAT_TRY_WRITE=2)
       END MODULE MUMPS_OOC_COMMON
-      SUBROUTINE MUMPS_676(INT1,INT2,VADDR_ARG)
+      SUBROUTINE MUMPS_676(INT1,INT2,BIGINT)
       IMPLICIT NONE
       INTEGER INT1,INT2
-      INTEGER*8 VADDR_ARG
+      INTEGER*8 BIGINT
       INTEGER*8 TMP1,TMP2,CONV
-      PARAMETER (CONV=2000000000)
-      TMP1=INT1
-      TMP2=INT2
-      VADDR_ARG=(INT1*CONV)+INT2
+      PARAMETER (CONV=1073741824_8) 
+      TMP1=int(INT1,kind=kind(TMP1))
+      TMP2=int(INT2,kind=kind(TMP2))
+      BIGINT=(TMP1*CONV)+TMP2
       RETURN
       END SUBROUTINE MUMPS_676
-      SUBROUTINE MUMPS_677(INT1,INT2,VADDR_ARG)
+      SUBROUTINE MUMPS_677(INT1,INT2,BIGINT)
       IMPLICIT NONE
       INTEGER INT1,INT2
-      INTEGER*8 VADDR_ARG
+      INTEGER*8 BIGINT
       INTEGER*8 TMP1,TMP2,CONV
-      PARAMETER (CONV=2000000000)
-      TMP1=VADDR_ARG/CONV
-      TMP2=mod(VADDR_ARG,CONV)
+      PARAMETER (CONV=1073741824_8) 
+      TMP1=BIGINT/CONV
+      TMP2=mod(BIGINT,CONV)
       INT1=int(TMP1)
       INT2=int(TMP2)
       RETURN

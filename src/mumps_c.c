@@ -1,17 +1,17 @@
 /*
  *
- *  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+ *  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
  *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
  *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
- *  INRIA.
+ *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+ *  IRIT, and INRIA.
  *
- *  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
- *  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+ *  Current development team includes Patrick Amestoy, Alfredo Buttari,
+ *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -24,21 +24,17 @@
  *
  *  User documentation of any code that uses this software can
  *  include this complete notice. You can acknowledge (using
- *  references [1], [2], and [3]) the contribution of this package
+ *  references [1] and [2]) the contribution of this package
  *  in any scientific publication dependent upon the use of the
  *  package. You shall use reasonable endeavours to notify
  *  the authors of the package of this publication.
  *
- *   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
- *   Multifrontal parallel distributed symmetric and unsymmetric solvers,
- *   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
- *
- *   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+ *   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
  *   A fully asynchronous multifrontal solver using distributed dynamic
  *   scheduling, SIAM Journal of Matrix Analysis and Applications,
  *   Vol 23, No 1, pp 15-41 (2001).
  *
- *   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+ *   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
  *   S. Pralet, Hybrid scheduling for the parallel solution of linear
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
@@ -158,11 +154,14 @@ MUMPS_F77( MUMPS_INT      *job,
            MUMPS_INT      *infog,
            MUMPS_REAL     *rinfog,
            MUMPS_INT      *deficiency,
+	   MUMPS_INT      *lwk_user,
            MUMPS_INT      *size_schur,
            MUMPS_INT      *listvar_schur,
            MUMPS_INT      *listvar_schur_avail,
            MUMPS_COMPLEX  *schur,
            MUMPS_INT      *schur_avail,
+	   MUMPS_COMPLEX  *wk_user,
+	   MUMPS_INT      *wk_user_avail,
            MUMPS_REAL     *colsca,
            MUMPS_INT      *colsca_avail,
            MUMPS_REAL     *rowsca,
@@ -277,6 +276,7 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
     MUMPS_INT *listvar_schur; MUMPS_INT listvar_schur_avail;
     MUMPS_COMPLEX *schur; MUMPS_INT schur_avail;
     MUMPS_COMPLEX *rhs; MUMPS_COMPLEX *redrhs;
+    MUMPS_COMPLEX *wk_user; MUMPS_INT wk_user_avail;
     MUMPS_REAL *colsca; MUMPS_REAL *rowsca;
     MUMPS_COMPLEX *rhs_sparse, *sol_loc;
     MUMPS_INT *irhs_sparse, *irhs_ptr, *isol_loc;
@@ -318,7 +318,7 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
     /* Initialize pointers to zero for job == -1 */
     if ( mumps_par->job == -1 )
       { /* job = -1: we just reset all pointers to 0 */
-        mumps_par->irn=0; mumps_par->jcn=0; mumps_par->a=0; mumps_par->rhs=0;
+        mumps_par->irn=0; mumps_par->jcn=0; mumps_par->a=0; mumps_par->rhs=0; mumps_par->wk_user=0;
 	mumps_par->redrhs=0;
         mumps_par->eltptr=0; mumps_par->eltvar=0; mumps_par->a_elt=0; mumps_par->perm_in=0; mumps_par->sym_perm=0; mumps_par->uns_perm=0; mumps_par->irn_loc=0;mumps_par->jcn_loc=0;mumps_par->a_loc=0; mumps_par->listvar_schur=0;mumps_par->schur=0;mumps_par->mapping=0;mumps_par->pivnul_list=0;mumps_par->colsca=0;mumps_par->rowsca=0; mumps_par->rhs_sparse=0; mumps_par->irhs_sparse=0; mumps_par->sol_loc=0; mumps_par->irhs_ptr=0; mumps_par->isol_loc=0;
         strcpy(mumps_par->ooc_tmpdir,"NAME_NOT_INITIALIZED");
@@ -329,7 +329,7 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
         /* Next line initializes scalars to arbitrary values.
          * Some of those will anyway be overwritten during the
          * call to Fortran routine [SDCZ]MUMPS_INIT_PHASE */
-        mumps_par->n=0; mumps_par->nz=0; mumps_par->nz_loc=0; mumps_par->nelt=0;mumps_par->instance_number=0;mumps_par->deficiency=0;mumps_par->size_schur=0;mumps_par->lrhs=0; mumps_par->lredrhs=0; mumps_par->nrhs=0; mumps_par->nz_rhs=0; mumps_par->lsol_loc=0;
+        mumps_par->n=0; mumps_par->nz=0; mumps_par->nz_loc=0; mumps_par->nelt=0;mumps_par->instance_number=0;mumps_par->deficiency=0;mumps_par->lwk_user=0;mumps_par->size_schur=0;mumps_par->lrhs=0; mumps_par->lredrhs=0; mumps_par->nrhs=0; mumps_par->nz_rhs=0; mumps_par->lsol_loc=0;
  mumps_par->schur_mloc=0; mumps_par->schur_nloc=0; mumps_par->schur_lld=0; mumps_par->mblock=0; mumps_par->nblock=0; mumps_par->nprow=0; mumps_par->npcol=0;
       }
      ooc_tmpdirlen=(int)strlen(mumps_par->ooc_tmpdir);
@@ -369,6 +369,7 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
     EXTRACT_POINTERS(irn,idummyp);
     EXTRACT_POINTERS(jcn,idummyp);
     EXTRACT_POINTERS(rhs,cdummyp);
+    EXTRACT_POINTERS(wk_user,cdummyp);
     EXTRACT_POINTERS(redrhs,cdummyp);
     EXTRACT_POINTERS(irn_loc,idummyp);
     EXTRACT_POINTERS(jcn_loc,idummyp);
@@ -418,8 +419,8 @@ mumps_c(MUMPS_STRUC_C * mumps_par)
           &(mumps_par->nelt), eltptr, &eltptr_avail, eltvar, &eltvar_avail, a_elt, &a_elt_avail,
           perm_in, &perm_in_avail,
           rhs, &rhs_avail, redrhs, &redrhs_avail, info, rinfo, infog, rinfog,
-          &(mumps_par->deficiency), &(mumps_par->size_schur), listvar_schur, &listvar_schur_avail, schur,
-          &schur_avail, colsca, &colsca_avail, rowsca, &rowsca_avail,
+          &(mumps_par->deficiency), &(mumps_par->lwk_user), &(mumps_par->size_schur), listvar_schur, &listvar_schur_avail, schur,
+          &schur_avail, wk_user, &wk_user_avail, colsca, &colsca_avail, rowsca, &rowsca_avail,
           &(mumps_par->instance_number), &(mumps_par->nrhs), &(mumps_par->lrhs),
 	  &(mumps_par->lredrhs),
           rhs_sparse, &rhs_sparse_avail, sol_loc, &sol_loc_avail, irhs_sparse,

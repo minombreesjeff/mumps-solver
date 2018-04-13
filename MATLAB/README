@@ -3,7 +3,7 @@ README
 *  This MATLAB interface to MUMPS is provided to you free of charge.   *
 *  It is part of the MUMPS package (see ../Conditions_of_use) and is   *
 *  public domain. Up-to-date copies can be obtained from the Web       *
-*  pages        http://www.enseeiht.fr/apo/MUMPS/ or                   *
+*  pages        http://mumps.enseeiht.fr/         or                   *
 *  		http://graal.ens-lyon.fr/MUMPS                         *
 *                                                                      *
 *  THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY	       *
@@ -46,11 +46,11 @@ README
 
  2- 
  to edit make.inc.
- Copy the appropriate makefile from INSTALL directory
- and modify the paths. In particular you will need
- to give the path to the libraries of your FORTRAN 90 compiler.
- If you are lucky the Makefile will work directly, but
- unfortunately you may have to change the Makefile 
+ Copy the appropriate makefile from INSTALL directory into
+ make.inc and modify the paths. In particular you will need
+ to give the path to the runtime libraries of your FORTRAN 90
+ compiler. If you are lucky the Makefile will work directly,
+ but unfortunately you may have to change the Makefile 
  significantly even between 2 versions of the same compiler.
 
  You can use something like
@@ -63,19 +63,16 @@ README
  4- We advise you to run the 4 examples 
     simple_example.m, multiplerhs_example.m, sparserhs_example.m and
     schurrhs_example.m
-    and to check that no warning is returned
+    and to check that everything runs smoothly.
 
 ******************************************************************************
 
  LIMITATION:
 
  This interface enables you to call MUMPS from MATLAB only
- in sequential and double precision.
-
- It does not support :
-  - other versions (complex arithmetic, parallel ...)
-  - multiple right hand side
-  - sparse right hand side 
+ in sequential for double precision and double complex versions.
+ For example it does not support:
+  - other versions (single precision arithmetic, parallel version...)
   - elemental format
 
 ******************************************************************************

@@ -1,17 +1,17 @@
 /*
  *
- *  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+ *  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
  *
  *
  *  This version of MUMPS is provided to you free of charge. It is public
  *  domain, based on public domain software developed during the Esprit IV
  *  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
  *  Since this first public domain version in 1999, the developments are
- *  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
- *  INRIA.
+ *  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+ *  IRIT, and INRIA.
  *
- *  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
- *  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+ *  Current development team includes Patrick Amestoy, Alfredo Buttari,
+ *  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
  *
  *  Up-to-date copies of the MUMPS package can be obtained
  *  from the Web pages:
@@ -24,21 +24,17 @@
  *
  *  User documentation of any code that uses this software can
  *  include this complete notice. You can acknowledge (using
- *  references [1], [2], and [3]) the contribution of this package
+ *  references [1] and [2]) the contribution of this package
  *  in any scientific publication dependent upon the use of the
  *  package. You shall use reasonable endeavours to notify
  *  the authors of the package of this publication.
  *
- *   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
- *   Multifrontal parallel distributed symmetric and unsymmetric solvers,
- *   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
- *
- *   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+ *   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
  *   A fully asynchronous multifrontal solver using distributed dynamic
  *   scheduling, SIAM Journal of Matrix Analysis and Applications,
  *   Vol 23, No 1, pp 15-41 (2001).
  *
- *   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+ *   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
  *   S. Pralet, Hybrid scheduling for the parallel solution of linear
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
@@ -134,7 +130,7 @@ int mumps_set_file(int type,int file_number_arg){
   strcpy((mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->name,name);
   /* See mumps_io_basic.h for comments on the I/O flags passed to open */
 #if ! defined( MUMPS_WIN32 )
-   (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file=open(name,(mumps_files+type)->mumps_flag_open); 
+  (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file=open(name,(mumps_files+type)->mumps_flag_open,0666); 
   /* 
 CPA: for LU factor file: 
 (mumps_io_pfile_pointer_array+(mumps_files+type)->mumps_io_current_file_number)->file= open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666); */
@@ -198,17 +194,17 @@ MUMPS_INLINE int mumps_gen_file_info(long long vaddr, int * pos, int * file){
   *pos=(int)(vaddr%(long long)mumps_io_max_file_size);
   return 0;
 }
-int mumps_compute_nb_concerned_files(int * block_size, int * nb_concerned_files,long long vaddr){
+int mumps_compute_nb_concerned_files(long long block_size, int * nb_concerned_files,long long vaddr){
   int file,pos,available_size;
   long long vaddr_loc;
   vaddr_loc=vaddr*(long long)mumps_elementary_data_size;
   mumps_gen_file_info(vaddr_loc,&pos,&file);
   available_size=mumps_io_max_file_size-pos+1;
-  *nb_concerned_files=(int)my_ceil((double)(my_max(0,((*block_size)*(double)(mumps_elementary_data_size))-available_size))/(double)mumps_io_max_file_size)+1;
+  *nb_concerned_files=(int)my_ceil((double)(my_max(0,((block_size)*(double)(mumps_elementary_data_size))-available_size))/(double)mumps_io_max_file_size)+1;
   return 0;
 }
 int mumps_io_do_write_block(void * address_block,
-              		     int * block_size,
+              		     long long block_size,
          	             int * type_arg,
 		             long long vaddr,
 		             int * ierr){   
@@ -232,7 +228,7 @@ int mumps_io_do_write_block(void * address_block,
   type=*type_arg;
   loc_addr=address_block;
   mumps_compute_nb_concerned_files(block_size,&nb_concerned_files,vaddr);
-  to_be_written=((double)mumps_elementary_data_size)*((double)(*block_size));
+  to_be_written=((double)mumps_elementary_data_size)*((double)(block_size));
   /*  printf("nb_concerned -> %d | %lf \n",nb_concerned_files,to_be_written); */
   for(i=0;i<nb_concerned_files;i++){
 #if ! defined( MUMPS_WIN32 ) && ! defined (WITHOUT_PTHREAD)
@@ -317,7 +313,7 @@ int mumps_io_do_write_block(void * address_block,
   return 0;
 }
 int mumps_io_do_read_block(void * address_block,
-	            int * block_size,
+	            long long block_size,
                     int * type_arg,
          	    long long vaddr,
                     int * ierr){
@@ -337,10 +333,10 @@ int mumps_io_do_read_block(void * address_block,
     sprintf(error_str,"Internal error in low-level I/O operation (requested size too big for file system) \n");
     return -90;
     }*/
-  if(*block_size==0){
+  if(block_size==0){
     return 0;
   }
-  read_size=(double)mumps_elementary_data_size*(double)(*block_size);
+  read_size=(double)mumps_elementary_data_size*(double)(block_size);
   /*  if((*file_number<0)&&(read_size<(double)mumps_io_max_file_size)){
     sprintf(error_str,"Internal error (1) in low level read op\n");
     return -90;
@@ -391,6 +387,8 @@ int mumps_free_file_pointers(int *step){
   if (*step == 0) free(mumps_ooc_file_prefix);
   if(mumps_files == NULL )
       return 0;
+#if ! defined( MUMPS_WIN32 )
+#endif
   bound=mumps_io_nb_file_type;
 /*   if(*step==0){ */
 /*     /\* factorization *\/ */
@@ -421,6 +419,8 @@ int mumps_free_file_pointers(int *step){
   }
 /*   free(mumps_io_pfile_name); */
   free(mumps_files);
+#if ! defined( MUMPS_WIN32 )
+#endif
   return 0;
 }
 /* Initialize the mumps_file_type structure at <which>th position in
@@ -480,21 +480,21 @@ int mumps_init_file_structure(int* _myid, int* total_size_io,int* size_element,i
     switch(flag_tab[i]){
     case 0:
 #if ! defined( MUMPS_WIN32 )
-      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_WRONLY;
+      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_WRONLY|O_CREAT|O_TRUNC;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"wb");
 #endif
       break;
     case 1:
 #if ! defined( MUMPS_WIN32 )
-      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDONLY;
+      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDONLY|O_CREAT|O_TRUNC;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"rb");
 #endif
       break;
     case 2:
 #if ! defined( MUMPS_WIN32 )
-      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDWR;
+      (mumps_files+i)->mumps_flag_open=mumps_flag_open|O_RDWR|O_CREAT|O_TRUNC;
 #else
       strcpy((mumps_files+i)->mumps_flag_open,"rwb");
 #endif
@@ -798,3 +798,26 @@ int mumps_io_write_win32__(void *file, void *loc_addr, size_t write_size, int wh
   return 0;
 }
 #endif
+int mumps_compute_file_size(void *file,size_t *size){
+  /* Compute the size of the file pointed by file and return it in
+     size */
+#if defined(MUMPS_WIN32)
+  /* This works well as soon as we don't use threads under WIN32 */
+  int ret_code;
+  long pos=0;
+  /* Get the current position */
+  pos=ftell(*(FILE **)file);
+  /* Move the file pointer to the end of the file */
+  fseek(*(FILE **)file,0,SEEK_END);
+  /* Get the current position which is in fact the size */
+  *size=(size_t)ftell(*(FILE **)file);
+  /* Restore the old position */
+  fseek(*(FILE **)file,pos,SEEK_SET);
+#else
+  struct stat file_info;
+  /* fstat does everything :-) */
+  fstat(*(int *)file, &file_info);
+  *size = (size_t)file_info.st_size;
+#endif
+  return 0;
+}

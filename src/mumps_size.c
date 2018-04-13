@@ -39,28 +39,11 @@
  *   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
  *
  */
-#if defined(_WIN32)
-#include  "elapse.h"
-#include  <time.h>
-#include  <sys/timeb.h>
-void MUMPS_CALL mumps_elapse(double *val)
+/* Utility to automatically get the sizes of Fortran types */
+#include "mumps_common.h"
+#define MUMPS_SIZE_C \
+	F_SYMBOL( size_c, SIZE_C)
+void  MUMPS_CALL MUMPS_SIZE_C(char *a, char *b, int *diff)
 {
-  time_t	ltime;
-  struct    _timeb	tstruct;
-
-  time (&ltime);
-  _ftime(&tstruct);
-  *val = (double) ltime + (double) tstruct.millitm*(0.001);
+    *diff = (int) (b - a);
 }
-
-#else
-
-#include "elapse.h"
-#include <sys/time.h>
-void mumps_elapse(double *val)
-  {
-    struct timeval time;
-    gettimeofday(&time,(struct timezone *)0);
-    *val=time.tv_sec+time.tv_usec*1.e-6;
-  }
-#endif

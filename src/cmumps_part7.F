@@ -1,16 +1,16 @@
 C
-C  This file is part of MUMPS 4.8.4, built on Mon Dec 15 15:31:38 UTC 2008
+C  This file is part of MUMPS 4.9, built on Wed Jul 29 10:35:58 UTC 2009
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
 C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
-C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
-C  INRIA.
+C  supported by the following institutions: CERFACS, CNRS, INPT(ENSEEIHT)-
+C  IRIT, and INRIA.
 C
-C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
-C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
+C  Current development team includes Patrick Amestoy, Alfredo Buttari,
+C  Abdou Guermouche, Jean-Yves L'Excellent, Bora Ucar.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
 C  from the Web pages:
@@ -23,21 +23,17 @@ C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3]) the contribution of this package
+C  references [1] and [2]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
 C
-C   [1] P. R. Amestoy, I. S. Duff and  J.-Y. L'Excellent,
-C   Multifrontal parallel distributed symmetric and unsymmetric solvers,
-C   in Comput. Methods in Appl. Mech. Eng., 184,  501-520 (2000).
-C
-C   [2] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
+C   [1] P. R. Amestoy, I. S. Duff, J. Koster and  J.-Y. L'Excellent,
 C   A fully asynchronous multifrontal solver using distributed dynamic
 C   scheduling, SIAM Journal of Matrix Analysis and Applications,
 C   Vol 23, No 1, pp 15-41 (2001).
 C
-C   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
+C   [2] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
 C   S. Pralet, Hybrid scheduling for the parallel solution of linear
 C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
@@ -52,24 +48,24 @@ C
       INTEGER ICNTL(40), KEEP(500), MPG
       KEEP(111)=ICNTL(25)
       IF (KEEP(111) < -1 .OR.
-     *      KEEP(111).GT.KEEP(112)+KEEP(17)) THEN
+     &      KEEP(111).GT.KEEP(112)+KEEP(17)) THEN
           KEEP(111)=0
       ENDIF
       IF (KEEP(19).EQ.0.AND.KEEP(110).EQ.0) THEN
         IF(KEEP(111).NE.0.AND.MPG.GT.0) THEN
           WRITE( MPG,'(A)')
-     *'** Warning: ICNTL(25) option disabled because'
+     &'** Warning: ICNTL(25) option disabled because'
           WRITE( MPG,'(A)')
-     *'** null space was not required during factorization'
+     &'** null space was not required during factorization'
         ENDIF
         KEEP(111)=0
       ENDIF
       IF (ICNTL(9).NE.1) THEN
         IF (KEEP(111).NE.0.AND. MPG.GT.0) THEN
           WRITE(MPG,'(A)')
-     *'** Warning: ICNTL(25) option disabled because'
+     &'** Warning: ICNTL(25) option disabled because'
           WRITE( MPG,'(A)')
-     *'** it is not available for the transposed system'
+     &'** it is not available for the transposed system'
         ENDIF
       ENDIF
       RETURN
@@ -92,9 +88,9 @@ C
       RETURN
       END SUBROUTINE CMUMPS_636
       SUBROUTINE CMUMPS_279( PHASE, MBLOCK, NBLOCK, 
-     *           SIZE_ROOT_ARG,
-     *           LOCAL_M, LOCAL_N, ROOT_OWNER, KEEP,KEEP8,
-     *           LIWK_RR, LWK_RR )
+     &           SIZE_ROOT_ARG,
+     &           LOCAL_M, LOCAL_N, ROOT_OWNER, KEEP,KEEP8,
+     &           LIWK_RR, LWK_RR )
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: PHASE, SIZE_ROOT_ARG
       INTEGER, INTENT(IN) :: MBLOCK, NBLOCK, LOCAL_M, LOCAL_N
@@ -123,7 +119,7 @@ C
         END IF
       ENDIF
       RETURN
-      END
+      END SUBROUTINE CMUMPS_279
       SUBROUTINE CMUMPS_333(N,PERM,X,RN01)
       INTEGER N,PERM(N),I
       COMPLEX RN01(N),X(N)
@@ -134,7 +130,7 @@ C
       X(I)=RN01(I)
 200   CONTINUE
       RETURN
-      END
+      END SUBROUTINE CMUMPS_333
       SUBROUTINE CMUMPS_334(N,PERM,X,RN01)
       INTEGER N,PERM(N),I
       COMPLEX RN01(N),X(N)
@@ -145,29 +141,7 @@ C
       X(I)=RN01(I)
 200   CONTINUE
       RETURN
-      END
-      REAL FUNCTION CMUMPS_104(N,AA,WR01)
-      INTEGER N
-      COMPLEX AA(N*N),WR01(N)
-      INTEGER I,J,JSTRT
-      COMPLEX ZERO
-      COMPLEX VALUE
-      PARAMETER(ZERO=0.0E0)
-      VALUE=ZERO
-      CALL CMUMPS_117(N,ZERO,WR01,1)
-      JSTRT=1
-      DO I=1,N
-        DO J=JSTRT,JSTRT+N-1
-          WR01(I)=WR01(I)+abs(AA(J))
-        END DO
-        JSTRT=JSTRT+N
-      END DO
-      DO I=1,N
-        VALUE=max(abs(VALUE),abs(WR01(I)))
-      END DO
-      CMUMPS_104=VALUE
-      RETURN
-      END
+      END SUBROUTINE CMUMPS_334
       SUBROUTINE CMUMPS_117(N,ALPHA,DX,INCX)
       INTEGER N,INCX
       COMPLEX ALPHA,DX(*)
@@ -202,35 +176,39 @@ C
         END DO
         RETURN
       END IF
-      END
+      END SUBROUTINE CMUMPS_117
       SUBROUTINE CMUMPS_146( MYID, root, N, IROOT,
-     *           COMM, IW, LIW, IFREE,
-     *           A, LA, PTRAST, PTLUST_S, PTRFAC,
-     *           STEP, INFO, LDLT, QR,
-     *           WK, LWK, KEEP,KEEP8)
+     &           COMM, IW, LIW, IFREE,
+     &           A, LA, PTRAST, PTLUST_S, PTRFAC,
+     &           STEP, INFO, LDLT, QR,
+     &           WK, LWK, KEEP,KEEP8)
       IMPLICIT NONE
       INCLUDE 'cmumps_root.h'
       INCLUDE 'mpif.h'
       TYPE ( CMUMPS_ROOT_STRUC ) :: root
-      INTEGER N, IROOT, COMM, LIW, LA, MYID, LWK, LIWK, IFREE
+      INTEGER N, IROOT, COMM, LIW, MYID, LIWK, IFREE
+      INTEGER(8) :: LA
+      INTEGER(8) :: LWK
       COMPLEX WK( LWK )
       INTEGER KEEP(500)
       INTEGER*8 KEEP8(150)
-      INTEGER PTRAST(KEEP(28)), PTLUST_S(KEEP(28)), PTRFAC(KEEP(28)),
-     *STEP(N), IW( LIW )
+      INTEGER(8) :: PTRAST(KEEP(28))
+      INTEGER(8) :: PTRFAC(KEEP(28))
+      INTEGER PTLUST_S(KEEP(28)), STEP(N), IW( LIW )
       INTEGER INFO( 2 ), LDLT, QR
       COMPLEX A( LA )
-      INTEGER IOLDPS, IAPOS
+      INTEGER IOLDPS
+      INTEGER(8) :: IAPOS
       INTEGER LOCAL_M, LOCAL_N, LPIV, IERR, allocok,i
       INCLUDE 'mumps_headers.h'
         IF ( .NOT. root%yes ) RETURN
         IF ( KEEP(60) .NE. 0 ) THEN
           IF ((LDLT == 1 .OR. LDLT == 2) .AND. KEEP(60) == 3 ) THEN
             CALL CMUMPS_320( WK, root%MBLOCK,
-     *      root%MYROW, root%MYCOL, root%NPROW, root%NPCOL,
-     *      root%SCHUR_POINTER(1),
-     *      root%SCHUR_LLD, root%SCHUR_NLOC,
-     *      root%TOT_ROOT_SIZE, MYID, COMM )
+     &      root%MYROW, root%MYCOL, root%NPROW, root%NPCOL,
+     &      root%SCHUR_POINTER(1),
+     &      root%SCHUR_LLD, root%SCHUR_NLOC,
+     &      root%TOT_ROOT_SIZE, MYID, COMM )
           ENDIF
         RETURN
         ENDIF
@@ -254,47 +232,48 @@ C
           CALL MUMPS_ABORT()
         END IF
         CALL DESCINIT( root%DESCRIPTOR, root%TOT_ROOT_SIZE,
-     *      root%TOT_ROOT_SIZE, root%MBLOCK, root%NBLOCK,
-     *      0, 0, root%CNTXT_BLACS, LOCAL_M, IERR )
+     &      root%TOT_ROOT_SIZE, root%MBLOCK, root%NBLOCK,
+     &      0, 0, root%CNTXT_BLACS, LOCAL_M, IERR )
         IF ( LDLT.EQ.2 ) THEN
             IF(root%MBLOCK.NE.root%NBLOCK) THEN
               WRITE(*,*) ' Error: symmetrization only works for'
               WRITE(*,*) ' square block sizes, MBLOCK/NBLOCK=',
-     *        root%MBLOCK, root%NBLOCK
+     &        root%MBLOCK, root%NBLOCK
               CALL MUMPS_ABORT()
             END IF
-            IF ( LWK .LT.
-     *        min(root%MBLOCK * root%NBLOCK,root%TOT_ROOT_SIZE*
-     *        root%TOT_ROOT_SIZE ) ) THEN
-              WRITE(*,*) 'Not enough workspace for symmetrization.'
-              CALL MUMPS_ABORT()
+            IF ( LWK .LT. min(
+     &           int(root%MBLOCK,8) * int(root%NBLOCK,8),
+     &           int(root%TOT_ROOT_SIZE,8)* int(root%TOT_ROOT_SIZE,8 )
+     &         )) THEN
+               WRITE(*,*) 'Not enough workspace for symmetrization.'
+               CALL MUMPS_ABORT()
             END IF
             CALL CMUMPS_320( WK, root%MBLOCK,
-     *      root%MYROW, root%MYCOL, root%NPROW, root%NPCOL,
-     *      A( IAPOS ), LOCAL_M, LOCAL_N,
-     *      root%TOT_ROOT_SIZE, MYID, COMM )
+     &      root%MYROW, root%MYCOL, root%NPROW, root%NPCOL,
+     &      A( IAPOS ), LOCAL_M, LOCAL_N,
+     &      root%TOT_ROOT_SIZE, MYID, COMM )
         END IF
         IF (LDLT.EQ.0.OR.LDLT.EQ.2) THEN
           CALL PCGETRF( root%TOT_ROOT_SIZE, root%TOT_ROOT_SIZE,
-     *      A( IAPOS ),
-     *      1, 1, root%DESCRIPTOR, root%IPIV(1), IERR )
+     &      A( IAPOS ),
+     &      1, 1, root%DESCRIPTOR, root%IPIV(1), IERR )
           IF ( IERR .GT. 0 ) THEN
               INFO(1)=-10
               INFO(2)=IERR-1
           END IF
         ELSE
           CALL PCPOTRF('L',root%TOT_ROOT_SIZE,A(IAPOS),
-     *      1,1,root%DESCRIPTOR,IERR)
+     &      1,1,root%DESCRIPTOR,IERR)
             IF ( IERR .GT. 0 ) THEN
-              INFO(1)=-10
+              INFO(1)=-40
               INFO(2)=IERR-1
             END IF
         END IF
         RETURN
       END SUBROUTINE CMUMPS_146
       SUBROUTINE CMUMPS_556(
-     *     N,PIV,FRERE,FILS,NFSIZ,IKEEP,
-     *     NCST,KEEP,KEEP8,id)
+     &     N,PIV,FRERE,FILS,NFSIZ,IKEEP,
+     &     NCST,KEEP,KEEP8,id)
       USE CMUMPS_STRUC_DEF
       IMPLICIT NONE
       TYPE (CMUMPS_STRUC) :: id
@@ -312,13 +291,13 @@ C
          P2 = PIV(I+1)
          K1 = IKEEP(P1,1)
          IF(K1 .GT. 0) THEN
-            V1 = (abs(id%A(K1)*(id%ROWSCA(P1)**2)).GE.1.0E-1)
+            V1 = (abs(id%A(K1))*(id%ROWSCA(P1)**2).GE.1.0E-1)
          ELSE
             V1 = .FALSE.
          ENDIF
          K2 = IKEEP(P2,1)
          IF(K2 .GT. 0) THEN
-            V2 = (abs(id%A(K2)*(id%ROWSCA(P2)**2)).GE.1.0E-1)
+            V2 = (abs(id%A(K2))*(id%ROWSCA(P2)**2).GE.1.0E-1)
          ELSE
             V2 = .FALSE.
          ENDIF
@@ -365,7 +344,7 @@ C
       ENDDO
       END SUBROUTINE CMUMPS_556
       SUBROUTINE CMUMPS_550(N,NCMP,N11,N22,PIV,
-     *     INVPERM,PERM)
+     &     INVPERM,PERM)
       IMPLICIT NONE
       INTEGER N11,N22,N,NCMP
       INTEGER, intent(in) :: PIV(N),PERM(N)
@@ -399,10 +378,10 @@ C
       RETURN
       END SUBROUTINE CMUMPS_550
       SUBROUTINE CMUMPS_547(
-     *     N,NZ, IRN, ICN, PIV,
-     *     NCMP, IW, LW, IPE, LEN, IQ, 
-     *     FLAG, ICMP, IWFR,
-     *     IERROR, KEEP,KEEP8, ICNTL)
+     &     N,NZ, IRN, ICN, PIV,
+     &     NCMP, IW, LW, IPE, LEN, IQ, 
+     &     FLAG, ICMP, IWFR,
+     &     IERROR, KEEP,KEEP8, ICNTL)
       IMPLICIT NONE
       INTEGER N,NZ,NCMP,LW,IWFR,IERROR
       INTEGER ICNTL(40),KEEP(500)
@@ -444,7 +423,7 @@ C
          I = ICMP(I)
          J = ICMP(J)
          IF ((I.GT.N).OR.(J.GT.N).OR.(I.LT.1)
-     *        .OR.(J.LT.1)) THEN
+     &        .OR.(J.LT.1)) THEN
             IERROR = IERROR + 1
          ELSE
             IF (I.NE.J) THEN
@@ -541,9 +520,9 @@ C
       RETURN
       END SUBROUTINE CMUMPS_547
       SUBROUTINE CMUMPS_551(
-     *     N, NE, IP, IRN, SCALING,LSC,CPERM, DIAG,
-     *     ICNTL, WEIGHT,MARKED,FLAG,
-     *     PIV_OUT, INFO)
+     &     N, NE, IP, IRN, SCALING,LSC,CPERM, DIAG,
+     &     ICNTL, WEIGHT,MARKED,FLAG,
+     &     PIV_OUT, INFO)
       IMPLICIT NONE
       INTEGER N, NE, ICNTL(10), INFO(10),LSC,LWEIGHT
       INTEGER CPERM(N),PIV_OUT(N),IP(N+1),IRN(NE), DIAG(N)
@@ -553,15 +532,15 @@ C
       INTEGER I,J,K,L,CUR_EL,CUR_EL_PATH,CUR_EL_PATH_NEXT,BEST_BEG
       INTEGER L1,L2,PTR_SET1,PTR_SET2,TUP,T22,INTER,MERGE
       REAL BEST_SCORE,CUR_VAL,TMP,VAL
-      REAL INITSCORE, CMUMPS_UPDATESCORE, 
-     *     CMUMPS_UPDATE_INVERSE, CMUMPS_METRIC2x2
+      REAL INITSCORE, CMUMPS_739, 
+     &     CMUMPS_740, CMUMPS_741
       LOGICAL VRAI,FAUX,MAX_CARD_DIAG,USE_SCALING
       INTEGER JOB_DEF,DONE
       INTEGER SUM,PROD,STRUCT,MA47,MAGNITUDE
-      INTEGER ZERO,ONE
+      REAL ZERO,ONE
       PARAMETER (JOB_DEF = 5, DONE = -1,
-     *     SUM = 1, PROD = 2, STRUCT=1, MA47=2, MAGNITUDE=3,
-     *     VRAI = .TRUE., FAUX = .FALSE.)
+     &     SUM = 1, PROD = 2, STRUCT=1, MA47=2, MAGNITUDE=3,
+     &     VRAI = .TRUE., FAUX = .FALSE.)
       PARAMETER(ZERO = 0.0E0, ONE = 1.0E0)
       MAX_CARD_DIAG = .TRUE.
       NUM1 = 0
@@ -585,14 +564,14 @@ C
       ENDIF
       IF(ICNTL(2) .GT. 2 .OR. ICNTL(2) .LE. 0) THEN
          WRITE(*,*)
-     *        'ERROR: WRONG VALUE FOR ICNTL(2) = ',ICNTL(2)
+     &        'ERROR: WRONG VALUE FOR ICNTL(2) = ',ICNTL(2)
          INFO(1) = -1
          RETURN
       ENDIF
       T22 = ICNTL(1)
       IF(ICNTL(1) .LT. 0 .OR. ICNTL(1) .GT. 2) THEN
          WRITE(*,*)
-     *        'ERROR: WRONG VALUE FOR ICNTL(1) = ',ICNTL(1)
+     &        'ERROR: WRONG VALUE FOR ICNTL(1) = ',ICNTL(1)
          INFO(1) = -1
          RETURN
       ENDIF
@@ -620,13 +599,13 @@ C
          IF(USE_SCALING) THEN
             VAL = -SCALING(CUR_EL_PATH) - SCALING(CUR_EL+N)
          ENDIF
-         CUR_VAL = CMUMPS_METRIC2x2(
-     *        CUR_EL,CUR_EL_PATH,
-     *        IRN(PTR_SET1),IRN(PTR_SET2),
-     *        L1,L2,
-     *        VAL,DIAG,N,FLAG,FAUX,T22)
+         CUR_VAL = CMUMPS_741(
+     &        CUR_EL,CUR_EL_PATH,
+     &        IRN(PTR_SET1),IRN(PTR_SET2),
+     &        L1,L2,
+     &        VAL,DIAG,N,FLAG,FAUX,T22)
          WEIGHT(PATH_LENGTH+1) = 
-     *        CMUMPS_UPDATESCORE(WEIGHT(1),CUR_VAL,TUP)
+     &        CMUMPS_739(WEIGHT(1),CUR_VAL,TUP)
          DO
             IF(CUR_EL_PATH .EQ. CUR_EL) EXIT
             PATH_LENGTH = PATH_LENGTH+1
@@ -638,15 +617,15 @@ C
             PTR_SET2 = IP(CUR_EL_PATH_NEXT)
             IF(USE_SCALING) THEN
                VAL = -SCALING(CUR_EL_PATH_NEXT) 
-     *              - SCALING(CUR_EL_PATH+N)
+     &              - SCALING(CUR_EL_PATH+N)
             ENDIF
-            CUR_VAL = CMUMPS_METRIC2x2(
-     *           CUR_EL_PATH,CUR_EL_PATH_NEXT,
-     *           IRN(PTR_SET1),IRN(PTR_SET2),
-     *           L1,L2,
-     *           VAL,DIAG,N,FLAG,VRAI,T22)
+            CUR_VAL = CMUMPS_741(
+     &           CUR_EL_PATH,CUR_EL_PATH_NEXT,
+     &           IRN(PTR_SET1),IRN(PTR_SET2),
+     &           L1,L2,
+     &           VAL,DIAG,N,FLAG,VRAI,T22)
             WEIGHT(PATH_LENGTH+1) = 
-     *           CMUMPS_UPDATESCORE(WEIGHT(PATH_LENGTH-1),CUR_VAL,TUP)
+     &           CMUMPS_739(WEIGHT(PATH_LENGTH-1),CUR_VAL,TUP)
             CUR_EL_PATH = CUR_EL_PATH_NEXT
          ENDDO
          IF(mod(PATH_LENGTH,2) .EQ. 1) THEN
@@ -683,17 +662,17 @@ C
             BEST_SCORE = WEIGHT(PATH_LENGTH-1)
             CUR_EL_PATH = CPERM(CUR_EL)
             DO I=1,(PATH_LENGTH/2)-1
-               TMP = CMUMPS_UPDATESCORE(WEIGHT(PATH_LENGTH),
-     *              WEIGHT(2*I-1),TUP)
-               TMP = CMUMPS_UPDATE_INVERSE(TMP,WEIGHT(2*I),TUP)
+               TMP = CMUMPS_739(WEIGHT(PATH_LENGTH),
+     &              WEIGHT(2*I-1),TUP)
+               TMP = CMUMPS_740(TMP,WEIGHT(2*I),TUP)
                IF(TMP .GT. BEST_SCORE) THEN
                   BEST_SCORE = TMP
                   BEST_BEG = CUR_EL_PATH
                ENDIF
                CUR_EL_PATH = CPERM(CUR_EL_PATH)
-               TMP = CMUMPS_UPDATESCORE(WEIGHT(PATH_LENGTH+1),
-     *              WEIGHT(2*I),TUP)
-               TMP = CMUMPS_UPDATE_INVERSE(TMP,WEIGHT(2*I+1),TUP)
+               TMP = CMUMPS_739(WEIGHT(PATH_LENGTH+1),
+     &              WEIGHT(2*I),TUP)
+               TMP = CMUMPS_740(TMP,WEIGHT(2*I+1),TUP)
                IF(TMP .GT. BEST_SCORE) THEN
                   BEST_SCORE = TMP
                   BEST_BEG = CUR_EL_PATH
@@ -730,36 +709,36 @@ C
       INFO(4) = NUM2
       RETURN
       END SUBROUTINE CMUMPS_551
-      FUNCTION CMUMPS_UPDATESCORE(A,B,T)
+      FUNCTION CMUMPS_739(A,B,T)
       IMPLICIT NONE
-      REAL CMUMPS_UPDATESCORE
+      REAL CMUMPS_739
       REAL A,B
       INTEGER T
       INTEGER SUM,PROD
       PARAMETER(SUM = 1,PROD = 2)
       IF(T .EQ. SUM) THEN
-         CMUMPS_UPDATESCORE = A+B
+         CMUMPS_739 = A+B
       ELSE
-         CMUMPS_UPDATESCORE = A*B
+         CMUMPS_739 = A*B
       ENDIF
-      END FUNCTION CMUMPS_UPDATESCORE
-      FUNCTION CMUMPS_UPDATE_INVERSE(A,B,T)
+      END FUNCTION CMUMPS_739
+      FUNCTION CMUMPS_740(A,B,T)
       IMPLICIT NONE
-      REAL CMUMPS_UPDATE_INVERSE
+      REAL CMUMPS_740
       REAL A,B
       INTEGER T
       INTEGER SUM,PROD
       PARAMETER(SUM = 1,PROD = 2)
       IF(T .EQ. SUM) THEN
-         CMUMPS_UPDATE_INVERSE = A-B
+         CMUMPS_740 = A-B
       ELSE
-         CMUMPS_UPDATE_INVERSE = A/B
+         CMUMPS_740 = A/B
       ENDIF
-      END FUNCTION CMUMPS_UPDATE_INVERSE
-      FUNCTION CMUMPS_METRIC2x2(CUR_EL,CUR_EL_PATH,
-     *     SET1,SET2,L1,L2,VAL,DIAG,N,FLAG,FLAGON,T)
+      END FUNCTION CMUMPS_740
+      FUNCTION CMUMPS_741(CUR_EL,CUR_EL_PATH,
+     &     SET1,SET2,L1,L2,VAL,DIAG,N,FLAG,FLAGON,T)
       IMPLICIT NONE
-      REAL CMUMPS_METRIC2x2
+      REAL CMUMPS_741
       INTEGER CUR_EL,CUR_EL_PATH,L1,L2,N
       INTEGER SET1(L1),SET2(L2),DIAG(N),FLAG(N)
       REAL VAL
@@ -782,29 +761,29 @@ C
             ENDIF
          ENDDO
          MERGE = L1 + L2 - INTER
-         CMUMPS_METRIC2x2 = real(INTER) / real(MERGE)
+         CMUMPS_741 = real(INTER) / real(MERGE)
       ELSE IF (T .EQ. MA47) THEN
          MERGE = 3
          IF(DIAG(CUR_EL) .NE. 0) MERGE = 2
          IF(DIAG(CUR_EL_PATH) .NE. 0) MERGE = MERGE - 2
          IF(MERGE .EQ. 0) THEN
-            CMUMPS_METRIC2x2 = L1+L2-2
-            CMUMPS_METRIC2x2 = -(CMUMPS_METRIC2x2**2)/2
+            CMUMPS_741 = real(L1+L2-2)
+            CMUMPS_741 = -(CMUMPS_741**2)/2.0E0
          ELSE IF(MERGE .EQ. 1) THEN
-            CMUMPS_METRIC2x2 = - real(L1+L2-4) * real(L1-2)
+            CMUMPS_741 = - real(L1+L2-4) * real(L1-2)
          ELSE IF(MERGE .EQ. 2) THEN
-            CMUMPS_METRIC2x2 = - real(L1+L2-4) * real(L2-2)
+            CMUMPS_741 = - real(L1+L2-4) * real(L2-2)
          ELSE
-            CMUMPS_METRIC2x2 = - real(L1-2) * real(L2-2)
+            CMUMPS_741 = - real(L1-2) * real(L2-2)
          ENDIF
       ELSE
-         CMUMPS_METRIC2x2 = VAL
+         CMUMPS_741 = VAL
       ENDIF
       RETURN
       END FUNCTION 
       SUBROUTINE CMUMPS_622(NA, NCMP,
-     *      INVPERM,PERM, 
-     *      LISTVAR_SCHUR, SIZE_SCHUR, AOTOA)
+     &      INVPERM,PERM, 
+     &      LISTVAR_SCHUR, SIZE_SCHUR, AOTOA)
       IMPLICIT NONE
       INTEGER, INTENT(IN):: SIZE_SCHUR, LISTVAR_SCHUR(SIZE_SCHUR)
       INTEGER, INTENT(IN):: NA, NCMP
@@ -824,11 +803,11 @@ C
       RETURN
       END SUBROUTINE CMUMPS_622
       SUBROUTINE CMUMPS_623
-     * (NA,N,NZ, IRN, ICN, IW, LW, IPE, LEN,
-     * IQ, FLAG, IWFR,
-     * NRORM, NIORM, IFLAG,IERROR, ICNTL, 
-     * symmetry, SYM, MedDens, NBQD, AvgDens, 
-     * LISTVAR_SCHUR, SIZE_SCHUR, ATOAO, AOTOA)
+     & (NA,N,NZ, IRN, ICN, IW, LW, IPE, LEN,
+     & IQ, FLAG, IWFR,
+     & NRORM, NIORM, IFLAG,IERROR, ICNTL, 
+     & symmetry, SYM, MedDens, NBQD, AvgDens, 
+     & LISTVAR_SCHUR, SIZE_SCHUR, ATOAO, AOTOA)
       IMPLICIT NONE
       INTEGER, INTENT(IN)  :: NA,N,NZ,LW
       INTEGER, INTENT(IN)  :: SIZE_SCHUR, LISTVAR_SCHUR(SIZE_SCHUR)
@@ -868,7 +847,7 @@ C
         I = IRN(K)
         J = ICN(K)
         IF ((I.GT.NA).OR.(J.GT.NA).OR.(I.LT.1)
-     *                          .OR.(J.LT.1)) THEN
+     &                          .OR.(J.LT.1)) THEN
            IERROR = IERROR + 1
         ELSE
           I = ATOAO(I)
@@ -893,20 +872,20 @@ C
            I = IRN(K)
            J = ICN(K)
            IF ((I.GT.NA).OR.(J.GT.NA).OR.(I.LT.1)
-     *                            .OR.(J.LT.1)) THEN
+     &                            .OR.(J.LT.1)) THEN
             NBERR = NBERR + 1
             IF (NBERR.LE.10)  THEN
                IF (mod(K,10).GT.3 .OR. mod(K,10).EQ.0 .OR.
-     *             (10.LE.K .AND. K.LE.20)) THEN
+     &             (10.LE.K .AND. K.LE.20)) THEN
                  WRITE (MP,'(I8,A,I8,A,I8,A)')
-     *             K,'th entry (in row',I,' and column',J,') ignored'
+     &             K,'th entry (in row',I,' and column',J,') ignored'
                ELSE
                  IF (mod(K,10).EQ.1) WRITE(MP,'(I8,A,I8,A,I8,A)')
-     *             K,'st entry (in row',I,' and column',J,') ignored'
+     &             K,'st entry (in row',I,' and column',J,') ignored'
                  IF (mod(K,10).EQ.2) WRITE(MP,'(I8,A,I8,A,I8,A)')
-     *             K,'nd entry (in row',I,' and column',J,') ignored'
+     &             K,'nd entry (in row',I,' and column',J,') ignored'
                  IF (mod(K,10).EQ.3) WRITE(MP,'(I8,A,I8,A,I8,A)')
-     *             K,'rd entry (in row',I,' and column',J,') ignored'
+     &             K,'rd entry (in row',I,' and column',J,') ignored'
                ENDIF
             ELSE
                GO TO 100
@@ -932,7 +911,7 @@ C
          I = IRN(K)
          J = ICN(K)
          IF ((I.GT.NA).OR.(J.GT.NA).OR.(I.LT.1)
-     *                          .OR.(J.LT.1)) CYCLE
+     &                          .OR.(J.LT.1)) CYCLE
          I = ATOAO(I)
          J = ATOAO(J)
          IF ((I.LT.0).OR.(J.LT.0)) CYCLE  
@@ -998,8 +977,8 @@ C
       IWFR = IPE(N+1)
       IF (SYM.EQ.0) THEN
       RSYM =  real(NDIAGA+2*NZOFFA - (IWFR-1))/
-     *            real(NZOFFA+NDIAGA) 
-      symmetry = nint (100.0*RSYM)
+     &            real(NZOFFA+NDIAGA) 
+      symmetry = nint (100.0E0*RSYM)
          IF (MPG .GT. 0)
      &  write(MPG,'(A,I5)') 
      &  ' ... Structural symmetry (in percent)=', symmetry
