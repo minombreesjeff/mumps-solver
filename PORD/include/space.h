@@ -14,7 +14,12 @@
 #include <ctype.h>
 #include <string.h>
 #include <time.h>
+#ifndef _WIN32
 #include <sys/times.h>
+#endif
+#if defined(__MINGW32__)
+#include<sys/time.h>
+#endif
 #include <math.h>
 
 #ifdef PARIX

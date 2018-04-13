@@ -1,6 +1,5 @@
-# This file is part of MUMPS VERSION 4.7.3
-# This Version was built on Fri May 4 15:54:01 2007
 #
+#  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 #
 #Begin orderings
 
@@ -19,11 +18,11 @@
 #          Metis is now available as an internal ordering for MUMPS.
 #
 
-#LSCOTCHDIR = $(HOME)/JY/emilio/bin/generic
-#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps  -lfax -lorder -lscotch -lsymbol -ldof -lgraph -lcommon -lm
+#LSCOTCHDIR = ${HOME}/scotch_5.0_esmumps/lib
+#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps -lfax -lsymbol -ldof -lorder -lgraph -lscotch -lscotcherr -lcommon #-lm
 
-LPORDDIR = ../PORD/lib/
-IPORD    = -I../PORD/include/
+LPORDDIR = $(topdir)/PORD/lib/
+IPORD    = -I$(topdir)/PORD/include/
 LPORD    = -L$(LPORDDIR) -lpord
 
 #LMETISDIR = /local/metis/
@@ -51,8 +50,8 @@ RANLIB  = echo
 SCALAP  = -L/usr/lib64 -lscalapack64 -lmpiblacs64
 INCPAR = -I/usr/include/
 LIBPAR = $(SCALAP)  -L/usr/lib64/ -lmpi
-INCSEQ = -I../libseq
-LIBSEQ  =  -L../libseq -lmpiseq
+INCSEQ = -I$(topdir)/libseq
+LIBSEQ  =  -L$(topdir)/libseq -lmpiseq
 LIBBLAS = -lblas
 LIBOTHERS = -lphtread
 #Preprocessor defs for calling Fortran from C (-DAdd_ or -DAdd__ or -DUPPER)
@@ -65,8 +64,6 @@ OPTL    = -O -OPT:Olimit=0 -mips4 -64 -align64
 OPTC    = -O -OPT:Olimit=0 -mips4 -64 -align64
 NOOPT   = -Dsgi -mips4 -64 -align64
 #End Optimization options
- 
-
 INC = $(INCPAR)
 LIB = $(LIBPAR)
 LIBSEQNEEDED =

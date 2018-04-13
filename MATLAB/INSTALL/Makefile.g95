@@ -1,5 +1,5 @@
 MEX       = mex
-MUMPS_DIR = /home/afevre/MUMPS_4.7.3
+MUMPS_DIR = $(HOME)/MUMPS_4.8.0
 
 LMETISDIR = /home/afevre/metis-4.0
 LMETIS = -L$(LMETISDIR) -lmetis
@@ -9,8 +9,9 @@ LORDERINGS = $(LPORD) $(LMETIS)
 
 LIBSEQ  = -L$(MUMPS_DIR)/libseq -lmpiseq
 
-LIBFORTDIR= /home/afevre/compil/g95-install/lib/gcc-lib/i686-pc-linux-gnu/4.0.1
-LIBFORT = $(LIBFORTDIR)/libf95.a $(LIBFORTDIR)/libgcc.a 
+LIBBLAS = -lblas
+
+LIBFORT = /usr/lib/libf95.a /usr/lib/libgcc.a 
 
 OPTC    = -O 
 

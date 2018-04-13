@@ -1,11 +1,10 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
-C   This Version was built on Fri May  4 15:54:01 2007
+C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL. 
+C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
 C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
 C  INRIA.
@@ -14,17 +13,17 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://mumps.enseeiht.fr/
-C  or http://graal.ens-lyon.fr/MUMPS
+C  from the Web pages:
+C  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
 C
 C
 C   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-C   EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+C   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
 C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3] the contribution of this package
+C  references [1], [2], and [3]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.

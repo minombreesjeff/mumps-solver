@@ -1,11 +1,10 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
-C   This Version was built on Fri May  4 15:54:01 2007
+C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL. 
+C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
 C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
 C  INRIA.
@@ -14,17 +13,17 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://mumps.enseeiht.fr/
-C  or http://graal.ens-lyon.fr/MUMPS
+C  from the Web pages:
+C  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
 C
 C
 C   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-C   EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+C   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
 C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3] the contribution of this package
+C  references [1], [2], and [3]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
@@ -42,281 +41,20 @@ C   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
 C   S. Pralet, Hybrid scheduling for the parallel solution of linear
 C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
-#if defined(try_null_space)
-      SUBROUTINE ZMUMPS_295
-     *(NN,A,ROOT,WR03,LWR03,KEEP,KEEP8,INFO,LP,DKEEP,
-     * GLOBK109,OPELIW,NNEG)
-      IMPLICIT NONE
-      INCLUDE 'zmumps_root.h'
-      TYPE ( ZMUMPS_ROOT_STRUC ) :: root
-      INTEGER NN,LWR03,LP
-      COMPLEX*16 A(NN*NN)
-      INTEGER INFO(2),KEEP(500)
-      INTEGER*8 KEEP8(150)
-      DOUBLE PRECISION DKEEP(30)
-      COMPLEX*16 WR03(LWR03)
-      DOUBLE PRECISION OPELIW
-      INTEGER NNEG
-      INTEGER GLOBK109
-      INTEGER LDLT,RRSTRAT,DEFICIENCY
-      INTEGER I,J, IND, LDA
-      INTEGER IERR
-      DOUBLE PRECISION TEMP,TEMP1
-      INTEGER ALLOCOK,MAXDEF,MINDEF
-      LOGICAL GAP_FIND_IS_ON
-      COMPLEX*16 ALPHA,SUM
-      DOUBLE PRECISION FIXA
-      DOUBLE PRECISION TOL,EPS,GAP_SIZE,AVG
-      DOUBLE PRECISION ZERO
-      PARAMETER(ZERO=0.0D0)
-      PARAMETER(GAP_SIZE=1.0D2)
-      COMPLEX*16 ZMUMPS_104
-      EXTERNAL ZMUMPS_104
-      EPS = EPSILON(ZERO)
-      LDLT=KEEP(50)
-      RRSTRAT=KEEP(19)
-      IF (RRSTRAT .NE. 1) THEN
-        WRITE(*,*) " *** Option ",RRSTRAT,
-     *             " for null space no more available."
-        CALL ZMUMPS_ABORT()
-      ENDIF
-      IF (  LWR03 .LT. 3 * NN ) THEN
-        INFO(1) = -9
-        INFO(2) = 3 * NN - LWR03
-        IF ( LP .GT. 0 )
-     *  WRITE(LP,*) 'ZMUMPS_295: LWR03 too small'
-        RETURN
-      END IF
-      MAXDEF=KEEP(21)
-      IF ( MAXDEF .LE. 0 ) THEN
-        MAXDEF = NN
-      ELSE
-        MAXDEF = MAX(MAXDEF - GLOBK109,0)
-      ENDIF
-      MINDEF = MAX(KEEP(22) - GLOBK109,0)
-      MINDEF = MIN(MINDEF,NN)
-      MAXDEF = MIN(MAXDEF,NN)
-      IF (LDLT.NE.0) THEN
-        CALL ZMUMPS_297(NN,A)
-      END IF
-      DEFICIENCY=0
-      KEEP(17)=DEFICIENCY
-      LDA=NN
-        OPELIW = OPELIW +
-     1                DBLE(4)*DBLE(NN)*DBLE(NN)*
-     2                DBLE(NN)/DBLE(3)
-        IF(ASSOCIATED(root%QR_TAU)) DEALLOCATE(root%QR_TAU)
-        ALLOCATE(root%QR_TAU(NN),stat=ALLOCOK )
-        IF(ALLOCOK.GT.0) THEN
-          INFO(1)=-13
-          INFO(2)=NN
-          IF ( LP .GT. 0 )
-     *    WRITE(LP,*) 'ZMUMPS_295: Pb allocating QR_TAU'
-          RETURN
-        END IF
-        IF (ASSOCIATED(root%IPIV)) DEALLOCATE(root%IPIV)
-        ALLOCATE(root%IPIV(NN), stat=ALLOCOK)
-        IF (ALLOCOK.GT.0) THEN
-          INFO(1)=-13
-          INFO(2)=NN
-          IF ( LP .GT. 0 )
-     *    WRITE(LP,*) 'ZMUMPS_295:Problem allocating IPIV'
-          RETURN
-        END IF
-          root%IPIV = 0
-          CALL ZGEQPF(NN,NN,A(1),LDA,root%IPIV,
-     *      root%QR_TAU(1),WR03,IERR)
-          IF(IERR.NE.0) THEN
-            WRITE(*,*) ' Problem in ZGEQPF : IERR = ', IERR
-            CALL ZMUMPS_ABORT()
-          END IF
-          IF(MAXDEF.EQ.0) GO TO 5488
-          TOL=1.1*SQRT(DBLE(NN))*EPS*ZMUMPS_104(NN,A,WR03)
-          TEMP=ABS(A(LDA*NN))   
-          IF(TEMP.GE.10*TOL) THEN
-            GAP_FIND_IS_ON=.FALSE.
-          ELSE
-            GAP_FIND_IS_ON=.TRUE.
-            AVG=0.02*TEMP
-            SUM= DCMPLX(ZERO)
-            GO TO 132
-          END IF
-          TEMP1=TEMP  ! Rnn,nn saved in TEMP1 
-          DO I=1,MIN(NN-1,23)
-            TEMP=ABS(A(LDA*NN-I*(NN+1)))
-            IF(ABS(TEMP1).LE.10E-4*TEMP) THEN
-              GAP_FIND_IS_ON=.TRUE.
-              AVG=0.02*ABS(A(LDA*NN))
-              SUM= DCMPLX(ZERO)
-              GO TO 132
-            END IF
-            TEMP1=TEMP  ! save previous diagonal entry for comparison
-          END DO
-          GAP_FIND_IS_ON=.FALSE.
- 132      CONTINUE
-          IF(GAP_FIND_IS_ON) THEN
-            DO IND=0,NN-1
-              TEMP=A(LDA*NN-IND*(NN+1))
-              IF(ABS(TEMP).GT.AVG*GAP_SIZE+EPS) GO TO 1487
-              SUM=SUM+ABS(TEMP)
-              AVG=SUM/(IND+1)
-              IF(IND.GE.MAXDEF) GOTO 1487
-            END DO
-          END IF
- 1487     CONTINUE
-          DEFICIENCY=IND
-          IF(GAP_FIND_IS_ON) GO TO 5488
-          DEFICIENCY=0
- 1488     CONTINUE
-          IND=(NN-DEFICIENCY)*LDA-DEFICIENCY
-          ALPHA=A(IND)
-          TOL=1.8*SQRT(DBLE(NN))*EPS*ZMUMPS_104(NN,A,WR03)
-          IF( ( ABS(ALPHA).LE.TOL )
-     *     .OR. ( MINDEF.EQ.MAXDEF )
-     *     ) THEN
-            DEFICIENCY=DEFICIENCY+1
-            IF(DEFICIENCY.LT.MAXDEF) GO TO 1488
-          END IF
- 5488     CONTINUE
-          IF(DEFICIENCY.GT.0) THEN
-            CALL ZTRTRS('U','N','N',NN-DEFICIENCY,DEFICIENCY,
-     *      A,LDA,A(LDA*(NN-DEFICIENCY)+1),LDA,IERR)
-            IF ( IERR .NE. 0 ) THEN
-              WRITE(*,*) ' Problem in ZTRTRS : IERR = ', IERR
-              CALL ZMUMPS_ABORT()
-            END IF
-          END IF
-      KEEP(17)=DEFICIENCY
-      RETURN
-      END SUBROUTINE ZMUMPS_295
-      SUBROUTINE ZMUMPS_296
-     *  (NRHS,NN,A,ROOT,
-     *   IBEG_ROOT_DEF, IEND_ROOT_DEF,
-     *   RHS,WK,LWK,KEEP,KEEP8,MTYPE,INFO)
-      IMPLICIT NONE
-      INCLUDE 'zmumps_root.h'
-      INTEGER NN, NRHS, LWK
-      TYPE ( ZMUMPS_ROOT_STRUC ) :: root
-      INTEGER IBEG_ROOT_DEF, IEND_ROOT_DEF
-      COMPLEX*16 A(NN*NN)
-      INTEGER INFO(2),KEEP(500)
-      INTEGER*8 KEEP8(150)
-      COMPLEX*16 WK(LWK),RHS(NN,NRHS)
-      INTEGER I,J,K,LDA,LDRHS,IERR,MTYPE_SAVE
-      INTEGER LDLT,RRSTRAT,MTYPE,DEFICIENCY
-      DOUBLE PRECISION MINUSONE
-      PARAMETER(MINUSONE=-1.0D0)
-      LDLT      = KEEP(50)
-      RRSTRAT   = KEEP(19)
-      DEFICIENCY=KEEP(17)
-      MTYPE_SAVE=MTYPE
-      IF(MTYPE.EQ.1) THEN
-        MTYPE=0
-      ELSE
-        MTYPE=1
-      END IF
-      LDA=NN
-      LDRHS = NN
-      IERR = 0
-      IF (RRSTRAT .NE. 1) THEN
-        WRITE(*,*) " *** Option ",RRSTRAT,
-     *             " for null space no more available."
-        CALL ZMUMPS_ABORT()
-      ENDIF
-      IF (KEEP(111).EQ.0) THEN
-        IF(MTYPE.EQ.1) THEN
-          CALL ZUNMQR('L','T',NN,NRHS,NN,A,LDA,root%QR_TAU,
-     *      RHS,LDRHS,WK(1),LWK,IERR)
-          IF(IERR.LT.0) THEN
-            WRITE(*,*) 'Error return from ZUNMQR: IERR=', IERR
-            RETURN
-          END IF
-          CALL ZTRTRS('U','N','N',NN-DEFICIENCY,NRHS,A,LDA,
-     *                 RHS,LDRHS,IERR)
-          DO I=1,NRHS
-            RHS( NN - DEFICIENCY + 1: NN, I ) = 0.0D0 ! Min norm solution?
-          ENDDO
-          IF ( IERR .LT. 0 ) THEN
-            WRITE(*,*) ' Problem during solve of the root: IERR =',IERR
-            RETURN
-          END IF
-          DO I=1,NRHS
-            CALL ZMUMPS_333(NN,root%IPIV,RHS(1,I),WK)
-          ENDDO
-        ELSEIF(MTYPE.EQ.0) THEN
-          DO I=1,NRHS
-            CALL ZMUMPS_334(NN,root%IPIV,RHS(1,I),WK)
-          ENDDO
-          CALL ZTRTRS('U','T','N',NN-DEFICIENCY,1,
-     *                 A,LDA,RHS,LDA,IERR)
-          DO I=1,NRHS
-          RHS( NN - DEFICIENCY + 1: NN, I ) = 0.0D0 ! 1 sol among many
-          ENDDO
-          IF(IERR.LT.0) THEN
-              WRITE(*,*) 'Error return from ZTRTRS: IERR=', IERR
-              RETURN
-          END IF
-          CALL ZUNMQR( 'L','N',NN,NRHS,NN,A,LDA,root%QR_TAU,
-     *      RHS,LDRHS,WK,LWK,IERR)
-          IF(IERR.LT.0) THEN
-              WRITE(*,*) 'Error return from ZUNMQR: IERR=', IERR
-              RETURN
-          END IF
-        ENDIF
-      ELSE
-        DO I=IBEG_ROOT_DEF,IEND_ROOT_DEF
-          RHS(NN-KEEP(17)+I,I-IBEG_ROOT_DEF+1)=DCMPLX(MINUSONE)
-          DO K=1,NN-KEEP(17)
-            RHS(K,I-IBEG_ROOT_DEF+1)=A(K + LDA*(NN-KEEP(17)+I-1))
-          ENDDO
-        ENDDO
-      ENDIF
-      MTYPE=MTYPE_SAVE
-      RETURN
-      END SUBROUTINE ZMUMPS_296
-      SUBROUTINE ZMUMPS_297(N,A)
-      INTEGER N
-      COMPLEX*16 A( N, N )
-      INTEGER I,J
-      DO I = 2, N
-        DO J = 1, I - 1
-          A( I, J ) = A( J, I )
-        END DO
-      END DO
-      RETURN
-      END SUBROUTINE ZMUMPS_297
-#endif
       SUBROUTINE ZMUMPS_635(N,KEEP,ICNTL,MPG)
       IMPLICIT NONE
           INTEGER N, KEEP(500), ICNTL(40), MPG
           KEEP(19)=0
-#if defined(try_null_space)
-          KEEP(19)=ICNTL(16)
-          IF (KEEP(19).NE.1) KEEP(19)=0
-          IF ( KEEP(53) .LE. 0 .and.
-     *         KEEP(19) .NE. 0 ) THEN
-             KEEP(19) = 0
-             IF ( MPG .GT. 0 ) THEN
-      WRITE( MPG,'(A)') '** Warning:  ICNTL(16) null space option'
-      WRITE( MPG,'(A)') '** disabled (incompatibility with analysis)'
-             END IF
-          END IF
-          KEEP(21) = MIN(ICNTL(17),N)
-          KEEP(22) = MAX(ICNTL(15),0)
-          IF ( KEEP(19) .ne. 0 .and. KEEP(60) .ne. 0 ) THEN
-             IF ( MPG .GT. 0 ) THEN
-      WRITE( MPG,'(A)') '** Warning: ICNTL(16)  null space option'
-      WRITE( MPG,'(A)') '** disabled (incompatibility with Schur)'
-             END IF
-            KEEP(19) = 0
-          END IF
-#endif
           RETURN
       END SUBROUTINE ZMUMPS_635
       SUBROUTINE ZMUMPS_634(KEEP,ICNTL,MPG)
       IMPLICIT NONE
       INTEGER ICNTL(40), KEEP(500), MPG
       KEEP(111)=ICNTL(25)
+      IF (KEEP(111) < -1 .OR.
+     *      KEEP(111).GT.KEEP(112)+KEEP(17)) THEN
+          KEEP(111)=0
+      ENDIF
       IF (KEEP(19).EQ.0.AND.KEEP(110).EQ.0) THEN
         IF(KEEP(111).NE.0.AND.MPG.GT.0) THEN
           WRITE( MPG,'(A)')
@@ -341,92 +79,30 @@ C
       IMPLICIT NONE
       TYPE (ZMUMPS_STRUC) id
       NULLIFY(id%root%QR_TAU)
-#if defined(null_space_old)
-      NULLIFY(id%root%GROW)
-      NULLIFY(id%root%GSIN)
-      NULLIFY(id%root%GCOS)
-      NULLIFY(id%root%PERM_ROW)
-      NULLIFY(id%root%PERM_COL)
-      NULLIFY(id%root%ELROW)
-      NULLIFY(id%root%EUROW)
-      NULLIFY(id%root%PTREL)
-      NULLIFY(id%root%PTREU)
-      NULLIFY(id%root%ELELG)
-      NULLIFY(id%root%EUELG)
-      NULLIFY(id%root%DL)
-#endif
       RETURN
       END SUBROUTINE ZMUMPS_637
       SUBROUTINE ZMUMPS_636(id)
       USE ZMUMPS_STRUC_DEF
       IMPLICIT NONE
       TYPE (ZMUMPS_STRUC) id
-      IF (ASSOCIATED(id%root%QR_TAU))  THEN
+      IF (associated(id%root%QR_TAU))  THEN
         DEALLOCATE(id%root%QR_TAU)
         NULLIFY(id%root%QR_TAU)
       ENDIF
-#if defined(null_space_old)
-      IF (ASSOCIATED(id%root%GROW))    THEN
-        DEALLOCATE(id%root%GROW)
-        NULLIFY(id%root%GROW)
-      ENDIF
-      IF (ASSOCIATED(id%root%GSIN))    THEN
-        DEALLOCATE(id%root%GSIN)
-        NULLIFY(id%root%GSIN)
-      ENDIF
-      IF (ASSOCIATED(id%root%GCOS))    THEN
-        DEALLOCATE(id%root%GCOS)
-        NULLIFY(id%root%GCOS)
-      ENDIF
-      IF (ASSOCIATED(id%root%PERM_ROW))THEN
-        DEALLOCATE(id%root%PERM_ROW)
-        NULLIFY(id%root%PERM_ROW)
-      ENDIF
-      IF (ASSOCIATED(id%root%PERM_COL))THEN
-        DEALLOCATE(id%root%PERM_COL)
-        NULLIFY(id%root%PERM_COL)
-      ENDIF
-      IF (ASSOCIATED(id%root%ELROW))   THEN
-        DEALLOCATE(id%root%ELROW)
-        NULLIFY(id%root%ELROW)
-      ENDIF
-      IF (ASSOCIATED(id%root%EUROW))   THEN
-        DEALLOCATE(id%root%EUROW)
-        NULLIFY(id%root%EUROW)
-      ENDIF
-      IF (ASSOCIATED(id%root%PTREL))   THEN
-        DEALLOCATE(id%root%PTREL)
-        NULLIFY(id%root%PTREL)
-      ENDIF
-      IF (ASSOCIATED(id%root%PTREU))   THEN
-        DEALLOCATE(id%root%PTREU)
-        NULLIFY(id%root%PTREU)
-      ENDIF
-      IF (ASSOCIATED(id%root%ELELG))   THEN
-        DEALLOCATE(id%root%ELELG)
-        NULLIFY(id%root%ELELG)
-      ENDIF
-      IF (ASSOCIATED(id%root%EUELG))   THEN
-        DEALLOCATE(id%root%EUELG)
-        NULLIFY(id%root%EUELG)
-      ENDIF
-      IF (ASSOCIATED(id%root%DL))      THEN
-        DEALLOCATE(id%root%DL)
-        NULLIFY(id%root%DL)
-      ENDIF
-#endif
       RETURN
       END SUBROUTINE ZMUMPS_636
       SUBROUTINE ZMUMPS_279( PHASE, MBLOCK, NBLOCK, 
-     *           SIZE_ROOT,
+     *           SIZE_ROOT_ARG,
      *           LOCAL_M, LOCAL_N, ROOT_OWNER, KEEP,KEEP8,
      *           LIWK_RR, LWK_RR )
-      INTEGER, INTENT(IN) :: PHASE, SIZE_ROOT
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: PHASE, SIZE_ROOT_ARG
       INTEGER, INTENT(IN) :: MBLOCK, NBLOCK, LOCAL_M, LOCAL_N
       LOGICAL, INTENT(IN) :: ROOT_OWNER
       INTEGER, INTENT(IN) :: KEEP(500)
       INTEGER*8, INTENT(IN) :: KEEP8(150)
       INTEGER, INTENT(OUT):: LIWK_RR, LWK_RR
+      INTEGER SIZE_ROOT
       INTEGER NBPOSPONED_ESTIM
       PARAMETER (NBPOSPONED_ESTIM=2000)
       INTEGER QR,PAR_ROOT
@@ -435,37 +111,21 @@ C
       LIWK_RR = 0
       LWK_RR = 0
       IF (PAR_ROOT.EQ.0) THEN
-       IF(ROOT_OWNER) THEN
-          IF(QR.EQ.1) THEN
-           IF (PHASE.EQ.0) THEN
-            LWK_RR=3*(SIZE_ROOT+NBPOSPONED_ESTIM)
-           ELSE
-            LWK_RR=3*SIZE_ROOT
-           ENDIF
-          END IF
-       END IF
-      ENDIF
-#if defined(null_space_old)
-      IF(PAR_ROOT.NE.0) THEN
-        IF(QR.GE.1.AND.QR.LE.4) THEN
-          LWK_RR = MAX(5*MBLOCK*NBLOCK+
-     *     5*MAX(LOCAL_M,LOCAL_N)+6+SIZE_ROOT,4*SIZE_ROOT+5)
-        ELSE
-          LWK_RR = MAX(5*MBLOCK*NBLOCK+
-     *     5*MAX(LOCAL_M,LOCAL_N)+6+SIZE_ROOT,4*SIZE_ROOT+5)
-        END IF
-      ELSE
         IF(ROOT_OWNER) THEN
-          IF(QR.GE.1.AND.QR.LE.4) THEN
-            LWK_RR=10000+5*SIZE_ROOT
-          ELSE
-            LWK_RR=10000+5*SIZE_ROOT
+          IF(QR.EQ.1) THEN
+            IF (PHASE.EQ.0) THEN
+              SIZE_ROOT=SIZE_ROOT_ARG+NBPOSPONED_ESTIM
+            ELSE
+              SIZE_ROOT=SIZE_ROOT_ARG
+            ENDIF
+#           if 1
+              LWK_RR=3*SIZE_ROOT+1
+#           else
+              LWK_RR=5*SIZE_ROOT+1
+#           endif
           END IF
-        ELSE
-          LWK_RR=SIZE_ROOT+1
         END IF
-      END IF
-#endif
+      ENDIF
       RETURN
       END
       SUBROUTINE ZMUMPS_333(N,PERM,X,RN01)
@@ -502,12 +162,12 @@ C
       JSTRT=1
       DO I=1,N
         DO J=JSTRT,JSTRT+N-1
-          WR01(I)=WR01(I)+ABS(AA(J))
+          WR01(I)=WR01(I)+abs(AA(J))
         END DO
         JSTRT=JSTRT+N
       END DO
       DO I=1,N
-        VALUE=MAX(ABS(VALUE),ABS(WR01(I)))
+        VALUE=max(abs(VALUE),abs(WR01(I)))
       END DO
       ZMUMPS_104=VALUE
       RETURN
@@ -578,7 +238,7 @@ C
           ENDIF
         RETURN
         ENDIF
-        IOLDPS  = PTLUST_S(STEP(IROOT))+XSIZE
+        IOLDPS  = PTLUST_S(STEP(IROOT))+KEEP(IXSZ)
         IAPOS   = PTRAST(STEP(IROOT))
         LOCAL_M = IW( IOLDPS + 2 )
         LOCAL_N = IW( IOLDPS + 1 )
@@ -588,14 +248,14 @@ C
         ELSE
          LPIV = 1
         END IF
-        IF (ASSOCIATED( root%IPIV )) DEALLOCATE(root%IPIV)
+        IF (associated( root%IPIV )) DEALLOCATE(root%IPIV)
         root%LPIV = LPIV
         ALLOCATE( root%IPIV( LPIV ), stat = allocok )
         IF ( allocok .GT. 0 ) THEN
           INFO(1) = -13
           INFO(2) = LPIV
           WRITE(*,*) MYID,': problem allocating IPIV(',LPIV,') in root'
-          CALL ZMUMPS_ABORT()
+          CALL MUMPS_ABORT()
         END IF
         CALL DESCINIT( root%DESCRIPTOR, root%TOT_ROOT_SIZE,
      *      root%TOT_ROOT_SIZE, root%MBLOCK, root%NBLOCK,
@@ -605,13 +265,13 @@ C
               WRITE(*,*) ' Error: symmetrization only works for'
               WRITE(*,*) ' square block sizes, MBLOCK/NBLOCK=',
      *        root%MBLOCK, root%NBLOCK
-              CALL ZMUMPS_ABORT()
+              CALL MUMPS_ABORT()
             END IF
             IF ( LWK .LT.
-     *        MIN(root%MBLOCK * root%NBLOCK,root%TOT_ROOT_SIZE*
+     *        min(root%MBLOCK * root%NBLOCK,root%TOT_ROOT_SIZE*
      *        root%TOT_ROOT_SIZE ) ) THEN
               WRITE(*,*) 'Not enough workspace for symmetrization.'
-              CALL ZMUMPS_ABORT()
+              CALL MUMPS_ABORT()
             END IF
             CALL ZMUMPS_320( WK, root%MBLOCK,
      *      root%MYROW, root%MYCOL, root%NPROW, root%NPCOL,
@@ -656,13 +316,13 @@ C
          P2 = PIV(I+1)
          K1 = IKEEP(P1,1)
          IF(K1 .GT. 0) THEN
-            V1 = (ABS(id%A(K1)*(id%ROWSCA(P1)**2)).GE.1.0D-1)
+            V1 = (abs(id%A(K1)*(id%ROWSCA(P1)**2)).GE.1.0D-1)
          ELSE
             V1 = .FALSE.
          ENDIF
          K2 = IKEEP(P2,1)
          IF(K2 .GT. 0) THEN
-            V2 = (ABS(id%A(K2)*(id%ROWSCA(P2)**2)).GE.1.0D-1)
+            V2 = (abs(id%A(K2)*(id%ROWSCA(P2)**2)).GE.1.0D-1)
          ELSE
             V2 = .FALSE.
          ENDIF
@@ -708,273 +368,46 @@ C
          NFSIZ(I) = 0
       ENDDO
       END SUBROUTINE ZMUMPS_556
-      SUBROUTINE ZMUMPS_548(N,PE,NV,WORK)
-      IMPLICIT NONE
-      INTEGER N
-      INTEGER PE(N),NV(N),WORK(N)
-      INTEGER I,FATHER,LEN,K,NEWSON,NEWFATHER
-      DO I=1,N
-         IF(NV(I) .GT. 0) CYCLE
-         LEN = 1
-         WORK(LEN) = I
-         FATHER = -PE(I)
-         DO
-            IF(NV(FATHER) .GT. 0) THEN
-               NEWSON = FATHER
-               EXIT
-            ENDIF
-            LEN = LEN + 1
-            WORK(LEN) = FATHER
-            NV(FATHER) = 1
-            FATHER = -PE(FATHER)
-         ENDDO
-         NEWFATHER = -PE(FATHER)
-         PE(WORK(LEN)) = -NEWFATHER
-         PE(NEWSON) = -WORK(1)
-      ENDDO      
-      END SUBROUTINE ZMUMPS_548
-      SUBROUTINE ZMUMPS_549(N,PE,PERM,NFILS,WORK)
-      IMPLICIT NONE
-      INTEGER N
-      INTEGER PE(N),PERM(N),NFILS(N),WORK(N)
-      INTEGER I,FATHER,STKLEN,STKPOS,PERMPOS,CURVAR
-      NFILS = 0
-      DO I=1,N
-         FATHER = -PE(I)
-         IF(FATHER .NE. 0) NFILS(FATHER) = NFILS(FATHER) + 1
-      ENDDO
-      STKLEN = 0
-      PERMPOS = 1
-      DO I=1,N
-         IF(NFILS(I) .EQ. 0) THEN
-            STKLEN = STKLEN + 1
-            WORK(STKLEN) = I
-            PERM(I) = PERMPOS
-            PERMPOS = PERMPOS + 1
-         ENDIF
-      ENDDO
-      DO STKPOS = 1,STKLEN
-         CURVAR = WORK(STKPOS)
-         FATHER = -PE(CURVAR)
-         DO
-            IF(FATHER .EQ. 0) EXIT
-            IF(NFILS(FATHER) .EQ. 1) THEN
-               PERM(FATHER) = PERMPOS
-               FATHER = -PE(FATHER)
-               PERMPOS = PERMPOS + 1
-            ELSE
-               NFILS(FATHER) = NFILS(FATHER) - 1
-               EXIT
-            ENDIF
-         ENDDO
-      ENDDO
-      END SUBROUTINE ZMUMPS_549
-      SUBROUTINE ZMUMPS_567(N,NCMP,N11,N22,PIV,
-     *     PE,PE_EXP)
-      IMPLICIT NONE
-      INTEGER N11,N22,N,NCMP
-      INTEGER PIV(N),PE(NCMP),PE_EXP(N)
-      INTEGER I,J,N2,K,THEROOT,FATHER,K1,K2
-      N2 = N22/2
-#if (SP_DEBUG >= 5)
-      WRITE(*,*) 'PIV',PIV
-      WRITE(*,*) 'PE',PE
-#endif
-      IF(N22+N11 .EQ. N) THEN
-         THEROOT = 0
-      ELSE
-         THEROOT = PIV(N)
-         PE_EXP(THEROOT) = 0
-      ENDIF
-      K = 1
-      DO I=1,N2
-         K1 = PIV(K)
-         K = K+1
-         K2 = PIV(K)
-         K = K+1
-         FATHER = -PE(I)
-         IF(FATHER .EQ. 0) THEN
-            FATHER = THEROOT
-         ELSE IF(FATHER .LE. N2) THEN
-            FATHER = PIV(2*FATHER)
-         ELSE
-            FATHER = PIV(N2+FATHER)
-         ENDIF
-         PE_EXP(K1) = -K2
-         PE_EXP(K2) = -FATHER
-      ENDDO
-#if(SP_DEBUG >=1)
-      IF(K .NE. N22+1) THEN
-         WRITE(*,*) 'K NE N22+1',K,N22+1
-         CALL ZMUMPS_ABORT()
-      ENDIF
-#endif
-      DO I=N2+1,NCMP
-         K1 = PIV(K)
-         K = K+1
-         FATHER = -PE(I)
-         IF(FATHER .EQ. 0) THEN
-            FATHER = THEROOT
-         ELSE IF(FATHER .LE. N2) THEN
-            FATHER = PIV(2*FATHER)
-         ELSE
-            FATHER = PIV(N2+FATHER)
-         ENDIF
-         PE_EXP(K1) = -FATHER
-      ENDDO
-      DO I=N11+N22+1,N-1
-         K1 = PIV(I)
-         PE(K1) = -THEROOT
-      ENDDO
-#if (SP_DEBUG >= 5)
-      WRITE(*,*) 'PE_EXP',PE_EXP
-#endif
-      END SUBROUTINE ZMUMPS_567
-      SUBROUTINE ZMUMPS_566(N,LIW,COLPTR,IW,N11,N22,PIV,
-     *     PE,NV,WORK)
-      IMPLICIT NONE
-      INTEGER N11,N22,N,LIW
-      INTEGER PIV(N),NV(N),PE(N),COLPTR(N+1),IW(LIW),WORK(N)
-      INTEGER I,J,K,COL,FLAG,THEROOT
-      FLAG = 1
-      WORK = 0
-      THEROOT = PIV(N)
-      DO I = N11+N22+1,N
-         J = PIV(I)
-         WORK(THEROOT) = FLAG
-         DO K=COLPTR(J),COLPTR(J+1)-1
-            COL = IW(K)
-            DO
-               IF(NV(COL) .GT. 0) EXIT
-               COL = -PE(COL)
-            ENDDO
-            DO
-               IF(WORK(COL) .EQ. FLAG) EXIT
-               NV(COL) = NV(COL) + 1
-               WORK(COL) = FLAG
-               COL = -PE(COL)
-            ENDDO
-         ENDDO
-         IF(FLAG+1 .GT. FLAG) THEN
-            FLAG = FLAG+1
-         ELSE
-            WORK = 0
-            FLAG = 1
-         ENDIF
-      ENDDO
-#if (SP_DEBUG >= 2)
-      WRITE(*,*) 'PIV',PIV
-      WRITE(*,*) 'PE',PE
-      WRITE(*,*) 'NV',NV
-#endif
-      END SUBROUTINE ZMUMPS_566
-      SUBROUTINE ZMUMPS_565(N,NCMP,N11,N22,PIV,
-     *     PE,NV,PE_EXP,NV_EXP)
-      IMPLICIT NONE
-      INTEGER N11,N22,N,NCMP
-      INTEGER PIV(N),NV(NCMP),PE(NCMP),NV_EXP(N),PE_EXP(N)
-      INTEGER I,J,N2,K,THEROOT,FATHER,K1,K2
-      N2 = N22/2
-#if (SP_DEBUG >= 5)
-      WRITE(*,*) 'PIV',PIV
-      WRITE(*,*) 'PE',PE
-      WRITE(*,*) 'NV',NV
-#endif
-      IF(N22+N11 .EQ. N) THEN
-         THEROOT = 0
-      ELSE
-         THEROOT = PIV(N)
-         PE_EXP(THEROOT) = 0
-         NV_EXP(THEROOT) = N-N22-N11
-      ENDIF
-      K = 1
-      DO I=1,N2
-         K1 = PIV(K)
-         K = K+1
-         K2 = PIV(K)
-         K = K+1
-         NV_EXP(K1) = 0
-         NV_EXP(K2) = NV(I)
-         FATHER = -PE(I)
-         IF(FATHER .EQ. 0) THEN
-            FATHER = THEROOT
-         ELSE IF(FATHER .LE. N2) THEN
-            FATHER = PIV(2*FATHER)
-         ELSE
-            FATHER = PIV(N2+FATHER)
-         ENDIF
-         PE_EXP(K1) = -K2
-         PE_EXP(K2) = -FATHER
-      ENDDO
-#if(SP_DEBUG >=1)
-      IF(K .NE. N22+1) THEN
-         WRITE(*,*) 'K NE N22+1',K,N22+1
-         CALL ZMUMPS_ABORT()
-      ENDIF
-#endif
-      DO I=N2+1,NCMP
-         K1 = PIV(K)
-         K = K+1
-         NV_EXP(K1) = NV(I)
-         FATHER = -PE(I)
-         IF(FATHER .EQ. 0) THEN
-            FATHER = THEROOT
-         ELSE IF(FATHER .LE. N2) THEN
-            FATHER = PIV(2*FATHER)
-         ELSE
-            FATHER = PIV(N2+FATHER)
-         ENDIF
-         PE_EXP(K1) = -FATHER
-      ENDDO
-      DO I=N11+N22+1,N-1
-         K1 = PIV(I)
-         NV(K1) = 0
-         PE(K1) = -THEROOT
-      ENDDO
-#if (SP_DEBUG >= 5)
-      WRITE(*,*) 'PE_EXP',PE_EXP
-      WRITE(*,*) 'NV_EXP',NV_EXP
-#endif
-      END SUBROUTINE ZMUMPS_565
       SUBROUTINE ZMUMPS_550(N,NCMP,N11,N22,PIV,
-     *     PERM,IPERM)
+     *     INVPERM,PERM)
       IMPLICIT NONE
       INTEGER N11,N22,N,NCMP
-      INTEGER PIV(N),PERM(N),IPERM(N)
+      INTEGER, intent(in) :: PIV(N),PERM(N)
+      INTEGER, intent (out):: INVPERM(N)
       INTEGER CMP_POS,EXP_POS,I,J,N2,K
       N2 = N22/2
 #if(SP_DEBUG >= 5)
       WRITE(*,*) 'PIV',PIV
       WRITE(*,*) 'PERM',PERM(1:NCMP)
-      WRITE(*,*) 'IPERM',IPERM(1:NCMP)
 #endif
       EXP_POS = 1
       DO CMP_POS=1,NCMP
-         J = IPERM(CMP_POS)
+         J = PERM(CMP_POS)
          IF(J .LE. N2) THEN
             K = 2*J-1
             I = PIV(K)
-            PERM(I) = EXP_POS
+            INVPERM(I) = EXP_POS
             EXP_POS = EXP_POS+1
             K = K+1
             I = PIV(K)
-            PERM(I) = EXP_POS
+            INVPERM(I) = EXP_POS
             EXP_POS = EXP_POS+1
          ELSE
             K = N2 + J
             I = PIV(K)
-            PERM(I) = EXP_POS
+            INVPERM(I) = EXP_POS
             EXP_POS = EXP_POS+1
          ENDIF
       ENDDO
       DO K=N22+N11+1,N
          I = PIV(K)
-         PERM(I) = EXP_POS
+         INVPERM(I) = EXP_POS
          EXP_POS = EXP_POS+1
       ENDDO
 #if(SP_DEBUG >= 5)
-      WRITE(*,*) 'PERM',PERM
+      WRITE(*,*) 'INVPERM',INVPERM
 #endif
+      RETURN
       END SUBROUTINE ZMUMPS_550
       SUBROUTINE ZMUMPS_547(
      *     N,NZ, IRN, ICN, PIV,
@@ -1038,7 +471,7 @@ C
             IQ(I+1) = IPE(I) + IQ(I)
          ENDDO 
       ENDIF
-      LAST = MAX(IPE(NCMP)+IQ(NCMP)-1,IQ(NCMP))
+      LAST = max(IPE(NCMP)+IQ(NCMP)-1,IQ(NCMP))
       DO I = 1,NCMP
          FLAG(I) = 0
          IPE(I)  = IQ(I)
@@ -1257,7 +690,7 @@ C
      *           ZMUMPS_UPDATESCORE(WEIGHT(PATH_LENGTH-1),CUR_VAL,TUP)
             CUR_EL_PATH = CUR_EL_PATH_NEXT
          ENDDO
-         IF(MOD(PATH_LENGTH,2) .EQ. 1) THEN
+         IF(mod(PATH_LENGTH,2) .EQ. 1) THEN
             IF(WEIGHT(PATH_LENGTH+1) .GE. WEIGHT(PATH_LENGTH)) THEN
                CUR_EL_PATH = CPERM(CUR_EL)
             ELSE
@@ -1390,7 +823,7 @@ C
             ENDIF
          ENDDO
          MERGE = L1 + L2 - INTER
-         ZMUMPS_METRIC2x2 = DBLE(INTER) / DBLE(MERGE)
+         ZMUMPS_METRIC2x2 = dble(INTER) / dble(MERGE)
       ELSE IF (T .EQ. MA47) THEN
          MERGE = 3
          IF(DIAG(CUR_EL) .NE. 0) MERGE = 2
@@ -1399,34 +832,35 @@ C
             ZMUMPS_METRIC2x2 = L1+L2-2
             ZMUMPS_METRIC2x2 = -(ZMUMPS_METRIC2x2**2)/2
          ELSE IF(MERGE .EQ. 1) THEN
-            ZMUMPS_METRIC2x2 = - DBLE(L1+L2-4) * DBLE(L1-2)
+            ZMUMPS_METRIC2x2 = - dble(L1+L2-4) * dble(L1-2)
          ELSE IF(MERGE .EQ. 2) THEN
-            ZMUMPS_METRIC2x2 = - DBLE(L1+L2-4) * DBLE(L2-2)
+            ZMUMPS_METRIC2x2 = - dble(L1+L2-4) * dble(L2-2)
          ELSE
-            ZMUMPS_METRIC2x2 = - DBLE(L1-2) * DBLE(L2-2)
+            ZMUMPS_METRIC2x2 = - dble(L1-2) * dble(L2-2)
          ENDIF
       ELSE
          ZMUMPS_METRIC2x2 = VAL
       ENDIF
+      RETURN
       END FUNCTION 
       SUBROUTINE ZMUMPS_622(NA, NCMP,
-     *      PERM,IPERM, 
+     *      INVPERM,PERM, 
      *      LISTVAR_SCHUR, SIZE_SCHUR, AOTOA)
       IMPLICIT NONE
       INTEGER, INTENT(IN):: SIZE_SCHUR, LISTVAR_SCHUR(SIZE_SCHUR)
       INTEGER, INTENT(IN):: NA, NCMP
-      INTEGER, INTENT(IN):: AOTOA(NCMP), IPERM(NCMP)
-      INTEGER, INTENT(OUT):: PERM(NA) ! not used a input
+      INTEGER, INTENT(IN):: AOTOA(NCMP), PERM(NCMP)
+      INTEGER, INTENT(OUT):: INVPERM(NA) 
       INTEGER CMP_POS, IO, I, K, IPOS
       DO CMP_POS=1, NCMP
-        IO              = IPERM(CMP_POS)
-        PERM(AOTOA(IO)) = CMP_POS
+        IO              = PERM(CMP_POS)
+        INVPERM(AOTOA(IO)) = CMP_POS
       ENDDO
       IPOS = NCMP
       DO K =1,  SIZE_SCHUR
         I       = LISTVAR_SCHUR(K)
         IPOS    = IPOS+1
-        PERM(I) = IPOS
+        INVPERM(I) = IPOS
       ENDDO
       RETURN
       END SUBROUTINE ZMUMPS_622
@@ -1443,7 +877,7 @@ C
       INTEGER, INTENT(IN)  :: ICNTL(40), SYM
       INTEGER, INTENT(OUT) :: IFLAG,IERROR,NRORM,NIORM,IWFR
       INTEGER, INTENT(OUT) :: AOTOA(N)
-      INTEGER, INTENT(OUT) :: ATOAO(NA)  ! only used internallly
+      INTEGER, INTENT(OUT) :: ATOAO(NA)  
       INTEGER, INTENT(OUT) :: LEN(N), IPE(N+1)
       INTEGER, INTENT(OUT) :: symmetry, 
      &                        MedDens, NBQD, AvgDens
@@ -1453,7 +887,7 @@ C
       INTEGER NBERR, THRESH, IAO
       INTEGER NZOFFA, NDIAGA
       DOUBLE PRECISION RSYM
-      INTRINSIC NINT
+      INTRINSIC nint
       ATOAO(1:NA) = 0
       DO I = 1, SIZE_SCHUR
         ATOAO(LISTVAR_SCHUR(I)) = -1
@@ -1480,7 +914,7 @@ C
         ELSE
           I = ATOAO(I)
           J = ATOAO(J)
-          IF ((I.LT.0).OR.(J.LT.0)) CYCLE  ! in schur
+          IF ((I.LT.0).OR.(J.LT.0)) CYCLE  
           IF (I.NE.J) THEN
            IPE(I) = IPE(I) + 1
            IPE(J) = IPE(J) + 1
@@ -1493,7 +927,7 @@ C
       NZOFFA  = NIORM - 3*N
       IF (IERROR.GE.1) THEN
          NBERR  = 0
-         IF (MOD(IFLAG,2).EQ.0) IFLAG  = IFLAG+1
+         IF (mod(IFLAG,2).EQ.0) IFLAG  = IFLAG+1
          IF ((MP.GT.0).AND.(ICNTL(4).GE.2))  THEN 
           WRITE (MP,99999) 
           DO 70 K=1,NZ
@@ -1503,16 +937,16 @@ C
      *                            .OR.(J.LT.1)) THEN
             NBERR = NBERR + 1
             IF (NBERR.LE.10)  THEN
-               IF (MOD(K,10).GT.3 .OR. MOD(K,10).EQ.0 .OR.
+               IF (mod(K,10).GT.3 .OR. mod(K,10).EQ.0 .OR.
      *             (10.LE.K .AND. K.LE.20)) THEN
                  WRITE (MP,'(I8,A,I8,A,I8,A)')
      *             K,'th entry (in row',I,' and column',J,') ignored'
                ELSE
-                 IF (MOD(K,10).EQ.1) WRITE(MP,'(I8,A,I8,A,I8,A)')
+                 IF (mod(K,10).EQ.1) WRITE(MP,'(I8,A,I8,A,I8,A)')
      *             K,'st entry (in row',I,' and column',J,') ignored'
-                 IF (MOD(K,10).EQ.2) WRITE(MP,'(I8,A,I8,A,I8,A)')
+                 IF (mod(K,10).EQ.2) WRITE(MP,'(I8,A,I8,A,I8,A)')
      *             K,'nd entry (in row',I,' and column',J,') ignored'
-                 IF (MOD(K,10).EQ.3) WRITE(MP,'(I8,A,I8,A,I8,A)')
+                 IF (mod(K,10).EQ.3) WRITE(MP,'(I8,A,I8,A,I8,A)')
      *             K,'rd entry (in row',I,' and column',J,') ignored'
                ENDIF
             ELSE
@@ -1530,7 +964,7 @@ C
             IQ(I+1) = IPE(I) + IQ(I) 
   110   CONTINUE
       ENDIF
-      LAST = MAX(IPE(N)+IQ(N)-1,IQ(N))
+      LAST = max(IPE(N)+IQ(N)-1,IQ(N))
       FLAG(1:N) = 0
       IPE(1:N)  = IQ(1:N)
       IW(1:LAST) = 0
@@ -1542,7 +976,7 @@ C
      *                          .OR.(J.LT.1)) CYCLE
          I = ATOAO(I)
          J = ATOAO(J)
-         IF ((I.LT.0).OR.(J.LT.0)) CYCLE  ! in schur
+         IF ((I.LT.0).OR.(J.LT.0)) CYCLE  
          IF (I.NE.J) THEN
           IF (I.LT.J) THEN
              IW(IQ(I)) = -J
@@ -1604,9 +1038,9 @@ C
       IPE(N+1) = IPE(N) + LEN(N)
       IWFR = IPE(N+1)
       IF (SYM.EQ.0) THEN
-      RSYM =  DBLE(NDIAGA+2*NZOFFA - (IWFR-1))/
-     *            DBLE(NZOFFA+NDIAGA) 
-      symmetry = NINT (100.0*RSYM)
+      RSYM =  dble(NDIAGA+2*NZOFFA - (IWFR-1))/
+     *            dble(NZOFFA+NDIAGA) 
+      symmetry = nint (100.0*RSYM)
          IF (MPG .GT. 0)
      &  write(MPG,'(A,I5)') 
      &  ' ... Structural symmetry (in percent)=', symmetry
@@ -1616,13 +1050,13 @@ C
       ELSE
        symmetry = 100
       ENDIF
-      AvgDens = NINT(DBLE(IWFR-1)/DBLE(N))
+      AvgDens = nint(dble(IWFR-1)/dble(N))
       THRESH  = AvgDens*50 - AvgDens/10 + 1
       NBQD    = 0
       IF (N.GT.2) THEN
         IQ(1:N) = 0
         DO I= 1, N
-          K = MAX(LEN(I),1)
+          K = max(LEN(I),1)
           IQ(K) = IQ(K) + 1
           IF (K.GT.THRESH) NBQD = NBQD+1
         ENDDO
@@ -1646,3 +1080,40 @@ C
       RETURN
 99999 FORMAT (/'*** Warning message from analysis routine ***')
       END SUBROUTINE ZMUMPS_623
+      SUBROUTINE ZMUMPS_549(N,PE,INVPERM,NFILS,WORK)
+      IMPLICIT NONE
+      INTEGER N
+      INTEGER PE(N),INVPERM(N),NFILS(N),WORK(N)
+      INTEGER I,FATHER,STKLEN,STKPOS,PERMPOS,CURVAR
+      NFILS = 0
+      DO I=1,N
+         FATHER = -PE(I)
+         IF(FATHER .NE. 0) NFILS(FATHER) = NFILS(FATHER) + 1
+      ENDDO
+      STKLEN = 0
+      PERMPOS = 1
+      DO I=1,N
+         IF(NFILS(I) .EQ. 0) THEN
+            STKLEN = STKLEN + 1
+            WORK(STKLEN) = I
+            INVPERM(I) = PERMPOS
+            PERMPOS = PERMPOS + 1
+         ENDIF
+      ENDDO
+      DO STKPOS = 1,STKLEN
+         CURVAR = WORK(STKPOS)
+         FATHER = -PE(CURVAR)
+         DO
+            IF(FATHER .EQ. 0) EXIT
+            IF(NFILS(FATHER) .EQ. 1) THEN
+               INVPERM(FATHER) = PERMPOS
+               FATHER = -PE(FATHER)
+               PERMPOS = PERMPOS + 1
+            ELSE
+               NFILS(FATHER) = NFILS(FATHER) - 1
+               EXIT
+            ENDIF
+         ENDDO
+      ENDDO
+      RETURN
+      END SUBROUTINE ZMUMPS_549

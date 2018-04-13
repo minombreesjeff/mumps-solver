@@ -1,6 +1,5 @@
-# This file is part of MUMPS VERSION 4.7.3
-# This Version was built on Fri May 4 15:54:01 2007
 #
+#  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 #
 #Begin orderings
 
@@ -19,11 +18,11 @@
 #          Metis is now available as an internal ordering for MUMPS.
 #
 
-#LSCOTCHDIR = $(HOME)/JY/emilio/bin/generic
-#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps  -lfax -lorder -lscotch -lsymbol -ldof -lgraph -lcommon -lm
+#LSCOTCHDIR = ${HOME}/scotch_5.0_esmumps/lib
+#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps -lfax -lsymbol -ldof -lorder -lgraph -lscotch -lscotcherr -lcommon #-lm
 
-LPORDDIR = ../PORD/lib/
-IPORD    = -I../PORD/include/
+LPORDDIR = $(topdir)/PORD/lib/
+IPORD    = -I$(topdir)/PORD/include/
 LPORD    = -L$(LPORDDIR) -lpord
 
 #LMETISDIR = /local/metis/
@@ -55,8 +54,8 @@ INCPAR = -I/usr/local/mpich/include
 # LIBPAR = $(SCALAP)  -L/usr/local/lib/ -llammpio -llamf77mpi -lmpi -llam -lutil -ldl -lpthread
 LIBPAR = $(SCALAP)  -L/usr/local/mpich/lib/ -lmpich 
 # See point 17 in the FAQ to have more details on the compilation of mpich with gfortran
-INCSEQ = -I../libseq
-LIBSEQ  =  -L../libseq -lmpiseq
+INCSEQ = -I$(topdir)/libseq
+LIBSEQ  =  -L$(topdir)/libseq -lmpiseq
 #LIBBLAS = -L/usr/lib/xmm/ -lf77blas -latlas
 LIBBLAS = -L/local/BLAS -lblas
 LIBOTHERS = -lpthread
@@ -68,9 +67,6 @@ OPTF    = -O -Dintel_ -DALLOW_NON_INIT
 OPTL    = -O 
 OPTC    = -O
 #End Optimized options
- 
-
-
 INC = $(INCPAR)
 LIB = $(LIBPAR)
 LIBSEQNEEDED =

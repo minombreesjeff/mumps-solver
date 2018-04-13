@@ -1,6 +1,5 @@
-# This file is part of MUMPS VERSION 4.7.3
-# This Version was built on Fri May 4 15:54:01 2007
 #
+#  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 #
 #Begin orderings
 
@@ -8,11 +7,11 @@
 # use other orderings, you need to obtain the corresponding package and modify
 # the variables below accordingly.
 
-#LSCOTCHDIR = $(HOME)/JY/emilio/bin/generic
-#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps  -lfax -lorder -lscotch -lsymbol -ldof -lgraph -lcommon -lm
+#LSCOTCHDIR = ${HOME}/scotch_5.0_esmumps/lib
+#LSCOTCH   = -L$(LSCOTCHDIR) -lesmumps -lfax -lsymbol -ldof -lorder -lgraph -lscotch -lscotcherr -lcommon #-lm
 
-LPORDDIR = ../PORD/lib/
-IPORD    = -I../PORD/include/
+LPORDDIR = $(topdir)/PORD/lib/
+IPORD    = -I$(topdir)/PORD/include/
 LPORD    = -L$(LPORDDIR) -lpord
 
 #LMETISDIR = /local/metis/
@@ -41,8 +40,8 @@ RANLIB  = ranlib
 
 
 
-INCSEQ  = -I../libseq
-LIBSEQ  =  -L../libseq -lmpiseq
+INCSEQ  = -I$(topdir)/libseq
+LIBSEQ  =  -L$(topdir)/libseq -lmpiseq
 LIBBLAS = -lessl
 LIBOTHERS = -lpthread
 #Preprocessor defs for calling Fortran from C (-DAdd_ or -DAdd__ or -DUPPER)
@@ -53,8 +52,6 @@ OPTF    = -WF,-DPESSL -WF,-DSP_ -WF,-DALLOW_NON_INIT -O3 -qstrict -qmaxmem=-1 -Q
 OPTC    = -O3 -qstrict -qarch=auto -qtune=auto -qcache=auto -Q=150 -s -qmaxmem=-1 -qcpluscmt -q32 -bmaxdata:0x80000000
 OPTL    = -O3 -qstrict -Q -qfixed -qalign=4k -q32 -bmaxdata:0x80000000 
 #End Optimization options
- 
-
 INC = $(INCSEQ)
 LIB = $(LIBSEQ)
 LIBSEQNEEDED = libseqneeded

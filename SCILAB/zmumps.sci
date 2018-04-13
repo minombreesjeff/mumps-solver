@@ -14,15 +14,15 @@ if (typeof(id) ~= "StructMumps") then
   disp("Error. Please call initmumps first.");
   return;
 end
-prectype=1;
+arithtype=1;
 
 if id.JOB == -2 then   
      if id.INST==-9999 then
          disp('Error. Uninitialized instance. MUMPS should be called with JOB=-1 first.');
          return;
      end
-     if id.TYPE ~= prectype then
-	disp('Error. You are trying to call CMPLX/DBL version on a DBL/CMPLX instance');
+     if id.TYPE ~= arithtype then
+	disp('Error. You are trying to call z/d version on a d/z instance');
         return;
      end
      // call the C routine zmumpsc
@@ -49,7 +49,7 @@ if id.JOB == -1 then
 	id.PIVNUL_LIST = pivnul_list;
 	id.SYM_PERM = sym_perm;
 	id.UNS_PERM = uns_perm;
-        id.TYPE=prectype;
+        id.TYPE=arithtype;
         id.ICNTL=icntl;
 	id.CNTL=cntl;
  	clear inform rinform sol inst schu redrhs pivnul_list sym_perm uns_perm icntl cntl
@@ -63,8 +63,8 @@ if id.INST ==-9999 then
 end 
 // call the C routine zmumpsc
 
-if id.TYPE ~= prectype then
-	disp('You are trying to call CMPLX/DBL version on a DBL/CMPLX instance');
+if id.TYPE ~= arithtype then
+	disp('You are trying to call z/d version on a d/z instance');
 end
 
 [inform,rinform,sol,inst,schu,redrhs,pivnul_list,sym_perm,uns_perm,icntl,cntl] = zmumpsc(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,id.REDRHS, mat);

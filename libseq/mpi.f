@@ -1,11 +1,10 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
-C   This Version was built on Fri May  4 15:54:01 2007
+C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL. 
+C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
 C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
 C  INRIA.
@@ -14,17 +13,17 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://mumps.enseeiht.fr/
-C  or http://graal.ens-lyon.fr/MUMPS
+C  from the Web pages:
+C  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
 C
 C
 C   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-C   EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+C   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
 C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3] the contribution of this package
+C  references [1], [2], and [3]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
@@ -42,36 +41,60 @@ C   [3] P. R. Amestoy and A. Guermouche and J.-Y. L'Excellent and
 C   S. Pralet, Hybrid scheduling for the parallel solution of linear
 C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
+C******************************************************************
 C
 C  This file contains dummy MPI/BLACS/ScaLAPACK libraries to allow
 C  linking/running MUMPS on a platform where MPI is not installed.
 C
 C******************************************************************
+C
+C MPI
+C
+C******************************************************************
+      SUBROUTINE MPI_BSEND( BUF, COUNT, DATATYPE, DEST, TAG, COMM,
+     *            IERR )
+      IMPLICIT NONE
+      INCLUDE 'mpif.h'
+      INTEGER COUNT, DATATYPE, DEST, TAG, COMM, IERR
+      INTEGER BUF(*)
+      WRITE(*,*) 'Error. MPI_BSEND should not be called.'
+      STOP
+      IERR = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE mpi_buffer_attach(BUF, COUNT,  IERR )
+      IMPLICIT NONE
+      INCLUDE 'mpif.h'
+      INTEGER COUNT, IERR
+      INTEGER BUF(*)
+      IERR = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE mpi_buffer_detach(BUF, COUNT,  IERR )
+      IMPLICIT NONE
+      INCLUDE 'mpif.h'
+      INTEGER COUNT, IERR
+      INTEGER BUF(*)
+           IERR = 0
+      RETURN
+      END
       SUBROUTINE MPI_GATHER( SENDBUF, COUNT, 
      *         DATATYPE, RECVBUF, RECCOUNT, RECTYPE,
      *         ROOT, COMM, IERR )
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
-      INTEGER COUNT, DATATYPE, RECCOUNT, RECTYPE,
-     *        ROOT, COMM, IERR
-      INTEGER SENDBUF(* ), RECVBUF( * )
-      IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
-        CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
-        CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION ) THEN
-        CALL MUMPS_COPY_DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_COMPLEX ) THEN
-        CALL MUMPS_COPY_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_COMPLEX ) THEN
-        CALL MUMPS_COPY_DOUBLE_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2DOUBLE_PRECISION) THEN
-        CALL MUMPS_COPY_2DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2INTEGER) THEN
-        CALL MUMPS_COPY_2INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE
-        WRITE(*,*) 'ERROR in MPI_GATHER=',DATATYPE
+      INTEGER COUNT, DATATYPE, RECCOUNT, RECTYPE, ROOT, COMM, IERR
+      INTEGER SENDBUF(*), RECVBUF(*)
+      IF ( RECCOUNT .NE. COUNT ) THEN
+        WRITE(*,*) 'ERROR in MPI_GATHER, RECCOUNT != COUNT'
         STOP
+      ELSE
+        CALL MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+        IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) 'ERROR in MPI_GATHER, DATATYPE=',DATATYPE
+          STOP
+        END IF
       END IF
       IERR = 0
       RETURN
@@ -81,35 +104,25 @@ C***********************************************************************
      *         DATATYPE, RECVBUF, RECCOUNT, DISPLS, RECTYPE,
      *         ROOT, COMM, IERR )
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
-      INTEGER COUNT, DATATYPE, RECTYPE,
-     *        ROOT, COMM, IERR
-      INTEGER RECCOUNT( * )
-      INTEGER SENDBUF( * ), RECVBUF( * )
-      INTEGER DISPLS( * )
+      INTEGER COUNT, DATATYPE, RECTYPE, ROOT, COMM, IERR
+      INTEGER RECCOUNT(1)
+      INTEGER SENDBUF(*), RECVBUF(*)
+      INTEGER DISPLS(*)
 C
 C     Note that DISPLS is ignored in this version. One may
 C     want to copy in reception buffer with a shift DISPLS(1).
 C     This requires passing the offset DISPLS(1) to
 C     "MUMPS_COPY_DATATYPE" routines.
 C
-      IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
-        CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
-        CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION ) THEN
-        CALL MUMPS_COPY_DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_COMPLEX ) THEN
-        CALL MUMPS_COPY_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_COMPLEX ) THEN
-        CALL MUMPS_COPY_DOUBLE_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2DOUBLE_PRECISION) THEN
-        CALL MUMPS_COPY_2DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2INTEGER) THEN
-        CALL MUMPS_COPY_2INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE
-        WRITE(*,*) 'ERROR in MPI_GATHERV=',DATATYPE
+      IF ( RECCOUNT(1) .NE. COUNT ) THEN
+        WRITE(*,*) 'ERROR in MPI_GATHERV, RECCOUNT(1) != COUNT'
         STOP
+      ELSE
+        CALL MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+        IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) 'ERROR in MPI_GATHERV, DATATYPE=',DATATYPE
+          STOP
+        END IF
       END IF
       IERR = 0
       RETURN
@@ -118,25 +131,11 @@ C***********************************************************************
       SUBROUTINE MPI_ALLREDUCE( SENDBUF, RECVBUF, COUNT, DATATYPE,
      *                          OPERATION, COMM, IERR )
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, OPERATION, COMM, IERR
-      INTEGER SENDBUF( * ), RECVBUF( * )
-      IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
-        CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
-        CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION ) THEN
-        CALL MUMPS_COPY_DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_COMPLEX ) THEN
-        CALL MUMPS_COPY_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_COMPLEX ) THEN
-        CALL MUMPS_COPY_DOUBLE_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2DOUBLE_PRECISION) THEN
-        CALL MUMPS_COPY_2DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2INTEGER) THEN
-        CALL MUMPS_COPY_2INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE
-        WRITE(*,*) 'ERROR in MPI_ALLREDUCE. DATATYPE=',DATATYPE
+      INTEGER SENDBUF(*), RECVBUF(*)
+      CALL MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+      IF ( IERR .NE. 0 ) THEN
+        WRITE(*,*) 'ERROR in MPI_ALLREDUCE, DATATYPE=',DATATYPE
         STOP
       END IF
       IERR = 0
@@ -146,28 +145,49 @@ C***********************************************************************
       SUBROUTINE MPI_REDUCE( SENDBUF, RECVBUF, COUNT, DATATYPE, OP,
      *           ROOT, COMM, IERR )
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
       INTEGER COUNT, DATATYPE, OP, ROOT, COMM, IERR
       INTEGER SENDBUF(*), RECVBUF(*)
-      IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
-        CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
-        CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION ) THEN
-        CALL MUMPS_COPY_DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_COMPLEX ) THEN
-        CALL MUMPS_COPY_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_COMPLEX ) THEN
-        CALL MUMPS_COPY_DOUBLE_COMPLEX( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2DOUBLE_PRECISION) THEN
-        CALL MUMPS_COPY_2DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
-      ELSE IF ( DATATYPE .EQ. MPI_2INTEGER) THEN
-        CALL MUMPS_COPY_2INTEGER( SENDBUF, RECVBUF, COUNT )
-      ELSE
-        WRITE(*,*) 'ERROR in MPI_REDUCE. DATATYPE=',DATATYPE
+      CALL MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+      IF ( IERR .NE. 0 ) THEN
+        WRITE(*,*) 'ERROR in MPI_REDUCE, DATATYPE=',DATATYPE
         STOP
       END IF
       IERR = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE MPI_ABORT( COMM, IERRCODE, IERR )
+      IMPLICIT NONE
+      INTEGER COMM, IERRCODE, IERR
+      WRITE(*,*) "** MPI_ABORT called"
+      STOP
+      END SUBROUTINE MPI_ABORT
+C***********************************************************************
+      SUBROUTINE MPI_ALLTOALL( SENDBUF, SENDCNT, SENDTYPE,
+     *                         RECVBUF, RECVCNT, RECVTYPE, COMM, IERR )
+      IMPLICIT NONE
+      INTEGER SENDCNT, SENDTYPE, RECVCNT, RECVTYPE, COMM, IERR
+      INTEGER SENDBUF(*), RECVBUF(*)
+      IF ( RECVCNT .NE. SENDCNT ) THEN
+        WRITE(*,*) 'ERROR in MPI_ALLTOALL, RECVCOUNT != SENDCOUNT'
+        STOP
+      ELSE IF ( RECVTYPE .NE. SENDTYPE ) THEN
+        WRITE(*,*) 'ERROR in MPI_ALLTOALL, RECVTYPE != SENDTYPE'
+        STOP
+      ELSE
+        CALL MUMPS_COPY( SENDCNT, SENDBUF, RECVBUF, SENDTYPE, IERR )
+        IF ( IERR .NE. 0 ) THEN
+          WRITE(*,*) 'ERROR in MPI_ALLTOALL, SENDTYPE=',SENDTYPE
+          STOP
+        END IF
+      END IF
+      IERR = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE MPI_ATTR_PUT( COMM, KEY, VAL, IERR )
+      IMPLICIT NONE
+      INTEGER COMM, KEY, VAL, IERR
       RETURN
       END
 C***********************************************************************
@@ -367,6 +387,21 @@ C***********************************************************************
       RETURN
       END
 C***********************************************************************
+      SUBROUTINE MPI_OP_CREATE( FUNC, COMMUTE, OP, IERR )
+      IMPLICIT NONE
+      EXTERNAL FUNC
+      LOGICAL COMMUTE
+      INTEGER OP, IERR
+      OP = 0
+      RETURN
+      END
+C***********************************************************************
+      SUBROUTINE MPI_OP_FREE( OP, IERR )
+      IMPLICIT NONE
+      INTEGER OP, IERR
+      RETURN
+      END
+C***********************************************************************
       SUBROUTINE MPI_PACK( INBUF, INCOUNT, DATATYPE, OUTBUF, OUTCOUNT,
      *           POSITION, COMM, IERR )
       IMPLICIT NONE
@@ -476,13 +511,25 @@ C***********************************************************************
       RETURN
       END
 C***********************************************************************
+      SUBROUTINE MPI_WAITALL( COUNT, ARRAY_OF_REQUESTS, STATUS, IERR )
+      IMPLICIT NONE
+      INCLUDE 'mpif.h'
+      INTEGER COUNT, IERR
+      INTEGER STATUS( MPI_STATUS_SIZE )
+      INTEGER ARRAY_OF_REQUESTS( COUNT )
+      WRITE(*,*) 'Error. MPI_WAITALL should not be called.'
+      STOP
+      IERR = 0
+      RETURN
+      END
+C***********************************************************************
       SUBROUTINE MPI_WAITANY( COUNT, ARRAY_OF_REQUESTS, INDEX, STATUS,
      *           IERR )
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INTEGER COUNT, INDEX, IERR
       INTEGER STATUS( MPI_STATUS_SIZE )
-      INTEGER ARRAY_OF_REQUESTS( * )
+      INTEGER ARRAY_OF_REQUESTS( COUNT )
       WRITE(*,*) 'Error. MPI_WAITANY should not be called.'
       STOP
       IERR = 0
@@ -493,28 +540,124 @@ C***********************************************************************
 C     elapsed time
       DOUBLE PRECISION VAL
 C     write(*,*) 'Entering MPI_WTIME'
-      CALL ELAPSE( VAL )
+      CALL MUMPS_ELAPSE( VAL )
       MPI_WTIME = VAL
 C     write(*,*) 'Exiting MPI_WTIME'
       RETURN
       END
-C***********************************************************************
-      SUBROUTINE MPI_ATTR_PUT( COMM, KEY, VAL, IERR )
-      IMPLICIT NONE
-      INTEGER COMM, KEY, VAL, IERR
 
+
+C***********************************************************************
+C
+C  Utilities to copy data
+C
+C***********************************************************************
+
+      SUBROUTINE MUMPS_COPY( COUNT, SENDBUF, RECVBUF, DATATYPE, IERR )
+      IMPLICIT NONE
+      INCLUDE 'mpif.h'
+      INTEGER COUNT, DATATYPE, IERR
+      INTEGER SENDBUF(*), RECVBUF(*)
+      IF ( DATATYPE .EQ. MPI_INTEGER ) THEN
+        CALL MUMPS_COPY_INTEGER( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_REAL ) THEN
+        CALL MUMPS_COPY_REAL( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_PRECISION .OR.
+     &          DATATYPE .EQ. MPI_REAL8 ) THEN
+        CALL MUMPS_COPY_DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_COMPLEX ) THEN
+        CALL MUMPS_COPY_COMPLEX( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_DOUBLE_COMPLEX ) THEN
+        CALL MUMPS_COPY_DOUBLE_COMPLEX( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_2DOUBLE_PRECISION) THEN
+        CALL MUMPS_COPY_2DOUBLE_PRECISION( SENDBUF, RECVBUF, COUNT )
+      ELSE IF ( DATATYPE .EQ. MPI_2INTEGER) THEN
+        CALL MUMPS_COPY_2INTEGER( SENDBUF, RECVBUF, COUNT )
+      ELSE
+        IERR=1
+        RETURN
+      END IF
+      IERR=0
       RETURN
       END
-C***********************************************************************
-      SUBROUTINE MPI_ABORT( COMM, IERRCODE, IERR )
+
+      SUBROUTINE MUMPS_COPY_INTEGER( S, R, N )
       IMPLICIT NONE
-      INTEGER COMM, IERRCODE, IERR
-      WRITE(*,*) "** Abort called"
-      STOP
-      END SUBROUTINE MPI_ABORT
+      INTEGER N
+      INTEGER S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_2INTEGER( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      INTEGER S(N+N),R(N+N)
+      INTEGER I
+      DO I = 1, N+N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_REAL( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      REAL S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_2DOUBLE_PRECISION( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      DOUBLE PRECISION S(N+N),R(N+N)
+      INTEGER I
+      DO I = 1, N+N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_DOUBLE_PRECISION( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      DOUBLE PRECISION S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_COMPLEX( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      COMPLEX S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+      SUBROUTINE MUMPS_COPY_DOUBLE_COMPLEX( S, R, N )
+      IMPLICIT NONE
+      INTEGER N
+      DOUBLE COMPLEX S(N),R(N)
+      INTEGER I
+      DO I = 1, N
+        R(I) = S(I)
+      END DO
+      RETURN
+      END
+
+
 C***********************************************************************
-C     BLACS and ScaLAPACK
 C
+C     BLACS
+C
+C***********************************************************************
       SUBROUTINE BLACS_GRIDINIT( CNTXT, C, NPROW, NPCOL )
       IMPLICIT NONE
       INTEGER CNTXT, NPROW, NPCOL
@@ -539,6 +682,12 @@ C***********************************************************************
         STOP
       RETURN
       END
+
+
+C***********************************************************************
+C
+C     ScaLAPACK
+C
 C***********************************************************************
       SUBROUTINE DESCINIT( DESC, M, N, MB, NB, IRSRC, ICSRC,
      *           ICTXT, LLD, INFO )
@@ -1350,81 +1499,6 @@ C***********************************************************************
       INTEGER            DESC( * )
         WRITE(*,*) 'Error. DESCSET should not be called.'
         STOP
-      RETURN
-      END
-C***********************************************************************
-C***********************************************************************
-C
-C  Utilities to copy data
-C
-      SUBROUTINE MUMPS_COPY_INTEGER( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      INTEGER S(N),R(N)
-      INTEGER I
-      DO I = 1, N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_2INTEGER( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      INTEGER S(N+N),R(N+N)
-      INTEGER I
-      DO I = 1, N+N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_REAL( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      REAL S(N),R(N)
-      INTEGER I
-      DO I = 1, N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_2DOUBLE_PRECISION( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      DOUBLE PRECISION S(N+N),R(N+N)
-      INTEGER I
-      DO I = 1, N+N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_DOUBLE_PRECISION( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      DOUBLE PRECISION S(N),R(N)
-      INTEGER I
-      DO I = 1, N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_COMPLEX( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      COMPLEX S(N),R(N)
-      INTEGER I
-      DO I = 1, N
-        R(I) = S(I)
-      END DO
-      RETURN
-      END
-      SUBROUTINE MUMPS_COPY_DOUBLE_COMPLEX( S, R, N )
-      IMPLICIT NONE
-      INTEGER N
-      DOUBLE COMPLEX S(N),R(N)
-      INTEGER I
-      DO I = 1, N
-        R(I) = S(I)
-      END DO
       RETURN
       END
 

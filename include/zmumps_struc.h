@@ -1,11 +1,10 @@
 !
-!   THIS FILE IS PART OF ZMUMPS VERSION 4.7.3
-!   This Version was built on Fri May  4 15:54:01 2007
+!  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 !
 !
-!  This version of ZMUMPS is provided to you free of charge. It is public
+!  This version of MUMPS is provided to you free of charge. It is public
 !  domain, based on public domain software developed during the Esprit IV
-!  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL. 
+!  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 !  Since this first public domain version in 1999, the developments are
 !  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
 !  INRIA.
@@ -13,18 +12,18 @@
 !  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 !  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 !
-!  Up-to-date copies of the ZMUMPS package can be obtained
-!  from the Web pages http://mumps.enseeiht.fr/
-!  or http://graal.ens-lyon.fr/ZMUMPS
+!  Up-to-date copies of the MUMPS package can be obtained
+!  from the Web pages:
+!  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
 !
 !
 !   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-!   EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+!   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
 !
 !
 !  User documentation of any code that uses this software can
 !  include this complete notice. You can acknowledge (using
-!  references [1], [2], and [3] the contribution of this package
+!  references [1], [2], and [3]) the contribution of this package
 !  in any scientific publication dependent upon the use of the
 !  package. You shall use reasonable endeavours to notify
 !  the authors of the package of this publication.
@@ -42,7 +41,7 @@
 !   S. Pralet, Hybrid scheduling for the parallel solution of linear
 !   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 !
-!     $Id: zmumps_struc.h,v 1.72 2007/03/25 19:43:31 jylexcel Exp $
+!     $Id: zmumps_struc.h 5052 2008-07-20 08:02:13Z pcombes $
       INCLUDE 'zmumps_root.h'
       TYPE ZMUMPS_STRUC
         SEQUENCE
@@ -54,6 +53,10 @@
 ! *****************
 ! INPUT PARAMETERS
 ! *****************
+!    -----------------
+!    MPI Communicator
+!    -----------------
+         INTEGER COMM
 !    ------------------
 !    Problem definition
 !    ------------------
@@ -73,28 +76,23 @@
          INTEGER NZ
          COMPLEX*16, DIMENSION(:), POINTER :: A
          INTEGER, DIMENSION(:), POINTER :: IRN, JCN
-         COMPLEX*16, DIMENSION(:), POINTER :: COLSCA, ROWSCA
+         DOUBLE PRECISION, DIMENSION(:), POINTER :: COLSCA, ROWSCA, pad0
 !
 !        ------------------------------------
 !        Case of distributed assembled matrix
 !        matrix on entry:
 !        ------------------------------------
-         INTEGER NZ_loc
+         INTEGER NZ_loc, pad1
          INTEGER, DIMENSION(:), POINTER :: IRN_loc, JCN_loc
-         COMPLEX*16, DIMENSION(:), POINTER :: A_loc
+         COMPLEX*16, DIMENSION(:), POINTER :: A_loc, pad2
 !
 !    ----------------------------------------
 !    Unassembled input matrix: User interface
 !    ----------------------------------------
-         INTEGER NELT
+         INTEGER NELT, pad3
          INTEGER, DIMENSION(:), POINTER :: ELTPTR
          INTEGER, DIMENSION(:), POINTER :: ELTVAR
-         COMPLEX*16, DIMENSION(:), POINTER :: A_ELT
-!
-!    -----------------
-!    MPI Communicator
-!    -----------------
-         INTEGER COMM
+         COMPLEX*16, DIMENSION(:), POINTER :: A_ELT, pad4
 !
 !    ---------------------------------------------
 !    Symmetric permutation : 
@@ -118,7 +116,7 @@
          INTEGER, DIMENSION(:), POINTER :: IRHS_PTR
          INTEGER, DIMENSION(:), POINTER :: ISOL_LOC
          INTEGER LRHS, NRHS, NZ_RHS, LSOL_LOC, LREDRHS
-         INTEGER PADDING
+         INTEGER pad5
 !    ----------------------------
 !    Control parameters,
 !    statistics and output data
@@ -126,11 +124,10 @@
          INTEGER ICNTL(40)
          INTEGER INFO(40) 
          INTEGER INFOG(40)
+         DOUBLE PRECISION COST_SUBTREES
          DOUBLE PRECISION CNTL(15)
          DOUBLE PRECISION RINFO(20)
          DOUBLE PRECISION RINFOG(20)
-!        Cost (flops) of subtrees on local process
-         DOUBLE PRECISION COST_SUBTREES
 !    ---------------------------------------------------------
 !    Permutations computed during analysis:
 !        SYM_PERM: Symmetric permutation 
@@ -147,8 +144,8 @@
 !    -------------------------------
 !    Deficiency and null space basis
 !    -------------------------------
-         INTEGER Deficiency
          COMPLEX*16, DIMENSION(:,:), POINTER :: NULL_SPACE
+         INTEGER Deficiency, pad6
 !    -----
 !    Schur
 !    -----
@@ -158,15 +155,25 @@
          INTEGER, DIMENSION(:), POINTER :: LISTVAR_SCHUR
          COMPLEX*16, DIMENSION(:), POINTER :: SCHUR
          COMPLEX*16, DIMENSION(:), POINTER :: SCHUR_CINTERFACE
+!    --------------
+!    Version number
+!    --------------
+         CHARACTER(LEN=14) VERSION_NUMBER
 !    -----------
 !    Out-of-core
 !    -----------
-         CHARACTER(LEN=150) :: OOC_TMPDIR, OOC_PREFIX
+         CHARACTER(LEN=255) :: OOC_TMPDIR
+	 CHARACTER(LEN=63) :: OOC_PREFIX
+!    ------------------------------------------
+!    To save the matrix in matrix market format
+!    ------------------------------------------
+         CHARACTER(LEN=255) WRITE_PROBLEM
 !
 !
 ! **********************
 ! INTERNAL Working data
 ! **********************
+         INTEGER INST_Number
 !        For MPI
          INTEGER COMM_NODES, MYID_NODES, COMM_LOAD
          INTEGER  MYID, NPROCS, NSLAVES
@@ -175,10 +182,8 @@
          INTEGER LBUFR
          INTEGER LBUFR_BYTES
          INTEGER, DIMENSION(:), POINTER ::  BUFR
-         INTEGER INST_Number
-!        for analysis/facto/solve phases
-         INTEGER MAXIS, MAXS
-         INTEGER MAXIS1
+!        For analysis/facto/solve phases
+         INTEGER MAXIS1, pad7
          INTEGER KEEP(500)
          INTEGER*8 KEEP8(150)
 !        IS is used for the factors + workspace for contrib. blocks
@@ -189,7 +194,11 @@
 !        The following data/arrays are computed during the analysis
 !        phase and used during the factorization and solve phases.
          INTEGER LNA
+         INTEGER NBSA
          INTEGER,POINTER,DIMENSION(:)::STEP, NE_STEPS, ND_STEPS
+!  Info for pruning tree 
+         INTEGER,POINTER,DIMENSION(:)::Step2node
+!  ---------------------
          INTEGER,POINTER,DIMENSION(:)::FRERE_STEPS, DAD_STEPS
          INTEGER,POINTER,DIMENSION(:)::FILS, PTRAR, FRTPTR, FRTELT
          INTEGER,POINTER,DIMENSION(:)::NA, PROCNODE_STEPS
@@ -200,14 +209,13 @@
          COMPLEX*16, DIMENSION(:), POINTER :: S
 !        Information on mapping
          INTEGER, DIMENSION(:), POINTER :: PROCNODE
-         INTEGER nbsa
 !        Input matrix ready for numerical assembly 
 !            -arrowhead format in case of assembled matrix
 !            -element format otherwise
          INTEGER, DIMENSION(:), POINTER :: INTARR
          COMPLEX*16, DIMENSION(:), POINTER :: DBLARR
 !         Element entry: internal data
-         INTEGER NELT_LOC, LELTVAR, NA_ELT
+         INTEGER NELT_LOC, LELTVAR, NA_ELT, pad8
          INTEGER, DIMENSION(:), POINTER :: ELTPROC
 !         Candidates and node partitionning
          INTEGER, DIMENSION(:,:), POINTER :: CANDIDATES
@@ -220,15 +228,7 @@
 !        Compressed RHS
          INTEGER, DIMENSION(:),   POINTER :: POSINRHSCOMP
          COMPLEX*16, DIMENSION(:), POINTER :: RHSCOMP
-!        To save the matrix in a simple format
-         CHARACTER(LEN=80) WRITE_PROBLEM
-!   ------------------------
-!   Root structure(internal)
-!   ------------------------
-         TYPE (ZMUMPS_ROOT_STRUC) :: root
 !        For C interface
-!   Instance number used/managed by the C/F77 interface
-         INTEGER INSTANCE_NUMBER
 !   Info on the subtrees to be used during facto
          INTEGER, DIMENSION(:),   POINTER :: MEM_SUBTREE
          INTEGER, DIMENSION(:),   POINTER :: MY_ROOT_SBTR
@@ -240,13 +240,16 @@
          INTEGER MAX_SURF_MASTER
 !    For simulating parallel out-of-core stack.
          INTEGER, DIMENSION(:),POINTER ::CB_SON_SIZE
+!   Instance number used/managed by the C/F77 interface
+         INTEGER INSTANCE_NUMBER
 !    OOC management data that must persist from factorization to solve.
-         INTEGER, DIMENSION(:),   POINTER :: OOC_INODE_SEQUENCE
-         INTEGER, DIMENSION(:),   POINTER :: OOC_NUM_FILE
-         INTEGER, DIMENSION(:),   POINTER :: OOC_POS_IN_FILE
-         INTEGER, DIMENSION(:),   POINTER :: OOC_SIZE_OF_BLOCK
-         INTEGER OOC_MAX_NB_NODES_FOR_ZONE,OOC_TOTAL_NB_NODES
-         INTEGER OOC_NB_FILES
+         INTEGER OOC_MAX_NB_NODES_FOR_ZONE
+         INTEGER, DIMENSION(:,:),   POINTER :: OOC_INODE_SEQUENCE
+         INTEGER, DIMENSION(:,:),   POINTER :: OOC_SIZE_OF_BLOCK
+         INTEGER*8, DIMENSION(:,:),   POINTER :: OOC_VADDR
+        					    
+         INTEGER,DIMENSION(:), POINTER :: OOC_TOTAL_NB_NODES
+         INTEGER,DIMENSION(:), POINTER :: OOC_NB_FILES
          CHARACTER,DIMENSION(:,:), POINTER :: OOC_FILE_NAMES  
          INTEGER,DIMENSION(:), POINTER :: OOC_FILE_NAME_LENGTH
 !    Indices of nul pivots
@@ -254,8 +257,9 @@
 !    Internal control array
          DOUBLE PRECISION DKEEP(30)
 !    Array needed to manage additionnal candidate processor 
-!    when using -DNEW_MAPPING
          INTEGER, DIMENSION(:,:), POINTER :: SUP_PROC
-!    Version number
-         CHARACTER(LEN=80) VERSION_NUMBER
+!   ------------------------
+!   Root structure(internal)
+!   ------------------------
+         TYPE (ZMUMPS_ROOT_STRUC) :: root
       END TYPE ZMUMPS_STRUC

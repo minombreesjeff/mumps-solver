@@ -52,7 +52,7 @@ INSTALLATION for Scilab:
 You need:
         1- scilab version 3.0 or greater
 	2- to have compiled/linked a sequential version of MUMPS with both double precision
-	   and double complex precisions ("make double" and "make cmplx16", or "make all")
+	   and double complex arithmetics ("make d" and "make z", or "make all")
 	3- to modify the paths in the builder.sce. In particular you will need to give 
 	   the path to the runtime libraries of your FORTRAN 90 compiler.
 	4- to execute builder.sce and loader.sce by using the "exec" 

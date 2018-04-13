@@ -1,11 +1,10 @@
 C
-C   THIS FILE IS PART OF MUMPS VERSION 4.7.3
-C   This Version was built on Fri May  4 15:54:01 2007
+C  This file is part of MUMPS 4.8.0, built on Fri Jul 25 14:46:02 2008
 C
 C
 C  This version of MUMPS is provided to you free of charge. It is public
 C  domain, based on public domain software developed during the Esprit IV
-C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL. 
+C  European project PARASOL (1996-1999) by CERFACS, ENSEEIHT-IRIT and RAL.
 C  Since this first public domain version in 1999, the developments are
 C  supported by the following institutions: CERFACS, ENSEEIHT-IRIT, and
 C  INRIA.
@@ -14,17 +13,17 @@ C  Main contributors are Patrick Amestoy, Iain Duff, Abdou Guermouche,
 C  Jacko Koster, Jean-Yves L'Excellent, and Stephane Pralet.
 C
 C  Up-to-date copies of the MUMPS package can be obtained
-C  from the Web pages http://mumps.enseeiht.fr/
-C  or http://graal.ens-lyon.fr/MUMPS
+C  from the Web pages:
+C  http://mumps.enseeiht.fr/  or  http://graal.ens-lyon.fr/MUMPS
 C
 C
 C   THIS MATERIAL IS PROVIDED AS IS, WITH ABSOLUTELY NO WARRANTY
-C   EXPRESSED OR IMPLIED.  ANY USE IS AT YOUR OWN RISK.
+C   EXPRESSED OR IMPLIED. ANY USE IS AT YOUR OWN RISK.
 C
 C
 C  User documentation of any code that uses this software can
 C  include this complete notice. You can acknowledge (using
-C  references [1], [2], and [3] the contribution of this package
+C  references [1], [2], and [3]) the contribution of this package
 C  in any scientific publication dependent upon the use of the
 C  package. You shall use reasonable endeavours to notify
 C  the authors of the package of this publication.
@@ -44,9 +43,18 @@ C   systems. Parallel Computing Vol 32 (2), pp 136-156 (2006).
 C
       SUBROUTINE DMUMPS_301( id)
       USE DMUMPS_STRUC_DEF
-      USE DMUMPS_BUFFER
+      USE DMUMPS_COMM_BUFFER
       USE DMUMPS_OOC
       IMPLICIT NONE
+#ifndef SUN_
+      INTERFACE
+      SUBROUTINE DMUMPS_710( id, NB_INT,NB_dble )
+      USE DMUMPS_STRUC_DEF
+      TYPE (DMUMPS_STRUC) :: id
+      INTEGER*8        :: NB_INT,NB_dble
+      END SUBROUTINE DMUMPS_710
+      END INTERFACE
+#endif
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_headers.h'
 #if defined(V_T)
@@ -79,9 +87,10 @@ C
      *                                 Y(:), W(:), D(:)
       INTEGER, DIMENSION(:), ALLOCATABLE :: UNS_PERM_INV, 
      *                                      POSINRHSCOMP_N
-      INTEGER LIWK_SOLVE
-      INTEGER, ALLOCATABLE :: IW1(:), IWK_SOLVE(:)
-      INTEGER, POINTER :: N, NZ, MAXIS, MAXS
+      INTEGER LIWK_SOLVE, LIWCB
+      INTEGER, ALLOCATABLE :: IW1(:), IWK_SOLVE(:), IWCB(:)
+      INTEGER, POINTER :: N, NZ
+      INTEGER          :: MAXS, MAXIS
       INTEGER, POINTER :: NRHS, LRHS
       DOUBLE PRECISION, DIMENSION(:), POINTER :: CNTL
       INTEGER, DIMENSION (:), POINTER :: KEEP,ICNTL,INFO
@@ -98,29 +107,33 @@ C
       DOUBLE PRECISION DUMMY(1)
       INTEGER IDUMMY(1), JDUMMY(1), KDUMMY(1), JJ, WHAT
       INTEGER allocok, PERLU
-      INTEGER NBRHS, NBRHS_EFF, BEG_RHS, END_RHS, 
+      INTEGER NBRHS, NBRHS_EFF, BEG_RHS, 
      &        IBEG, LD_RHS, KDEC, MINLWC, NBRHSMIN, 
      &        MASTER_ROOT, MASTER_ROOT_IN_COMM
       INTEGER IPT_RHS_ROOT, SIZE_ROOT, LD_REDRHS
       INTEGER IBEG_REDRHS, IBEG_RHSCOMP, LD_RHSCOMP, LENRHSCOMP
-      INTEGER NB_K133
+      INTEGER NB_K133, IRANK
       LOGICAL WORKSPACE_MINIMAL_PREFERRED
+      INTEGER*8  NB_BYTES     
+      INTEGER*8  NB_BYTES_MAX 
+      INTEGER*8 NB_INT, NB_dble, K34_8, K35_8, NB_BYTES_ON_ENTRY
       INTEGER, DIMENSION(:), POINTER :: IRHS_SPARSE_COPY
       DOUBLE PRECISION, DIMENSION(:), POINTER :: RHS_SPARSE_COPY
 #if defined(V_T)
       INTEGER soln_drive_class, glob_comm_ini, perm_scal_ini, soln_dist,
      &        soln_assem, perm_scal_post
 #endif
-      LOGICAL I_AM_SLAVE, MAXSUPDATED, BUILD_POSINRHSCOMP
-      INTEGER  MTYPE_LOC, MAXSSAVED
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      LOGICAL I_AM_SLAVE, BUILD_POSINRHSCOMP
+      INTEGER  MTYPE_LOC
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
+      NULLIFY(RHS_MUMPS)
+      NULLIFY(IRHS_SPARSE_COPY)
+      NULLIFY(RHS_SPARSE_COPY)
       N    =>id%N
       NZ   =>id%NZ
       NRHS =>id%NRHS
       LRHS =>id%LRHS
-      MAXIS=>id%MAXIS
-      MAXS =>id%MAXS
       CNTL =>id%CNTL
       KEEP =>id%KEEP
       KEEP8=>id%KEEP8
@@ -128,45 +141,6 @@ C
       ICNTL=>id%ICNTL
       INFO =>id%INFO
       RINFOG =>id%RINFOG
-      MAXSSAVED          = MAXS
-      MAXSUPDATED        = .FALSE.
-      BUILD_POSINRHSCOMP = .TRUE.
-      NB_K133     = 2     
-#if defined(V_T)
-      CALL VTCLASSDEF( 'Soln driver',soln_drive_class,ierr)
-      CALL VTFUNCDEF( 'glob_comm_ini',soln_drive_class,
-     &     glob_comm_ini,ierr)
-      CALL VTFUNCDEF( 'perm_scal_ini',soln_drive_class,
-     &     perm_scal_ini,ierr)
-      CALL VTFUNCDEF( 'soln_dist',soln_drive_class,soln_dist,ierr)
-      CALL VTFUNCDEF( 'soln_assem',soln_drive_class,soln_assem,ierr)
-      CALL VTFUNCDEF( 'perm_scal_post',soln_drive_class,
-     &     perm_scal_post,ierr)
-#endif
-      I_AM_SLAVE = ( id%MYID .ne. MASTER  .OR.
-     *             ( id%MYID .eq. MASTER .AND.
-     *               KEEP(46) .eq. 1 ) )
-      SIZE_ROOT   = -33333
-      IF ( KEEP( 38 ) .ne. 0 ) THEN
-            MASTER_ROOT = DMUMPS_275(id%STEP( KEEP(38)),
-     *                    id%PROCNODE_STEPS, id%NSLAVES )
-            IF (id%MYID_NODES .eq. MASTER_ROOT) THEN
-              SIZE_ROOT = id%root%TOT_ROOT_SIZE
-            ELSE IF ((id%MYID.EQ.MASTER).AND.KEEP(60).NE.0) THEN 
-              SIZE_ROOT=id%SIZE_SCHUR
-            ENDIF
-      ELSE IF (KEEP( 20 ) .ne. 0 ) THEN
-            MASTER_ROOT = DMUMPS_275(id%STEP(KEEP(20)),
-     *                    id%PROCNODE_STEPS, id%NSLAVES )
-            IF (id%MYID_NODES .eq. MASTER_ROOT) THEN
-              SIZE_ROOT = id%IS(
-     *               id%PTLUST_S(id%STEP(KEEP(20)))+XSIZE)
-            ELSE IF ((id%MYID.EQ.MASTER).AND.KEEP(60).NE.0) THEN 
-              SIZE_ROOT=id%SIZE_SCHUR
-            ENDIF
-      ELSE
-            MASTER_ROOT = -44444
-      END IF
       MP  = ICNTL( 2 )
       MPG = ICNTL( 3 )
       LP  = ICNTL( 1 )
@@ -174,6 +148,65 @@ C
       PROKG = (MPG.GT.0 .and. id%MYID.eq.MASTER)
       IF ( PROK  ) WRITE(MP,100)
       IF ( PROKG ) WRITE(MPG,100)
+      NB_BYTES     = 0_8
+      NB_BYTES_MAX = 0_8
+      K34_8    = int(KEEP(34), 8)
+      K35_8    = int(KEEP(35), 8)
+      I_AM_SLAVE = ( id%MYID .ne. MASTER  .OR.
+     *             ( id%MYID .eq. MASTER .AND.
+     *               KEEP(46) .eq. 1 ) )
+       CALL DMUMPS_710(id, NB_INT,NB_dble  )
+       NB_BYTES = NB_BYTES + NB_INT * K34_8 + NB_dble * K35_8
+       NB_BYTES_ON_ENTRY = NB_BYTES  
+       NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
+      MAXIS = size(id%IS)
+      IF (ASSOCIATED(id%S)) THEN 
+           MAXS = size(id%S)
+      ELSE
+       IF (I_AM_SLAVE) THEN
+        IF (KEEP(201).EQ.0) THEN  
+          IF (PROK)
+     &    WRITE(MP,*) ' Working array S not allocated ',
+     &                ' on entry to solve phase (in core) '
+          CALL MUMPS_ABORT()
+        ENDIF
+        MAXS  = id%KEEP8(14) 
+       ENDIF
+      ENDIF
+      BUILD_POSINRHSCOMP = .TRUE.
+      NB_K133     = 3
+#if defined(V_T)
+      CALL VTCLASSDEF( 'Soln driver',soln_drive_class,IERR)
+      CALL VTFUNCDEF( 'glob_comm_ini',soln_drive_class,
+     &     glob_comm_ini,IERR)
+      CALL VTFUNCDEF( 'perm_scal_ini',soln_drive_class,
+     &     perm_scal_ini,IERR)
+      CALL VTFUNCDEF( 'soln_dist',soln_drive_class,soln_dist,IERR)
+      CALL VTFUNCDEF( 'soln_assem',soln_drive_class,soln_assem,IERR)
+      CALL VTFUNCDEF( 'perm_scal_post',soln_drive_class,
+     &     perm_scal_post,IERR)
+#endif
+      SIZE_ROOT   = -33333
+      IF ( KEEP( 38 ) .ne. 0 ) THEN
+            MASTER_ROOT = MUMPS_275(id%STEP( KEEP(38)),
+     *                    id%PROCNODE_STEPS, id%NSLAVES )
+            IF (id%MYID_NODES .eq. MASTER_ROOT) THEN
+              SIZE_ROOT = id%root%TOT_ROOT_SIZE
+            ELSE IF ((id%MYID.EQ.MASTER).AND.KEEP(60).NE.0) THEN 
+              SIZE_ROOT=id%SIZE_SCHUR
+            ENDIF
+      ELSE IF (KEEP( 20 ) .ne. 0 ) THEN
+            MASTER_ROOT = MUMPS_275(id%STEP(KEEP(20)),
+     *                    id%PROCNODE_STEPS, id%NSLAVES )
+            IF (id%MYID_NODES .eq. MASTER_ROOT) THEN
+              SIZE_ROOT = id%IS(
+     *               id%PTLUST_S(id%STEP(KEEP(20)))+KEEP(IXSZ))
+            ELSE IF ((id%MYID.EQ.MASTER).AND.KEEP(60).NE.0) THEN 
+              SIZE_ROOT=id%SIZE_SCHUR
+            ENDIF
+      ELSE
+            MASTER_ROOT = -44444
+      END IF
       IF (id%MYID.EQ.MASTER) THEN
        CALL DMUMPS_634(KEEP,ICNTL,MPG)
        IF (KEEP(111).eq.-1 .AND. NRHS .NE. KEEP(112)+KEEP(17))THEN
@@ -185,37 +218,38 @@ C
         INFO(2)=1
        ENDIF
        IF (( KEEP(111) .LT. -1 ) .OR.
-     *   (KEEP(111).GT.KEEP(122)+KEEP(17)) .OR.
-     *   (KEEP(111) .EQ.-1 .AND. KEEP(122)+KEEP(17).EQ.0))
+     *   (KEEP(111).GT.KEEP(112)+KEEP(17)) .OR.
+     *   (KEEP(111) .EQ.-1 .AND. KEEP(112)+KEEP(17).EQ.0))
      *   THEN
         INFO(1)=-36
         INFO(2)=KEEP(111)
        ENDIF
       ENDIF
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF (INFO(1) < 0) RETURN
       CALL MPI_BCAST(KEEP(111),1,MPI_INTEGER,MASTER,
      *               id%COMM,IERR)
       IF (id%MYID .eq. MASTER) THEN
+        KEEP(84) = ICNTL(27)
         IF (KEEP(201) .EQ. 0 .OR. KEEP(84) .GT. 0) THEN
-          NBRHS = ABS(KEEP(84))
+          NBRHS = abs(KEEP(84))
         ELSE
           NBRHS = -2*KEEP(84)
         END IF
         IF (NBRHS .GT. NRHS ) NBRHS = NRHS
       ENDIF
 #if defined(V_T)
-      CALL VTBEGIN(glob_comm_ini,ierr)
+      CALL VTBEGIN(glob_comm_ini,IERR)
 #endif
       CALL MPI_BCAST(NRHS,1,MPI_INTEGER,MASTER,
      *               id%COMM,IERR)
       CALL MPI_BCAST(NBRHS,1,MPI_INTEGER,MASTER,
      *               id%COMM,IERR)
-        IF (id%KEEP(201).NE.0) THEN
+        IF (KEEP(201).NE.0) THEN
           WORKSPACE_MINIMAL_PREFERRED = .FALSE.
           IF (id%MYID .eq. MASTER) THEN
-             KEEP(107) = MAX(0,KEEP(107))
+             KEEP(107) = max(0,KEEP(107))
              IF ((KEEP(107).EQ.0).AND.
      &            (KEEP(204).EQ.0).AND.(KEEP(211).NE.1) ) THEN
               WORKSPACE_MINIMAL_PREFERRED=.TRUE.
@@ -236,18 +270,18 @@ C
         IF (id%KEEP(201).NE.0) THEN
            IF ( KEEP(209).EQ.-1 .AND. WORKSPACE_MINIMAL_PREFERRED)
      *     THEN 
-              MAXSUPDATED = .TRUE.
               MAXS = MINLWC*NBRHS + KEEP(203)+1
            ELSE IF ( KEEP(209) .GT.0 ) THEN
-              MAXSUPDATED = .TRUE.
-              MAXS = MAX(KEEP(209), MINLWC*NBRHS + KEEP(203)+1)
+              MAXS = max(KEEP(209), MINLWC*NBRHS + KEEP(203)+1)
            ENDIF
            ALLOCATE (id%S(MAXS), stat = allocok)
            IF ( allocok .GT. 0 ) THEN
-             WRITE(*,*) ' Problem reallocation of MAXS '
+             WRITE(*,*) ' Problem allocation of S at solve'
              INFO(1) = -13
              INFO(2) = MAXS
            ENDIF
+           NB_BYTES = NB_BYTES + int(MAXS,8) * K35_8
+           NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         ENDIF
         IF ( KEEP( 38 ) .NE. 0 .OR. KEEP( 20 ) .NE. 0 ) THEN 
           IF ( MASTER_ROOT .eq. id%MYID_NODES ) THEN
@@ -255,30 +289,36 @@ C
           END IF
         ENDIF
         IF(KEEP(201).EQ.0)THEN
-           LA  = KEEP(31)
+           LA  = KEEP8(31) 
            LWC = MAXS - LA
            IF (LWC.LT.MINLWC) THEN
              INFO(1) = -11
-             INFO(2) = MINLWC + KEEP(31) - MAXS
+             INFO(2) = MINLWC + KEEP8(31) - MAXS 
            ENDIF
         ELSE
            IF ( MAXS .LT. MINLWC + KEEP(203) ) THEN
              INFO(1) = -11
              INFO(2) = MINLWC + KEEP(203) - MAXS
            ENDIF
-           LWC = MIN(MAXS - KEEP(203),
-     *               MAX( INT(DBLE(MAXS*0.05)), MINLWC ))
+           LWC = min(MAXS - KEEP(203),
+     *               max( int(dble(MAXS*0.05)), MINLWC*NBRHS ))
            LA  = MAXS-LWC
-           IF(LA.GT.(KEEP(31)+KEEP(203)*(KEEP(107)+1)))THEN
-              LA=KEEP(31)+KEEP(203)*(KEEP(107)+1)
-              LWC=MAXS-LA
+           IF(LA.GT.(KEEP8(31)+KEEP(203)*(KEEP(107)+1)))THEN
+             LA=KEEP8(31)+KEEP(203)*(KEEP(107)+1)
+             LWC=MAXS-LA
            ENDIF
         ENDIF
         IF ( LWC .LT. NBRHS*MINLWC ) THEN
+           IF (PROK) THEN
+            WRITE(MP,*) ' WARNING during solve phase' 
+            WRITE(MP,*) ' Blocking factor for multiple right-hand-side',
+     &     ' has been reduced because of memory issues from', NBRHS,
+     &     ' to ', LWC / MINLWC
+           ENDIF
            NBRHS =  LWC / MINLWC
         ENDIF
       ENDIF
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF (INFO(1) < 0) RETURN
       CALL MPI_ALLREDUCE(NBRHS, NBRHSMIN, 1, MPI_INTEGER, MPI_MIN,
@@ -291,6 +331,12 @@ C
       ENDIF
       IF ( I_AM_SLAVE ) THEN
          IF (KEEP(201).NE.0) THEN
+          IF (KEEP(201).EQ.1 
+     $                      .AND. KEEP(50).EQ.0) THEN
+            OOC_NB_FILE_TYPE=2
+          ELSE
+            OOC_NB_FILE_TYPE=1
+          ENDIF
           CALL DMUMPS_590(LA)
           CALL DMUMPS_586(id)
           IF (INFO(1).LT.0) THEN
@@ -320,11 +366,11 @@ C
           ICNTL20 = 0
         ENDIF
         IF (ICNTL21.ne.0.and.ICNTL21.ne.1) ICNTL21=0
-        LSCAL = (((KEEP(52) .GT. 0) .AND. (KEEP(52) .LE. 6)) .OR. (
+        LSCAL = (((KEEP(52) .GT. 0) .AND. (KEEP(52) .LE. 7)) .OR. (
      *    KEEP(52) .EQ. -1) .OR. KEEP(52) .EQ. -2)
         ERANAL = ((ICNTL(11) .GT. 0) .OR. (ICNTL(10) .GT. 0))
         IF ( (KEEP(55).eq.0) .AND. KEEP(54).eq.0 .AND. 
-     &      .NOT.ASSOCIATED(id%A) ) THEN
+     &      .NOT.associated(id%A) ) THEN
           ICNTL10 = 0
           ICNTL11 = 0
           ERANAL = .FALSE.
@@ -372,13 +418,15 @@ C
           ERANAL = .FALSE.     
         ENDIF
         IF (ERANAL) THEN
-          ALLOCATE(SAVERHS(N*NBRHS),stat = allocok)
+            ALLOCATE(SAVERHS(N*NBRHS),stat = allocok)
             IF ( allocok .GT. 0 ) THEN
               WRITE(*,*) ' Problem in solve: error allocating SAVERHS'
               INFO(1) = -13
               INFO(2) = N*NBRHS
               GOTO 111
             END IF
+            NB_BYTES = NB_BYTES + int(size(SAVERHS),8)*K35_8
+            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         ENDIF
       END IF
       CALL MPI_BCAST(ICNTL10,1,MPI_INTEGER,MASTER,
@@ -400,14 +448,21 @@ C
         id%LBUFR_BYTES = ( 4 + KEEP(133) ) * KEEP(34) +
      *                      KEEP(133) * NBRHS * KEEP(35)
         id%LBUFR = ( id%LBUFR_BYTES * KEEP(34) - 1 ) / KEEP(34)
-        IF ( ASSOCIATED (id%BUFR) ) DEALLOCATE(id%BUFR)
+        IF ( associated (id%BUFR) ) THEN 
+          NB_BYTES = NB_BYTES - int(size(id%BUFR),8)*K34_8
+          DEALLOCATE(id%BUFR)
+        ENDIF
         ALLOCATE (id%BUFR(id%LBUFR),stat=allocok)
         IF ( allocok .GT. 0 ) THEN
-              WRITE(*,*) ' Problem in solve: error allocating BUFR'
-              INFO(1) = -13
-              INFO(2) = id%LBUFR
-              GOTO 111
+            IF (LP.GT.0) 
+     &      WRITE(LP,*) id%MYID, 
+     &      ' Problem in solve: error allocating BUFR'
+            INFO(1) = -13
+            INFO(2) = id%LBUFR
+            GOTO 111
         ENDIF
+        NB_BYTES = NB_BYTES + int(size(id%BUFR),8)*K34_8
+        NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
       IF ( I_AM_SLAVE ) THEN
         DMUMPS_LBUF_INT = ( 20 + id%NSLAVES * id%NSLAVES  * 4 )
      *                 * KEEP(34)
@@ -433,12 +488,18 @@ C
           GOTO 111
         END IF
       ENDIF
-      IF ( id%MYID .NE. MASTER .or.
-     *     (id%MYID .EQ. MASTER .AND. ICNTL21 .NE.0 .AND.
-     *       ( icntl20.ne.0 .OR. KEEP(111).NE.0 )
-     *  )) THEN
-        ALLOCATE(RHS_MUMPS(N*NBRHS),stat=ierr)
-        IF ( ierr .GT. 0 ) THEN
+      IF ( 
+     *  ( id%MYID .NE. MASTER ) 
+     *     .or.
+     *    (id%MYID .EQ. MASTER .AND. ICNTL21 .NE.0 .AND.
+     *       ( ICNTL20.ne.0 .OR. KEEP(111).NE.0 ) )
+     *    ) THEN
+        IF ( I_AM_SLAVE ) THEN
+          ALLOCATE(RHS_MUMPS(N*NBRHS),stat=IERR)
+          NB_BYTES = NB_BYTES + int(size(RHS_MUMPS),8)*K35_8
+          NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
+        ENDIF
+        IF ( IERR .GT. 0 ) THEN
           INFO(1)=-13
           INFO(2)=N*NBRHS
           IF (LP > 0)
@@ -447,48 +508,75 @@ C
         END IF
       ELSE
         RHS_MUMPS=>id%RHS
-      ENDIF
+      ENDIF 
       IF ( I_AM_SLAVE ) THEN
-        LD_RHSCOMP = MAX(KEEP(89),1)
+        LD_RHSCOMP = max(KEEP(89),1)
         IF (KEEP(221).EQ.2) THEN
-           IF (.NOT.ASSOCIATED(id%RHSCOMP)) THEN
+           IF (.NOT.associated(id%RHSCOMP)) THEN
              INFO(1) = -35
              INFO(2) = 1
              GOTO 111
            ENDIF
-           IF (.NOT.ASSOCIATED(id%POSINRHSCOMP)) THEN
+           IF (.NOT.associated(id%POSINRHSCOMP)) THEN
              INFO(1) = -35
              INFO(2) = 2
              GOTO 111
            ENDIF
         ELSE IF (KEEP(221).EQ.1) THEN
-          IF (ASSOCIATED(id%RHSCOMP)) DEALLOCATE(id%RHSCOMP)
+          IF (associated(id%RHSCOMP)) THEN 
+            NB_BYTES = NB_BYTES - int(size(id%RHSCOMP),8)*K35_8
+            DEALLOCATE(id%RHSCOMP)
+          ENDIF
           LENRHSCOMP = LD_RHSCOMP*NRHS
           ALLOCATE (id%RHSCOMP(LENRHSCOMP))
-          IF (ASSOCIATED(id%POSINRHSCOMP)) DEALLOCATE(id%POSINRHSCOMP)
+          NB_BYTES = NB_BYTES + int(size(id%RHSCOMP),8)*K35_8
+          IF (associated(id%POSINRHSCOMP)) THEN 
+            NB_BYTES = NB_BYTES - int(size(id%POSINRHSCOMP),8)*K34_8
+            DEALLOCATE(id%POSINRHSCOMP)
+          ENDIF
           ALLOCATE (id%POSINRHSCOMP(KEEP(28)) )
+          NB_BYTES = NB_BYTES + int(size(id%POSINRHSCOMP),8)*K34_8
+          NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         ELSE
           LENRHSCOMP = LD_RHSCOMP*NBRHS
-          IF (ASSOCIATED(id%RHSCOMP)) DEALLOCATE(id%RHSCOMP)
+          IF (associated(id%RHSCOMP)) THEN 
+           NB_BYTES = NB_BYTES - int(size(id%RHSCOMP),8)*K35_8
+           DEALLOCATE(id%RHSCOMP)
+          ENDIF
           ALLOCATE (id%RHSCOMP(LENRHSCOMP))
-          IF (ASSOCIATED(id%POSINRHSCOMP)) DEALLOCATE(id%POSINRHSCOMP)
+          NB_BYTES = NB_BYTES + int(size(id%RHSCOMP),8)*K35_8
+          IF (associated(id%POSINRHSCOMP)) THEN 
+            NB_BYTES = NB_BYTES - int(size(id%POSINRHSCOMP),8)*K34_8
+            DEALLOCATE(id%POSINRHSCOMP)
+          ENDIF
           ALLOCATE (id%POSINRHSCOMP(KEEP(28)) )
+          NB_BYTES = NB_BYTES + int(size(id%POSINRHSCOMP),8)*K34_8
+          NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         ENDIF
         LIWK_SOLVE = 4 * KEEP(28) + 1
+        IF (KEEP(201).EQ.1) THEN
+          LIWK_SOLVE = LIWK_SOLVE + KEEP(228) + 1
+        ELSE
+          LIWK_SOLVE = LIWK_SOLVE + 1
+        ENDIF
         ALLOCATE ( IWK_SOLVE( LIWK_SOLVE), stat = allocok )
         IF (allocok .GT. 0 ) THEN
          INFO(1)=-13
          INFO(2)=LIWK_SOLVE
          GOTO 111
         END IF
-        LIW = KEEP(32)
-        LIWW  = MAXIS - LIW
-        IF ( LIWW .LT. 0 ) THEN
-          IF (LP>0) THEN
-            WRITE(LP,*) 'ERROR in DMUMPS_301: LIWW<0'
-          ENDIF
-          CALL DMUMPS_ABORT()
+        NB_BYTES = NB_BYTES + int(LIWK_SOLVE,8)*K34_8
+        NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
+        LIWCB =  20*NB_K133*2 + KEEP(133) 
+        ALLOCATE ( IWCB( LIWCB), stat = allocok )
+        IF (allocok .GT. 0 ) THEN
+         INFO(1)=-13
+         INFO(2)=LIWCB
+         GOTO 111
         END IF
+        NB_BYTES = NB_BYTES + int(LIWCB,8)*K34_8
+        NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
+        LIW = KEEP(32)
         ISRW2   = LA + 1
         ALLOCATE(SRW3(KEEP(133)), stat = allocok )
         IF ( allocok .GT. 0 ) THEN
@@ -496,24 +584,28 @@ C
           INFO(2)=KEEP(133)
           GOTO 111
         END IF
+        NB_BYTES = NB_BYTES + int(size(SRW3),8)*K35_8
+        NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         IF ( (KEEP(111).NE.0) .OR. (ICNTL20.NE.0) ) THEN
           ALLOCATE(POSINRHSCOMP_N(id%N), stat=allocok)
           IF ( allocok .GT. 0 ) THEN
-              IF (LP.GT.0) WRITE(LP,*)
-     &       ' ERROR in DMUMPS_301: allocating POSINRHSCOMP_N'
-              INFO(1) = -13
-              INFO(2) = N
-              GOTO 111
+            IF (LP.GT.0) WRITE(LP,*)
+     &     ' ERROR in DMUMPS_301: allocating POSINRHSCOMP_N'
+            INFO(1) = -13
+            INFO(2) = N
+            GOTO 111
           END IF
+          NB_BYTES = NB_BYTES + int(size(POSINRHSCOMP_N),8)*K34_8
+          NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
         END IF
       ELSE
         LIW=0
       END IF
  111  CONTINUE
 #if defined(V_T)
-      CALL VTEND(glob_comm_ini,ierr)
+      CALL VTEND(glob_comm_ini,IERR)
 #endif
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF (INFO(1) .LT.0 ) GOTO 90
       IF ( ICNTL21==1 ) THEN
@@ -526,12 +618,14 @@ C
             ENDIF
             IF (allocok > 0) THEN
               IF (LP > 0) THEN
-                WRITE(LP,*) 'Error allocating temporary scaling array'
+               WRITE(LP,*) 'Error allocating temporary scaling array'
               ENDIF
               INFO(1)=-13
               INFO(2)=id%N
               GOTO 40
             ENDIF
+            NB_BYTES = NB_BYTES + int(id%N,8)*K35_8  
+            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
           ENDIF
           IF (MTYPE == 1) THEN
               CALL MPI_BCAST(id%COLSCA,id%N,
@@ -555,10 +649,12 @@ C
               INFO(2)=id%KEEP(89)
               GOTO 40
             ENDIF
+            NB_BYTES = NB_BYTES + int(id%KEEP(89),8)*K35_8  
+            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
           ENDIF
         ENDIF
         IF ( I_AM_SLAVE ) THEN
-          LIW_PASSED=MAX(1,LIW)
+          LIW_PASSED=max(1,LIW)
           IF (KEEP(89) .GT. 0) THEN
             CALL DMUMPS_535( MTYPE, id%ISOL_LOC(1),
      *               id%LSOL_LOC, id%PTLUST_S(1),
@@ -575,6 +671,7 @@ C
               DEALLOCATE(id%ROWSCA)
               NULLIFY(id%ROWSCA)
             ENDIF
+            NB_BYTES = NB_BYTES - int(id%N,8)*K35_8  
           ENDIF
         ENDIF
         IF (KEEP(23) .NE. 0 .AND. MTYPE==1) THEN
@@ -588,7 +685,7 @@ C
           ENDIF
         ENDIF
  40     CONTINUE
-        CALL DMUMPS_276( ICNTL, INFO,
+        CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
         IF (INFO(1) .LT.0 ) GOTO 90
         IF (KEEP(23) .NE. 0 .AND. MTYPE==1) THEN
@@ -631,10 +728,11 @@ C
          ENDIF
       ENDIF
       DO BEG_RHS=1, NRHS, NBRHS
-        NBRHS_EFF    = MIN(NRHS-BEG_RHS+1, NBRHS)
-        END_RHS      = BEG_RHS + NBRHS_EFF - 1
-        IF ( (KEEP(111).EQ.0.AND.ICNTL20.eq.0)
-     *        .or. ICNTL21.eq.0 ) THEN
+        NBRHS_EFF    = min(NRHS-BEG_RHS+1, NBRHS)
+        IF ( ( (KEEP(111).EQ.0.AND.ICNTL20.eq.0)
+     *        .or. ICNTL21.eq.0 )
+     *      )
+     *      THEN
           IF (id%MYID .eq. MASTER) THEN
             IF (NRHS.GT.1) THEN 
               LD_RHS    = LRHS
@@ -653,7 +751,7 @@ C
         IF (id%MYID.EQ.MASTER .AND. KEEP(221).NE.0) THEN
           IBEG_REDRHS= (BEG_RHS-1)*LD_REDRHS + 1
         ELSE
-          IBEG_REDRHS=-142424  ! Should not be used
+          IBEG_REDRHS=-142424  
         ENDIF
         IF ( I_AM_SLAVE ) THEN
           IF ( KEEP(221).EQ.0 ) THEN
@@ -662,10 +760,10 @@ C
              IBEG_RHSCOMP= (BEG_RHS-1)*LD_RHSCOMP + 1
           ENDIF
         ELSE
-          IBEG_RHSCOMP=-152525  ! Should not be used
+          IBEG_RHSCOMP=-152525  
         ENDIF
 #if defined(V_T)
-      CALL VTBEGIN(perm_scal_ini,ierr)
+      CALL VTBEGIN(perm_scal_ini,IERR)
 #endif
       IF (id%MYID .eq. MASTER) THEN
         IF (ICNTL20==1) THEN
@@ -678,6 +776,8 @@ C
               INFO(2)=NZ_THIS_BLOCK
               GOTO 30
             endif
+            NB_BYTES = NB_BYTES + int(NZ_THIS_BLOCK,8)*K34_8  
+            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
           ELSE
             IRHS_SPARSE_COPY
      *      =>
@@ -691,6 +791,8 @@ C
               INFO(2)=NZ_THIS_BLOCK
               GOTO 30
             endif
+            NB_BYTES = NB_BYTES + int(NZ_THIS_BLOCK,8)*K35_8  
+            NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
           ELSE
             RHS_SPARSE_COPY
      *         => id%RHS_SPARSE(id%IRHS_PTR(BEG_RHS):
@@ -722,7 +824,7 @@ C
               END DO
               DEALLOCATE(RW1)
             ELSE
-              ALLOCATE(UNS_PERM_INV(N),stat=allocok) !FIXME: build it outside...
+              ALLOCATE(UNS_PERM_INV(N),stat=allocok) 
               if (allocok .GT.0 ) THEN
                 INFO(1)=-13
                 INFO(2)=N
@@ -736,7 +838,7 @@ C
                 JPERM = UNS_PERM_INV(id%IRHS_SPARSE(I))
                 IRHS_SPARSE_COPY(I-id%IRHS_PTR(BEG_RHS)+1)=JPERM
               ENDDO
-              DEALLOCATE(UNS_PERM_INV) !FIXME: free it oustide
+              DEALLOCATE(UNS_PERM_INV) 
             ENDIF
           ENDIF
         ENDIF
@@ -784,10 +886,10 @@ C
         END IF
       ENDIF
 #if defined(V_T)
-      CALL VTEND(perm_scal_ini,ierr)
+      CALL VTEND(perm_scal_ini,IERR)
 #endif
  30   CONTINUE
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF (INFO(1) .LT.0 ) GOTO 90
       IF ( I_AM_SLAVE ) THEN
@@ -800,7 +902,7 @@ C
              WHAT      = 1
              MTYPE_LOC = MTYPE
            ENDIF
-           LIW_PASSED=MAX(1,LIW)
+           LIW_PASSED=max(1,LIW)
            CALL DMUMPS_639(id%NSLAVES,id%N,
      *           id%MYID_NODES, id%PTLUST_S(1),
      *           id%KEEP(1),id%KEEP8(1), 
@@ -814,7 +916,7 @@ C
        ENDIF
       ENDIF
 #if defined(V_T)
-      CALL VTBEGIN(soln_dist,ierr)
+      CALL VTBEGIN(soln_dist,IERR)
 #endif
       IF (KEEP(111).eq.0) THEN
         IF (ICNTL20 == 0) THEN
@@ -827,7 +929,7 @@ C
      *          id%ICNTL(1),id%INFO(1))
             BUILD_POSINRHSCOMP=.FALSE.
           ELSE
-            LIW_PASSED = MAX( LIW, 1 )
+            LIW_PASSED = max( LIW, 1 )
             CALL DMUMPS_638(id%NSLAVES,id%N, id%MYID, id%COMM,
      *          MTYPE, RHS_MUMPS(IBEG), LD_RHS, NBRHS_EFF,
      *          id%PTLUST_S(1), id%KEEP(1), id%KEEP8(1),
@@ -847,7 +949,9 @@ C
          ELSE
            ALLOCATE(IRHS_SPARSE_COPY(NZ_THIS_BLOCK))
            ALLOCATE(RHS_SPARSE_COPY(NZ_THIS_BLOCK))
-           ALLOCATE(id%IRHS_PTR(NBRHS_EFF+1))
+           NB_BYTES = NB_BYTES + int(NZ_THIS_BLOCK,8)*(K34_8+K35_8)
+           NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
+             ALLOCATE(id%IRHS_PTR(NBRHS_EFF+1))
            IRHS_PTR_BEG=1
          ENDIF
          CALL MPI_BCAST(IRHS_SPARSE_COPY,
@@ -866,17 +970,20 @@ C
          IF ( I_AM_SLAVE ) THEN
            DO K = 1, NBRHS_EFF
             KDEC = (K-1) * LD_RHS + IBEG - 1
-            RHS_MUMPS(KDEC+1:KDEC+id%N)=DBLE(ZERO)
+            RHS_MUMPS(KDEC+1:KDEC+id%N)=dble(ZERO)
             DO IZ=id%IRHS_PTR(IRHS_PTR_BEG+K-1)-SHIFT_PTR,
      *          id%IRHS_PTR(IRHS_PTR_BEG+K)-1-SHIFT_PTR
               I=IRHS_SPARSE_COPY(IZ)
-              IF (POSINRHSCOMP_N(I).NE.0) THEN
-               RHS_MUMPS(KDEC+I)= RHS_SPARSE_COPY(IZ)
-              ENDIF
+                IF (POSINRHSCOMP_N(I).NE.0) THEN
+                 RHS_MUMPS(KDEC+I)= RHS_SPARSE_COPY(IZ)
+                ENDIF
             ENDDO
            ENDDO
          END IF
          IF (id%MYID .ne. MASTER) THEN
+           NB_BYTES = NB_BYTES - int(size(IRHS_SPARSE_COPY),8)*K34_8 -
+     &               int(size(RHS_SPARSE_COPY),8)*K35_8 -
+     &               int(size(id%IRHS_PTR),8)*K34_8
            DEALLOCATE(IRHS_SPARSE_COPY)
            DEALLOCATE(RHS_SPARSE_COPY)
            DEALLOCATE(id%IRHS_PTR)
@@ -885,17 +992,18 @@ C
            NULLIFY(id%IRHS_PTR)
          ELSE
            IF (KEEP(23).ne.0 .and. MTYPE.ne.1) THEN
+             NB_BYTES = NB_BYTES - int(size(IRHS_SPARSE_COPY),8)*K34_8 
              DEALLOCATE(IRHS_SPARSE_COPY)
            ENDIF
            NULLIFY(IRHS_SPARSE_COPY)
            IF (LSCAL) THEN
+             NB_BYTES = NB_BYTES - int(size(RHS_SPARSE_COPY),8)*K35_8 
              DEALLOCATE(RHS_SPARSE_COPY)
            ENDIF
            NULLIFY(RHS_SPARSE_COPY)
          ENDIF
-        ENDIF
-#if defined(try_null_space)
-      ELSE
+      ENDIF
+      ELSE IF (I_AM_SLAVE) THEN
         IF (KEEP(111).GT.0) THEN
           IBEG_GLOB_DEF = KEEP(111)
           IEND_GLOB_DEF = KEEP(111)
@@ -905,18 +1013,18 @@ C
         ENDIF
         DO K=1, NBRHS_EFF
           KDEC = (K-1) *LD_RHSCOMP
-          id%RHSCOMP(KDEC+1:KDEC+LD_RHSCOMP)=DBLE(ZERO)
+          id%RHSCOMP(KDEC+1:KDEC+LD_RHSCOMP)=dble(ZERO)
         END DO
-        DO I=MAX(IBEG_GLOB_DEF,KEEP(220)),
-     *       MIN(IEND_GLOB_DEF,KEEP(220)+KEEP(109)-1)
+        DO I=max(IBEG_GLOB_DEF,KEEP(220)),
+     *       min(IEND_GLOB_DEF,KEEP(220)+KEEP(109)-1)
           JJ= POSINRHSCOMP_N(id%PIVNUL_LIST(I-KEEP(220)+1))
           IF (JJ.GT.0) 
      *     id%RHSCOMP(IBEG_RHSCOMP -1+ (I-IBEG_GLOB_DEF)*LD_RHSCOMP 
-     *                + JJ) =  DBLE(ONE)
+     *                + JJ) =  dble(ONE)
         ENDDO
         IF ( KEEP(17).NE.0 .and. id%MYID_NODES.EQ.MASTER_ROOT) THEN
-            IBEG_ROOT_DEF  = MAX(IBEG_GLOB_DEF,KEEP(112)+1)
-            IEND_ROOT_DEF  = MIN(IEND_GLOB_DEF,KEEP(112)+KEEP(17))
+            IBEG_ROOT_DEF  = max(IBEG_GLOB_DEF,KEEP(112)+1)
+            IEND_ROOT_DEF  = min(IEND_GLOB_DEF,KEEP(112)+KEEP(17))
             IROOT_DEF_RHS_COL1 = IBEG_ROOT_DEF-IBEG_GLOB_DEF + 1
             IBEG_ROOT_DEF = IBEG_ROOT_DEF-KEEP(112)
             IEND_ROOT_DEF = IEND_ROOT_DEF-KEEP(112)
@@ -924,12 +1032,11 @@ C
             IBEG_ROOT_DEF = -90999
             IEND_ROOT_DEF = -90999
         ENDIF
-#endif
       ENDIF
       IF ( id%MYID_NODES .EQ. MASTER_ROOT ) THEN
         IPT_RHS_ROOT = LWC - NBRHS_EFF * SIZE_ROOT + 1
       ELSE
-        IPT_RHS_ROOT = LWC ! Will be passed, but not accessed
+        IPT_RHS_ROOT = LWC 
       ENDIF
       IF (KEEP(221) .EQ. 2 ) THEN
          IF ( ( id%MYID .EQ. MASTER_ROOT_IN_COMM ) .AND.
@@ -977,12 +1084,13 @@ C
          ENDIF
       ENDIF
       IF ( I_AM_SLAVE ) THEN
-        LIW_PASSED = MAX( LIW, 1 )
-        LA_PASSED  = MAX( LA, 1 )
+        LIW_PASSED = max( LIW, 1 )
+        LA_PASSED  = max( LA, 1 )
         CALL DMUMPS_245(id%root, N, id%S(1), LA_PASSED,
      *    IS(1), LIW_PASSED,
-     *    id%S(ISRW2), LWC, IS( LIW + 1 ),
-     *    LIWW, RHS_MUMPS(IBEG), LD_RHS, NBRHS_EFF, 
+     *    id%S(ISRW2), LWC, 
+     *    IWCB, LIWCB,
+     *    RHS_MUMPS(IBEG), LD_RHS, NBRHS_EFF, 
      *    id%NA,id%LNA,id%NE_STEPS(1), SRW3, MTYPE,
      *    ICNTL, id%STEP(1), id%FRERE_STEPS(1), 
      *    id%DAD_STEPS(1), id%FILS(1),
@@ -1000,17 +1108,22 @@ C
      *    IROOT_DEF_RHS_COL1,
      *    IPT_RHS_ROOT, SIZE_ROOT, MASTER_ROOT,  
      *    id%RHSCOMP(IBEG_RHSCOMP), LD_RHSCOMP, 
-     *    id%POSINRHSCOMP(1), BUILD_POSINRHSCOMP )
+     *    id%POSINRHSCOMP(1), BUILD_POSINRHSCOMP
+     $          )
       END IF
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF (INFO(1).eq.-2) then
         INFO(1)=-11
-        write(*,*) ' WARNING : -11 error code obtained in solve'
+        IF (LP.GT.0) 
+     &  write(LP,*) 
+     &   ' WARNING : -11 error code obtained in solve'
       END IF
       IF (INFO(1).eq.-3) then
         INFO(1)=-14
-        write(*,*) ' WARNING : -14 error code obtained in solve'
+        IF (LP.GT.0) 
+     &  write(LP,*) 
+     &    ' WARNING : -14 error code obtained in solve'
       END IF
       IF (INFO(1).LT.0) GO TO 90
       IF ( KEEP(221) .EQ. 1 ) THEN
@@ -1062,7 +1175,7 @@ C
       ENDIF
       IF ( KEEP(221) .NE. 1 ) THEN
        IF (ICNTL21 == 0) THEN
-        LIW_PASSED = MAX( LIW, 1 )
+        LIW_PASSED = max( LIW, 1 )
         IF ( .NOT.I_AM_SLAVE ) THEN
         CALL DMUMPS_521(id%NSLAVES,id%N, id%MYID, id%COMM,
      *          MTYPE, RHS_MUMPS(IBEG), LD_RHS, NBRHS_EFF,
@@ -1094,9 +1207,9 @@ C
              END DO
           ENDIF
         END IF
-       ELSE ! Case of distributed solution
+       ELSE 
         IF ( I_AM_SLAVE ) THEN
-         LIW_PASSED = MAX( LIW, 1 )
+         LIW_PASSED = max( LIW, 1 )
          IF ( KEEP(89) .GT. 0 ) THEN
            CALL DMUMPS_532(id%NSLAVES,
      *          id%N, id%MYID,
@@ -1133,6 +1246,7 @@ C
               INFO(2)=N
               GOTO 776
             endif
+            NB_BYTES = NB_BYTES + int(2*N,8)*K35_8
           END IF
           IF ( KEEP(54) .ne. 0 ) THEN
             ALLOCATE( SRW1( N ), stat =allocok )
@@ -1140,9 +1254,11 @@ C
               INFO(1)=-13
               INFO(2)=N
             endif
+            NB_BYTES = NB_BYTES + int(N,8)*K35_8
           END IF
+          NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
  776      CONTINUE
-          CALL DMUMPS_276( ICNTL, INFO,
+          CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                  id%COMM,id%MYID)
           IF ( INFO(1) .LT. 0 ) GOTO 90
           IF ( KEEP(54) .eq. 0 ) THEN
@@ -1169,7 +1285,7 @@ C
      *        id%IRN_loc, id%JCN_loc, id%A_loc,
      *        RHS_MUMPS(IBEG), SRW1, KEEP(50), MTYPE )
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, RW2,
@@ -1188,7 +1304,7 @@ C
      *          id%IRN_loc, id%JCN_loc,
      *          SRW1, id%KEEP,id%KEEP8 )
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, RW1,
@@ -1199,6 +1315,7 @@ C
      *        id%N, MPI_DOUBLE_PRECISION,
      *        MPI_SUM,MASTER,id%COMM, IERR)
             END IF
+            NB_BYTES = NB_BYTES - int(size(SRW1),8)*K35_8
             DEALLOCATE( SRW1 )
           END IF
           IF ( id%MYID .EQ. MASTER )  THEN
@@ -1206,6 +1323,8 @@ C
      *        RHS_MUMPS(IBEG), SAVERHS,RW1,RW2,GIVSOL,
      *        RSOL,RINFOG(4),RINFOG(5),RINFOG(6),MP,ICNTL,
      *        KEEP,KEEP8)
+            NB_BYTES = NB_BYTES - int(size(RW1),8)*K35_8 
+     &                          - int(size(RW2),8)*K35_8
             DEALLOCATE(RW1)
             DEALLOCATE(RW2)
           END IF
@@ -1218,6 +1337,7 @@ C
         INFO(2)=N
         GOTO 777
       ENDIF
+      NB_BYTES = NB_BYTES + int(N,8)*K35_8
       IF ( id%MYID .EQ. MASTER ) THEN
         ALLOCATE( IW1( 2 * N ),stat = allocok )
         IF ( allocok .GT. 0 ) THEN
@@ -1225,24 +1345,27 @@ C
           INFO(2)=2 * N
           GOTO 777
         ENDIF
+        NB_BYTES = NB_BYTES + int(2*N,8)*K34_8
         ALLOCATE( D(N),stat =allocok )
         IF ( allocok .GT. 0 ) THEN
           INFO(1)=-13
           INFO(2)=N
           GOTO 777
         ENDIF
+        NB_BYTES = NB_BYTES + int(N,8)*K35_8
         ALLOCATE( W(3*N), stat = allocok )
         IF ( allocok .GT. 0 ) THEN
           INFO(1)=-13
           INFO(2)=N
           GOTO 777
         ENDIF
+        NB_BYTES = NB_BYTES + int(3*N,8)*K35_8
         NITREF = ICNTL10
         JOBIREF= ICNTL11
         IF ( PROKG .AND. ICNTL10 .GT. 0 )
      *    WRITE( MPG, 240) 'MAXIMUM NUMBER OF STEPS =', NITREF
         DO I = 1, N
-          D( I ) = DBLE(ONE)
+          D( I ) = dble(ONE)
         END DO
       END IF
       ALLOCATE(SRW1(N),stat = allocok)
@@ -1251,9 +1374,11 @@ C
         INFO(2)=N
         GOTO 777
       ENDIF
+      NB_BYTES = NB_BYTES + int(N,8)*K35_8
+      NB_BYTES_MAX = max(NB_BYTES_MAX,NB_BYTES)
       KASE = 0
  777  CONTINUE
-      CALL DMUMPS_276( ICNTL, INFO,
+      CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
       IF ( INFO(1) .LT. 0 ) GOTO 90
   22    CONTINUE
@@ -1293,7 +1418,7 @@ C
      *          SRW1, id%KEEP,id%KEEP8 )
               END IF
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, W( N + 1 ),
@@ -1309,7 +1434,7 @@ C
         IF ( id%MYID .eq. MASTER ) THEN
             ARRET = CNTL(2)
             IF (ARRET .LT. 0.0D0) THEN
-              ARRET = SQRT(EPSILON(0.0D0))
+              ARRET = sqrt(epsilon(0.0D0))
             END IF
             CALL DMUMPS_206(NZ,N,SAVERHS,RHS_MUMPS(IBEG),
      *      Y, D, W,
@@ -1355,7 +1480,7 @@ C
      *        id%IRN_loc, id%JCN_loc, id%A_loc,
      *        RHS_MUMPS(IBEG), SRW1, KEEP(50), MTYPE )
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, Y,
@@ -1372,7 +1497,7 @@ C
      *        id%IRN_loc, id%JCN_loc, id%A_loc,
      *        RHS_MUMPS(IBEG), SRW1, KEEP(50), MTYPE )
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, W,
@@ -1419,12 +1544,12 @@ C
           IPT_RHS_ROOT = LWC
         ENDIF
         IF ( I_AM_SLAVE ) THEN
-          LIW_PASSED = MAX( LIW, 1 )
-          LA_PASSED = MAX( LA, 1 )
+          LIW_PASSED = max( LIW, 1 )
+          LA_PASSED = max( LA, 1 )
           CALL DMUMPS_245( id%root, N,
      *    id%S(1), LA_PASSED, id%IS( 1 ),
-     *    LIW_PASSED, id%S( ISRW2 ), LWC, id%IS( LIW + 1 ),
-     *    LIWW,
+     *    LIW_PASSED, id%S( ISRW2 ), LWC, 
+     *    IWCB, LIWCB, 
      *    Y, N, NBRHS_EFF, id%NA, id%LNA, id%NE_STEPS,
      *    SRW1, SOLVET, ICNTL,
      *    id%STEP(1), id%FRERE_STEPS(1), id%DAD_STEPS(1), 
@@ -1444,12 +1569,12 @@ C
      *    id%RHSCOMP(IBEG_RHSCOMP), LD_RHSCOMP, 
      *    id%POSINRHSCOMP(1), BUILD_POSINRHSCOMP )
         END IF
-        CALL DMUMPS_276( ICNTL, INFO,
+        CALL MUMPS_PROPINFO( ICNTL, INFO,
      *                   id%COMM,id%MYID)
         IF (INFO(1).eq.-2) INFO(1)=-12
         IF (INFO(1).eq.-3) INFO(1)=-15
         IF (INFO(1).LT.0) GO TO 90
-        LIW_PASSED = MAX( LIW, 1 )
+        LIW_PASSED = max( LIW, 1 )
         IF ( .NOT. I_AM_SLAVE ) THEN
         CALL DMUMPS_521(id%NSLAVES,id%N, id%MYID, id%COMM,
      *          MTYPE, Y, LD_RHS, NBRHS_EFF,
@@ -1481,8 +1606,12 @@ C
       ELSEIF ( KASE .LT. 0 ) THEN
            INFO( 1 ) = INFO( 1 ) + 8
       END IF
-      IF ( id%MYID .eq. MASTER ) DEALLOCATE(W)
-      IF ( id%MYID .eq. MASTER ) DEALLOCATE(IW1)
+      IF ( id%MYID .eq. MASTER ) THEN
+         NB_BYTES = NB_BYTES - int(size(W),8)*K35_8
+     &                       - int(size(IW1),8)*K34_8
+        DEALLOCATE(W)
+        DEALLOCATE(IW1)
+      ENDIF
       IF ( PROKG .AND. NITREF .GT. 0 .AND.
      *id%MYID .EQ. MASTER ) THEN
         WRITE( MPG, 81 ) 
@@ -1518,7 +1647,7 @@ C
      *        id%IRN_loc, id%JCN_loc, id%A_loc,
      *        RHS_MUMPS(IBEG), SRW1, KEEP(50), MTYPE ) 
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, D,
@@ -1537,7 +1666,7 @@ C
      *          id%IRN_loc, id%JCN_loc,
      *          SRW1, id%KEEP,id%KEEP8 )
             ELSE
-              SRW1 = DBLE(ZERO)
+              SRW1 = dble(ZERO)
             END IF
             IF ( id%MYID .eq. MASTER ) THEN
               CALL MPI_REDUCE( SRW1, Y,
@@ -1569,9 +1698,14 @@ C
           WRITE( MPG, 115 )
      *'-----(11):CONDITION NUMBER (2) ............=', RINFOG(11)
          END IF
-        END IF ! MASTER
-      END IF ! ICNTL11 > 0
-      IF (id%myid == MASTER) DEALLOCATE(D)
+        END IF 
+      END IF 
+      IF (id%MYID == MASTER) THEN 
+         NB_BYTES = NB_BYTES - int(size(D),8)*K35_8
+         DEALLOCATE(D)
+      ENDIF
+      NB_BYTES = NB_BYTES - 
+     &   (int(size(Y),8)+int(size(SRW1),8))*K35_8
       DEALLOCATE(Y)
       DEALLOCATE(SRW1)
       END IF
@@ -1579,12 +1713,12 @@ C
      *     .AND. KEEP(23) .NE. 0) THEN
         IF ((KEEP(221).NE.1 .AND. ICNTL(9) .EQ. 1)
      *     .OR. KEEP(111) .NE.0) THEN
-          ALLOCATE( RW1( N ),stat =allocok )
+          ALLOCATE( RW1( N ),stat =allocok ) 
           IF ( allocok .GT. 0 ) THEN
             INFO(1)=-13
             INFO(2)=N
             WRITE(*,*) 'could not allocate ', N, 'integers.'
-            CALL DMUMPS_ABORT()
+            CALL MUMPS_ABORT()
           END IF
           DO K = 1, NBRHS_EFF
            KDEC = (K-1)*LD_RHS+IBEG-1
@@ -1596,10 +1730,9 @@ C
             RHS_MUMPS( KDEC+JPERM ) = RW1( I )
  80        CONTINUE
           END DO
-          DEALLOCATE( RW1 )
+          DEALLOCATE( RW1 ) 
         END IF
       END IF
-      IF (PROKG) WRITE( MPG, 120 ) id%INFOG(1), id%INFOG(2)
       IF (id%MYID.EQ.MASTER .and.ICNTL21==0.and.KEEP(221).NE.1) THEN
         IF ( INFO(1) .GE. 0 .AND. ICNTL(4).GE.3 .AND. ICNTL(3).GT.0)
      *    THEN
@@ -1615,53 +1748,106 @@ C
         END IF
       END IF
       ENDDO
+      id%INFO(26) = int(NB_BYTES_MAX / 1000000_8, 4)
+      CALL MUMPS_243( id%MYID, id%COMM,
+     &                           id%INFO(26), id%INFOG(30), IRANK )
+      IF ( PROKG ) THEN
+        WRITE( MPG,'(A,I10) ')
+     &  ' ** Rank of processor needing largest memory in solve     :',
+     &  IRANK
+        WRITE( MPG,'(A,I10) ')
+     &  ' ** Space in MBYTES used by this processor for solve      :',
+     &  id%INFOG(30)
+        IF ( KEEP(46) .eq. 0 ) THEN
+        WRITE( MPG,'(A,I10) ')
+     &  ' ** Avg. Space in MBYTES per working proc during solve    :',
+     &  ( id%INFOG(31)-id%INFO(26) ) / id%NSLAVES
+        ELSE
+        WRITE( MPG,'(A,I10) ')
+     &  ' ** Avg. Space in MBYTES per working proc during solve    :',
+     &  id%INFOG(31) / id%NSLAVES
+        END IF
+      END IF
+      IF (PROKG) WRITE( MPG, 120 ) id%INFOG(1), id%INFOG(2)
  90   CONTINUE
+      IF (INFO(1) .LT.0 ) THEN 
+      ENDIF
       IF (KEEP(201).NE.0)THEN
         IF (I_AM_SLAVE) THEN
           CALL DMUMPS_582(IERR)
           IF (IERR.LT.0 .AND. INFO(1) .GE. 0) INFO(1) = IERR
         ENDIF
-        CALL DMUMPS_276( ICNTL, INFO,
+        CALL MUMPS_PROPINFO( ICNTL, INFO,
      *         id%COMM,id%MYID)
       ENDIF
       IF (associated(id%BUFR)) THEN
+          NB_BYTES = NB_BYTES - int(size(id%BUFR),8)*K34_8
           DEALLOCATE(id%BUFR)
           NULLIFY(id%BUFR)
       ENDIF
       IF ( I_AM_SLAVE ) THEN
-        IF (allocated(IWK_SOLVE)) DEALLOCATE( IWK_SOLVE )
+        IF (allocated(IWK_SOLVE)) THEN 
+          NB_BYTES = NB_BYTES - int(size(IWK_SOLVE),8)*K34_8
+          DEALLOCATE( IWK_SOLVE )
+        ENDIF
+        IF (allocated(IWCB)) THEN 
+          NB_BYTES = NB_BYTES - int(size(IWCB),8)*K34_8
+          DEALLOCATE( IWCB )
+        ENDIF
         CALL DMUMPS_57( IERR )
         CALL DMUMPS_59( IERR )
       END IF
       IF ( id%MYID .eq. MASTER ) THEN
-        IF (allocated(SAVERHS)) DEALLOCATE( SAVERHS)
-        IF ((ICNTL20 .ne. 0 .OR.KEEP(111).NE.0)
-     *      .and. ICNTL21.ne.0) THEN
-          DEALLOCATE(RHS_MUMPS)
+        IF (allocated(SAVERHS)) THEN 
+         NB_BYTES = NB_BYTES - int(size(SAVERHS),8)*K35_8
+         DEALLOCATE( SAVERHS)
+        ENDIF
+        IF (
+     *       ( (ICNTL20 .ne. 0 .OR.KEEP(111).NE.0)
+     *        .and. ICNTL21.ne.0 ) 
+     *     )
+     *    THEN
+          IF ( I_AM_SLAVE ) THEN
+           NB_BYTES = NB_BYTES - int(size(RHS_MUMPS),8)*K35_8
+           DEALLOCATE(RHS_MUMPS)
+          ENDIF
         ENDIF
         NULLIFY(RHS_MUMPS)
       ELSE
-        IF (ASSOCIATED(RHS_MUMPS)) THEN
+        IF (associated(RHS_MUMPS)) THEN
+          NB_BYTES = NB_BYTES - int(size(RHS_MUMPS),8)*K35_8
           DEALLOCATE(RHS_MUMPS)
           NULLIFY(RHS_MUMPS)
         END IF
       END IF
       IF (I_AM_SLAVE) THEN
-        IF (ALLOCATED(SRW3)) DEALLOCATE(SRW3)
-        IF (ALLOCATED(POSINRHSCOMP_N)) DEALLOCATE(POSINRHSCOMP_N)
+        IF (allocated(SRW3)) THEN 
+          NB_BYTES = NB_BYTES - int(size(SRW3),8)*K35_8
+          DEALLOCATE(SRW3)
+        ENDIF
+        IF (allocated(POSINRHSCOMP_N)) THEN 
+          NB_BYTES = NB_BYTES - int(size(POSINRHSCOMP_N),8)*K34_8
+          DEALLOCATE(POSINRHSCOMP_N)
+        ENDIF
         IF (LSCAL .AND. ICNTL21==1) THEN
+          NB_BYTES = NB_BYTES - 
+     &              int(size(scaling_data%SCALING_LOC),8)*K35_8  
           DEALLOCATE(scaling_data%SCALING_LOC)
         ENDIF
-        IF (MAXSUPDATED)
-     &    MAXS= MAXSSAVED ! restore original value of MAXS
-        IF (ASSOCIATED(id%S).AND.KEEP(201).NE.0) THEN
+        IF (ASSOCIATED(id%S).AND.KEEP(201).GT.0) THEN
+          NB_BYTES = NB_BYTES - int(size(id%S),8)*K35_8
           DEALLOCATE(id%S)
           NULLIFY(id%S)
         ENDIF
         IF (KEEP(221).NE.1) THEN
-         IF (ASSOCIATED(id%RHSCOMP)) DEALLOCATE(id%RHSCOMP)
-         IF (ASSOCIATED(id%POSINRHSCOMP))
-     &                 DEALLOCATE(id%POSINRHSCOMP)
+         IF (ASSOCIATED(id%RHSCOMP)) THEN 
+            NB_BYTES = NB_BYTES - int(size(id%RHSCOMP),8)*K35_8
+            DEALLOCATE(id%RHSCOMP)
+         ENDIF
+         IF (ASSOCIATED(id%POSINRHSCOMP)) THEN
+                    DEALLOCATE(id%POSINRHSCOMP)
+            NB_BYTES = NB_BYTES - int(size(id%POSINRHSCOMP),8)*K34_8
+         ENDIF
         ENDIF
       ENDIF
       RETURN
@@ -1669,8 +1855,8 @@ C
  100  FORMAT(//' ****** SOLVE & CHECK STEP ********'/)
  110  FORMAT (//' VECTOR SOLUTION FOR COLUMN ',I12)
  115  FORMAT(1X, A44,1P,D9.2)
- 120  FORMAT(//' LEAVING SOLVER WITH:  INFO(1) ............ =',I12/
-     *         '                       INFO(2) ............ =',I12)
+ 120  FORMAT(//' LEAVING SOLVER WITH:  INFOG(1) ............ =',I12/
+     *         '                       INFOG(2) ............ =',I12)
  150  FORMAT (/' STATISTICS PRIOR SOLVE PHASE     ...........'/
      *        ' NUMBER OF RIGHT-HAND-SIDES                    =',I12/
      *        ' BLOCKING FACTOR FOR MULTIPLE RHS              =',I12/
@@ -1725,15 +1911,15 @@ C
       INTEGER LBUFR, LBUFR_BYTES
       INTEGER BUFR(LBUFR)
       INTEGER ISTEP_TO_INIV2(KEEP(71)), 
-     *        TAB_POS_IN_PERE(SLAVEF+2,MAX(1,KEEP(56)))
+     *        TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
       INTEGER IBEG_ROOT_DEF, IEND_ROOT_DEF, IROOT_DEF_RHS_COL1
       INTEGER NRHS_LOC
       INTEGER IPT_RHS_ROOT, SIZE_ROOT, MASTER_ROOT
       LOGICAL BUILD_POSINRHSCOMP
       INTEGER MP, LP, LDIAG, LWC_LOC
       INTEGER K,I
-      INTEGER LPOOL,MYLEAF
-      INTEGER NSTK_S,IPOOL,PTRICB,PTRACB
+      INTEGER LPOOL,MYLEAF,LPANEL_POS
+      INTEGER NSTK_S,IPOOL,IPANEL_POS,PTRICB,PTRACB
       INTEGER POOLSS, MTYPE_LOC
       INTEGER IDUMMY(1), LIDUMMY, DUMMY, WHAT
       INTEGER IPT_RHS_ROOT_LOC
@@ -1741,7 +1927,6 @@ C
       INTEGER       IOLDPS, IAPOS,
      *              LOCAL_M     ,
      *              LOCAL_N
-      LOGICAL IS_NODE_IN_MEM
 #if defined(V_T)
       INTEGER soln_c_class, forw_soln, back_soln, root_soln
 #endif
@@ -1749,12 +1934,16 @@ C
       INTEGER IZERO
       DOUBLE PRECISION ZERO
       LOGICAL DOFORWARD, DOROOT, DOBACKWARD
+      LOGICAL I_WORKED_ON_ROOT
+      INTEGER IROOT
+      LOGICAL DOROOT_FWD_OOC, DOROOT_BWD_PANEL
+      LOGICAL DUMMY_BOOL
       PARAMETER (IZERO = 0 )
       PARAMETER (ZERO = 0.0D0)
       INCLUDE 'mumps_headers.h'
       EXTERNAL DMUMPS_248, DMUMPS_249
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       MYLEAF = -1
       LP      = ICNTL(1)
       MP      = ICNTL(2)
@@ -1765,33 +1954,29 @@ C
       CALL VTFUNCDEF( 'back_soln',soln_c_class,back_soln,ierr)
       CALL VTFUNCDEF( 'root_soln',soln_c_class,root_soln,ierr)
 #endif
+      LIDUMMY  = 1   
+      DUMMY    = -9998 
       NSTK_S   = 1
-      LIDUMMY  = 1   ! size of IDUMMY array
-      DUMMY    = -9998 ! should not be accessed
       PTRICB = NSTK_S + KEEP(28)
       PTRACB = PTRICB + KEEP(28)
       IPOOL  = PTRACB + KEEP(28)
-      LPOOL  = LIW1 - IPOOL + 1
-      IF ( (LPOOL .ne. KEEP(28) + 1).AND.(MP.GT.0) ) THEN
-        WRITE(MP,*) ' warning solve: lpool.NE.nsteps+1 :',
-     &       lpool,KEEP(28)+1
+      LPOOL  = KEEP(28)+1
+      IPANEL_POS = IPOOL + LPOOL
+      IF (KEEP(201).EQ.1) THEN
+        LPANEL_POS = KEEP(228)+1
+      ELSE
+        LPANEL_POS = 1
+      ENDIF
+      IF (IPANEL_POS + LPANEL_POS -1 .ne. LIW1 )  THEN
+         WRITE(*,*)  MYID, ": Internal Error in DMUMPS_245",
+     &   IPANEL_POS, LPANEL_POS, LIW1
+         CALL MUMPS_ABORT()
       ENDIF
       LWC_LOC = LWC
       IF ( MASTER_ROOT .EQ. MYID_NODES ) THEN
         LWC_LOC = IPT_RHS_ROOT - 1
       ELSE
         LWC_LOC = LWC
-      ENDIF
-      IF ( KEEP(60).EQ.0 .AND.
-     &    ( 
-     &      (KEEP(38).NE.0 .AND.  root%yes) 
-     &  .OR.
-     &      (KEEP(20).NE.0 .AND. MYID_NODES.EQ.MASTER_ROOT)) 
-     &   ) 
-     &THEN
-        DOROOT    = .TRUE.
-      ELSE
-        DOROOT = .FALSE.
       ENDIF
       DOFORWARD = .TRUE.
       DOBACKWARD= .TRUE.
@@ -1800,14 +1985,28 @@ C
       ENDIF
       IF (KEEP(221).eq.1) DOBACKWARD = .FALSE.
       IF (KEEP(221).eq.2) DOFORWARD  = .FALSE.
+      IF ( KEEP(60).EQ.0 .AND.
+     &    ( 
+     &      (KEEP(38).NE.0 .AND.  root%yes) 
+     &  .OR.
+     &      (KEEP(20).NE.0 .AND. MYID_NODES.EQ.MASTER_ROOT)) 
+     &   ) 
+     &THEN
+        DOROOT = .TRUE.
+      ELSE
+        DOROOT = .FALSE.
+      ENDIF
+      DOROOT_BWD_PANEL = DOROOT .AND. MTYPE.NE.1 .AND. KEEP(50).EQ.0
+     *                     .AND. KEEP(201).EQ.1
+      DOROOT_FWD_OOC = DOROOT .AND. .NOT.DOROOT_BWD_PANEL
       IF (KEEP(201).NE.0) THEN
-        IF (DOFORWARD .OR. DOROOT) THEN
-           CALL DMUMPS_583(PTRFAC,KEEP(28),MTYPE)
-          CALL DMUMPS_585(A,LA,PTRFAC,KEEP(28),IERR)
+        IF (DOFORWARD .OR. DOROOT_FWD_OOC) THEN
+           CALL DMUMPS_583(PTRFAC,KEEP(28),MTYPE,
+     *                                A,LA,DOFORWARD,IERR)
           IF(IERR.LT.0)THEN
             INFO(1)=IERR
             INFO(2)=0
-            RETURN
+            CALL MUMPS_ABORT()
           ENDIF
         ENDIF
       ENDIF
@@ -1839,6 +2038,7 @@ C
         CALL VTEND(forw_soln,ierr)
 #endif
       ENDIF
+      CALL MUMPS_PROPINFO(ICNTL, INFO, COMM_NODES, MYID )
       IF ( INFO(1) .LT. 0 ) THEN
         IF ( LP .GT. 0 ) THEN
           WRITE(LP,*) MYID,
@@ -1848,40 +2048,38 @@ C
         RETURN
       END IF
       CALL MPI_BARRIER( COMM_NODES, IERR )
+      IF(KEEP(201).EQ.1.AND.DOROOT_BWD_PANEL) THEN
+         I_WORKED_ON_ROOT = .FALSE. 
+         CALL DMUMPS_584(PTRFAC,KEEP(28),MTYPE,
+     *   I_WORKED_ON_ROOT, IROOT, A, LA, IERR)
+         IF (IERR .LT. 0) THEN
+           INFO(1) = -90
+           INFO(2) = IERR
+         ENDIF 
+      ENDIF
+      IF (KEEP(201).EQ.1) THEN
+         CALL MUMPS_PROPINFO(ICNTL, INFO, COMM_NODES, MYID )
+         IF ( INFO(1) .LT. 0 ) RETURN
+      ENDIF
       IF ( KEEP( 38 ) .NE. 0 ) THEN
         IF ( KEEP(60) == 0 ) THEN
           IF ( root%yes ) THEN
         IOLDPS = PTRIST(STEP(KEEP(38)))
-        LOCAL_M = IW( IOLDPS + 2 + XSIZE)
-        LOCAL_N = IW( IOLDPS + 1 + XSIZE)
+        LOCAL_M = IW( IOLDPS + 2 + KEEP(IXSZ))
+        LOCAL_N = IW( IOLDPS + 1 + KEEP(IXSZ))
          IF (KEEP(201).NE.0) THEN
-          IS_NODE_IN_MEM=
-     $       DMUMPS_SOLVE_IS_INODE_IN_MEM(KEEP(38),
-     $       PTRFAC,KEEP(28),A,LA,IERR)
+            CALL DMUMPS_643(
+     &           KEEP(38),PTRFAC,KEEP,A,LA,
+     $           STEP,KEEP8,N,DUMMY_BOOL,IERR)
           IF(IERR.LT.0)THEN
              INFO(1)=IERR
              INFO(2)=0
-             RETURN
-          ENDIF
-          IF(.NOT.IS_NODE_IN_MEM) THEN
-           CALL DMUMPS_578(KEEP(38),PTRFAC,
-     $          KEEP,KEEP8,A,IERR)
-            IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              RETURN
-            ENDIF
-            CALL DMUMPS_577(
-     &           A(PTRFAC(IW(IOLDPS+4+ XSIZE))),KEEP(38),IERR
-     $     )
-            IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              RETURN
-            ENDIF
+      WRITE(*,*) '** ERROR after DMUMPS_643',
+     * INFO(1)
+                call MUMPS_ABORT()
           ENDIF
          ENDIF
-         IAPOS   = PTRFAC(IW( IOLDPS + 4 + XSIZE))
+         IAPOS   = PTRFAC(IW( IOLDPS + 4 + KEEP(IXSZ)))
 #if defined(V_T)
       CALL VTBEGIN(root_soln,ierr)
 #endif
@@ -1890,7 +2088,7 @@ C
      *      root%CNTXT_BLACS, LOCAL_M, IERR )
           IF (IERR.NE.0) THEN
             WRITE(*,*) 'After DESCINIT, IERR = ', IERR
-            CALL DMUMPS_ABORT()
+            CALL MUMPS_ABORT()
           END IF
 #if defined(null_space_old)
           CALL DMUMPS_352( NRHS, root%DESCRIPTOR,
@@ -1920,91 +2118,36 @@ C
              IF(IERR.LT.0)THEN
                  INFO(1)=IERR
                  INFO(2)=0
-                 RETURN
+      WRITE(*,*) '** ERROR after DMUMPS_598 ',
+     * INFO(1)
+                call MUMPS_ABORT()
              ENDIF
           ENDIF
-        ENDIF  ! of root%yes
-      ELSE     ! of KEEP(60).eq.0
+        ENDIF  
+      ELSE     
         IF ( 
      *       (KEEP(221).EQ.0) .AND. 
-     *       ( MYID_NODES .eq.  DMUMPS_275( STEP(KEEP(38)),
+     *       ( MYID_NODES .eq.  MUMPS_275( STEP(KEEP(38)),
      *         PROCNODE_STEPS, SLAVEF ) ) 
      *     )  THEN
            W( IPT_RHS_ROOT:IPT_RHS_ROOT+NRHS*SIZE_ROOT- 1) = 0.0D0
         ENDIF
       ENDIF
       ELSE IF ( KEEP(20) .NE. 0 ) THEN
-        IF ( MYID_NODES .eq.  DMUMPS_275( STEP(KEEP(20)),
+        IF ( MYID_NODES .eq.  MUMPS_275( STEP(KEEP(20)),
      *        PROCNODE_STEPS, SLAVEF ) ) THEN
-#if defined(try_null_space)
-         IF ( KEEP(60) .eq. 0 ) THEN
-            IF (KEEP(201).NE.0) THEN
-              IS_NODE_IN_MEM=DMUMPS_SOLVE_IS_INODE_IN_MEM(KEEP(20),
-     *        PTRFAC,KEEP(28),A,LA,IERR)
-              IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                RETURN
-              ENDIF
-              IF ( .NOT. IS_NODE_IN_MEM ) THEN
-                CALL DMUMPS_578(KEEP(20),PTRFAC,
-     $               KEEP,KEEP8,A,IERR)
-                IF(IERR.LT.0)THEN
-                  INFO(1)=IERR
-                  INFO(2)=0
-                  RETURN
-                ENDIF
-                CALL DMUMPS_577(
-     &            A(PTRFAC(STEP(KEEP(20)))),KEEP(20),IERR
-     $           )
-                IF(IERR.LT.0)THEN
-                  INFO(1)=IERR
-                  INFO(2)=0
-                  RETURN
-                ENDIF
-              ENDIF
-            END IF
-            NRHS_LOC         = NRHS
-            IPT_RHS_ROOT_LOC = IPT_RHS_ROOT
-            IF ( KEEP(111).NE.0 ) THEN
-              W( IPT_RHS_ROOT:IPT_RHS_ROOT+NRHS*SIZE_ROOT- 1) = 0.0D0
-              NRHS_LOC = IEND_ROOT_DEF - IBEG_ROOT_DEF + 1
-              IPT_RHS_ROOT_LOC = IPT_RHS_ROOT_LOC +
-     *                           (IROOT_DEF_RHS_COL1-1)*SIZE_ROOT
-            ENDIF
-           IF (NRHS_LOC .GT. 0) THEN
-             CALL DMUMPS_296(NRHS_LOC,
-     *            SIZE_ROOT,A( PTRFAC(
-     *            IW( PTRIST(STEP(KEEP(20)))+4+XSIZE))),
-     *            root, IBEG_ROOT_DEF, IEND_ROOT_DEF,
-     *            W( IPT_RHS_ROOT_LOC ), W(1),LWC_LOC,KEEP,KEEP8,
-     *            MTYPE,INFO)
-           ENDIF
-           IF(KEEP(201).NE.0)THEN
-             CALL DMUMPS_598(KEEP(20),
-     $             PTRFAC,KEEP(28),A,LA,.FALSE.,IERR)
-             IF(IERR.LT.0)THEN
-                 INFO(1)=IERR
-                 INFO(2)=0
-                 RETURN
-             ENDIF
-           ENDIF
-         ELSE
-#endif
            IF (KEEP(221).EQ.0) 
      &     W( IPT_RHS_ROOT:IPT_RHS_ROOT+NRHS*SIZE_ROOT- 1) = 0.0D0
-#if defined(try_null_space)
-         END IF
-#endif
         END IF
       END IF
 #if defined(V_T)
       CALL VTEND(root_soln,ierr)
 #endif
+      CALL MUMPS_PROPINFO(ICNTL, INFO, COMM_NODES, MYID )
       IF ( INFO(1) .LT. 0 ) RETURN
       IF (DOBACKWARD) THEN
         IF (BUILD_POSINRHSCOMP) THEN
-          WHAT = 0   ! only compute POSINRHSCOMP
+          WHAT = 0   
           CALL DMUMPS_639
      *           (SLAVEF, N, MYID_NODES,
      *           PTRIST,
@@ -2012,53 +2155,40 @@ C
      *           POSINRHSCOMP, IDUMMY, LIDUMMY, DUMMY, WHAT)
           BUILD_POSINRHSCOMP=.FALSE.  
         ENDIF
-        IF(KEEP(201).NE.0)THEN
-          CALL DMUMPS_584(PTRFAC,KEEP(28),MTYPE)
-          IF (KEEP(38).NE.0.AND.root%yes)THEN
-             IF(KEEP(60).EQ.0)THEN ! Schur is off              
-                CALL DMUMPS_598(KEEP(38),
-     $             PTRFAC,KEEP(28),A,LA,.TRUE.,IERR)
-             ENDIF
-          ENDIF
-          IF (KEEP(20).NE.0 .and. MYID_NODES.EQ.MASTER_ROOT.AND.
-     $        KEEP(19).NE.0 ) THEN
-            CALL DMUMPS_598(KEEP(20),
-     $             PTRFAC,KEEP(28),A,LA,.TRUE.,IERR)
-          ENDIF
-        ENDIF
-        IF (KEEP(201).NE.0) THEN
-          IF (.NOT.DOFORWARD) THEN
-            CALL DMUMPS_585(A,LA,PTRFAC,KEEP(28),IERR)
-          ENDIF
+        IF ( KEEP(201).NE.0 .AND.  .NOT. DOROOT_BWD_PANEL )
+     *    THEN
+          I_WORKED_ON_ROOT = DOROOT
+          IROOT = max(KEEP(20),keep(38)) 
+          CALL DMUMPS_584(PTRFAC,KEEP(28),MTYPE,
+     *         I_WORKED_ON_ROOT, IROOT, A, LA, IERR)
         ENDIF
         IF ( KEEP( 50 ) .eq. 0 ) THEN
           MTYPE_LOC = MTYPE
         ELSE
           MTYPE_LOC = IZERO
         ENDIF
-        IF (.NOT. DOFORWARD) THEN
-        ENDIF
 #if defined(V_T)
         CALL VTBEGIN(back_soln,ierr)
 #endif
-        CALL DMUMPS_249( N, A, LA, IW, LIW, W(1), LWC_LOC,
-     *              RHS, LRHS, NRHS,
-     *              RHSCOMP, LRHSCOMP, POSINRHSCOMP,
-     *              IW1(PTRICB),IW1(PTRACB),IWCB,LIWW,
-     *              W2, NE_STEPS, NA, LNA, STEP, FRERE,FILS,
-     *              IW1(IPOOL),LPOOL,PTRIST,PTRFAC,MYLEAF,INFO,
-     *              PROCNODE_STEPS, SLAVEF, COMM_NODES,MYID_NODES,
-     *              BUFR, LBUFR, LBUFR_BYTES, KEEP,KEEP8,
-     *              W( IPT_RHS_ROOT ),
-     *              MTYPE_LOC, 
-     *              ISTEP_TO_INIV2, TAB_POS_IN_PERE )
+           CALL DMUMPS_249( N, A, LA, IW, LIW, W(1), LWC_LOC,
+     *          RHS, LRHS, NRHS,
+     *          RHSCOMP, LRHSCOMP, POSINRHSCOMP,
+     *          IW1(PTRICB),IW1(PTRACB),IWCB,LIWW,
+     *          W2, NE_STEPS, NA, LNA, STEP, FRERE,FILS,
+     *          IW1(IPOOL),LPOOL,PTRIST,PTRFAC,MYLEAF,INFO,
+     *          PROCNODE_STEPS, SLAVEF, COMM_NODES,MYID_NODES,
+     *          BUFR, LBUFR, LBUFR_BYTES, KEEP,KEEP8,
+     *          W( IPT_RHS_ROOT ),
+     *          MTYPE_LOC, 
+     *          ISTEP_TO_INIV2, TAB_POS_IN_PERE, IW1(IPANEL_POS),
+     *          LPANEL_POS)
 #if defined(V_T)
       CALL VTEND(back_soln,ierr)
 #endif
       ENDIF
       IF (LDIAG.GT.2 .AND. MP.GT.0) THEN
         IF (DOFORWARD) THEN
-        K = MIN0(10,N)
+        K = min0(10,N)
         IF (LDIAG.EQ.4) K = N
         WRITE (MP,99992)
         IF (N.GT.0) WRITE (MP,99993) (RHS(I,1),I=1,K)
@@ -2067,6 +2197,8 @@ C
         ENDIF
       ENDIF
       RETURN
+ 444  FORMAT (I3,': Time for  Forward=',F10.4,'[s]')
+ 555  FORMAT (I3,': Time for Backward=',F10.4,'[s]')
 99993 FORMAT (' RHS    (first column)'/(1X,1P,5D14.6))
 99994 FORMAT (' RHS    (2 nd  column)'/(1X,1P,5D14.6))
 99992 FORMAT (//' LEAVING SOLVE (MPI41C) WITH')
@@ -2098,8 +2230,8 @@ C
       INTEGER SK38, SK20
       DOUBLE PRECISION ONE_ROW(NRHS)
       INCLUDE 'mumps_headers.h'
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
        IF (NSLAVES.EQ.1 .AND. KEEP(46).EQ.1) RETURN
        IF (NSLAVES.EQ.1 .AND. KEEP(46).EQ.0) THEN
          DO J=1, NRHS
@@ -2146,20 +2278,20 @@ C
       IF (I_AM_SLAVE) THEN
         POS_BUF = 0
         DO ISTEP = 1, KEEP(28)
-          IF (MYID_NODES == DMUMPS_275(ISTEP,
+          IF (MYID_NODES == MUMPS_275(ISTEP,
      *          PROCNODE_STEPS,NSLAVES)) THEN
               IF ( ISTEP.EQ.SK38 .OR. ISTEP.EQ.SK20 ) THEN
                     IPOS = PTRIST(ISTEP) 
-                    LIELL = IW(IPOS+3+XSIZE)
+                    LIELL = IW(IPOS+3+KEEP(IXSZ))
                     NPIV = LIELL
-                    IPOS= PTRIST(ISTEP)+5+XSIZE
+                    IPOS= PTRIST(ISTEP)+5+KEEP(IXSZ)
               ELSE
-                  IPOS = PTRIST(ISTEP) + 2+ XSIZE
+                  IPOS = PTRIST(ISTEP) + 2+ KEEP(IXSZ)
                   LIELL = IW(IPOS-2)+IW(IPOS+1)
                   IPOS= IPOS+1
                   NPIV = IW(IPOS)
                   IPOS= IPOS+1
-                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +XSIZE)
+                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +KEEP(IXSZ))
               END IF
               IF (MTYPE.eq.1 .AND. KEEP(50).EQ.0) THEN
                    J1=IPOS+1+LIELL
@@ -2175,7 +2307,7 @@ C
               ENDIF
           ENDIF
         ENDDO
-        CALL DMUMPS_523()   ! Send remaining rows
+        CALL DMUMPS_523()   
       ENDIF
       IF ( MYID .EQ. MASTER ) THEN
        DO WHILE (N2RECV .NE. 0)
@@ -2244,8 +2376,8 @@ C
         DOUBLE PRECISION, dimension(:), pointer :: SCALING_LOC
       end type scaling_data_t
       type (scaling_data_t) :: scaling_data
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       INTEGER ISTEP, K
       INTEGER J1, IPOS, LIELL, NPIV, JJ
       LOGICAL ROOT
@@ -2263,20 +2395,20 @@ C
       ENDIF
       K=0
       DO ISTEP=1, KEEP(28)
-          IF ( MYID_NODES == DMUMPS_275( ISTEP,
+          IF ( MYID_NODES == MUMPS_275( ISTEP,
      *         PROCNODE, NSLAVES)) THEN
               IF ( ISTEP.EQ.SK38 .OR. ISTEP.EQ.SK20 ) THEN
-                    IPOS = PTRIST(ISTEP)+XSIZE
+                    IPOS = PTRIST(ISTEP)+KEEP(IXSZ)
                     LIELL = IW(IPOS+3)
                     NPIV = LIELL
-                    IPOS= PTRIST(ISTEP)+5+XSIZE
+                    IPOS= PTRIST(ISTEP)+5+KEEP(IXSZ)
               ELSE
-                  IPOS = PTRIST(ISTEP) + 2 + XSIZE
+                  IPOS = PTRIST(ISTEP) + 2 + KEEP(IXSZ)
                   LIELL = IW(IPOS-2)+IW(IPOS+1)
                   IPOS= IPOS+1
                   NPIV = IW(IPOS)
                   IPOS= IPOS+1
-                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 + XSIZE)
+                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 + KEEP(IXSZ))
               END IF
               IF (MTYPE.eq.1 .AND. KEEP(50).EQ.0) THEN
                    J1=IPOS+1+LIELL
@@ -2315,7 +2447,7 @@ C
       INTEGER SLAVEF, N, MYID_NODES, LIW, MTYPE, NRHS, LD_RHS
       INTEGER LSOL_LOC, BEG_RHS
       INTEGER ISOL_LOC(LSOL_LOC)
-      DOUBLE PRECISION SOL_LOC( LSOL_LOC, *)
+      DOUBLE PRECISION SOL_LOC( LSOL_LOC, BEG_RHS+NRHS-1)
       DOUBLE PRECISION RHS(  LD_RHS , NRHS)
       INTEGER KEEP(500)
       INTEGER*8 KEEP8(150)
@@ -2325,27 +2457,27 @@ C
       INTEGER IPOS, LIELL, NPIV
       LOGICAL ROOT
       INCLUDE 'mumps_headers.h'
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       K=0
         DO ISTEP = 1, KEEP(28)
-            IF (MYID_NODES == DMUMPS_275(ISTEP,
+            IF (MYID_NODES == MUMPS_275(ISTEP,
      *          PROCNODE_STEPS,SLAVEF)) THEN
               ROOT=.false.
               IF (KEEP(38).ne.0) ROOT = STEP(KEEP(38))==ISTEP
               IF (KEEP(20).ne.0) ROOT = STEP(KEEP(20))==ISTEP
               IF ( ROOT ) THEN
-                    IPOS = PTRIST(ISTEP) + XSIZE
+                    IPOS = PTRIST(ISTEP) + KEEP(IXSZ)
                     LIELL = IW(IPOS+3)
                     NPIV = LIELL
-                    IPOS= PTRIST(ISTEP)+5+XSIZE
+                    IPOS= PTRIST(ISTEP)+5+KEEP(IXSZ)
               ELSE
-                  IPOS = PTRIST(ISTEP) + 2 +XSIZE
+                  IPOS = PTRIST(ISTEP) + 2 +KEEP(IXSZ)
                   LIELL = IW(IPOS-2)+IW(IPOS+1)
                   IPOS= IPOS+1
                   NPIV = IW(IPOS)
                   IPOS= IPOS+1
-                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +XSIZE)
+                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +KEEP(IXSZ))
               END IF
               IF (MTYPE.eq.1 .AND. KEEP(50).EQ.0) THEN
                    J1=IPOS+1+LIELL
@@ -2389,7 +2521,7 @@ C
       INTEGER, ALLOCATABLE, DIMENSION(:) :: BUF_INDX
       DOUBLE PRECISION, ALLOCATABLE, DIMENSION(:,:) :: BUF_RHS
       INTEGER ENTRIES_2_PROCESS, PROC_WHO_ASKS, BUF_EFFSIZE
-      INTEGER INDX ! Temporary position in 1..N of a row in RHS
+      INTEGER INDX 
       INTEGER allocok
       DOUBLE PRECISION ZERO
       PARAMETER(ZERO=0.0D0)
@@ -2401,8 +2533,8 @@ C
       LOGICAL I_AM_SLAVE
       INTEGER SK38, SK20, IPOSINRHSCOMP
       INCLUDE 'mumps_headers.h'
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       TYPE_PARAL = KEEP(46)
       IF (KEEP(38).NE.0) THEN
         SK38=STEP(KEEP(38))
@@ -2428,7 +2560,7 @@ C
         INFO(1)=-13
         INFO(2)=BUF_MAXSIZE*(NRHS+1)
       ENDIF
-      CALL DMUMPS_276(ICNTL, INFO, COMM, MYID )
+      CALL MUMPS_PROPINFO(ICNTL, INFO, COMM, MYID )
       IF (INFO(1).LT.0) RETURN
       IF (MYID.EQ.MASTER) THEN
         ENTRIES_2_PROCESS = N - KEEP(89)
@@ -2442,7 +2574,7 @@ C
               INDX = BUF_INDX( I )
             DO K = 1, NRHS
               BUF_RHS( K, I ) = RHS( INDX, K )
-              RHS( BUF_INDX(I), K ) = DBLE( ZERO )
+              RHS( BUF_INDX(I), K ) = dble( ZERO )
             ENDDO
           ENDDO
           CALL MPI_SEND( BUF_RHS, NRHS*BUF_EFFSIZE,
@@ -2454,25 +2586,25 @@ C
       ENDIF
       IF (I_AM_SLAVE) THEN
         IF (BUILD_POSINRHSCOMP) THEN
-           IPOSINRHSCOMP = 1     ! to update POSINRHSCOMP on the fly
-           POSINRHSCOMP = -9678  ! to debug  FIXME: SUPPRESS
+           IPOSINRHSCOMP = 1     
+           POSINRHSCOMP = -9678  
         ENDIF
-        IF (MYID.NE.MASTER) RHS = DBLE(ZERO)
+        IF (MYID.NE.MASTER) RHS = dble(ZERO)
         DO ISTEP = 1, KEEP(28)
-          IF (MYID_NODES == DMUMPS_275(ISTEP,
+          IF (MYID_NODES == MUMPS_275(ISTEP,
      *          PROCNODE_STEPS,NSLAVES)) THEN
               IF ( ISTEP.EQ.SK38 .OR. ISTEP.EQ.SK20 ) THEN
                   IPOS = PTRIST(ISTEP) 
-                  LIELL = IW(IPOS+3+XSIZE)
+                  LIELL = IW(IPOS+3+KEEP(IXSZ))
                   NPIV = LIELL
-                  IPOS= PTRIST(ISTEP)+5+XSIZE
+                  IPOS= PTRIST(ISTEP)+5+KEEP(IXSZ)
               ELSE
-                  IPOS = PTRIST(ISTEP) + 2+ XSIZE
+                  IPOS = PTRIST(ISTEP) + 2+ KEEP(IXSZ)
                   LIELL = IW(IPOS-2)+IW(IPOS+1)
                   IPOS= IPOS+1
                   NPIV = IW(IPOS)
                   IPOS= IPOS+1
-                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +XSIZE)
+                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +KEEP(IXSZ))
               END IF
               IF (MTYPE.eq.1 .OR. KEEP(50).NE.0) THEN
                    J1=IPOS+1
@@ -2526,8 +2658,7 @@ C
       IMPLICIT NONE
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_tags.h'
-      INTEGER NSLAVES, N, MYID_NODES, COMM, LIW
-      INTEGER LENPOSINRHSCOMP
+      INTEGER NSLAVES, N, MYID_NODES, LIW
       INTEGER KEEP(500)
       INTEGER*8 KEEP8(150)
       INTEGER PTRIST(KEEP(28)), PROCNODE_STEPS(KEEP(28))
@@ -2540,11 +2671,11 @@ C
       INTEGER JJ, J1
       INTEGER IPOSINRHSCOMP
       INCLUDE 'mumps_headers.h'
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       IF (WHAT .NE. 0.AND. WHAT.NE.1.AND.WHAT.NE.2) THEN
         WRITE(*,*) "Internal error in DMUMPS_639"
-        CALL DMUMPS_ABORT()
+        CALL MUMPS_ABORT()
       ENDIF
       IF (KEEP(38).NE.0) THEN
         SK38=STEP(KEEP(38))
@@ -2556,30 +2687,30 @@ C
       ELSE
         SK20=0
       ENDIF
-      IPOSINRHSCOMP   = 1     ! to update POSINRHSCOMP on the fly
-      POSINRHSCOMP = -9678  ! to debug  FIXME:SUppress
+      IPOSINRHSCOMP   = 1     
+      POSINRHSCOMP = -9678  
       IF (WHAT .NE. 0) THEN
-        POSINRHSCOMP_N = 0 ! initialized to 0
+        POSINRHSCOMP_N = 0 
       ENDIF
       DO ISTEP = 1, KEEP(28)
-        IF (MYID_NODES == DMUMPS_275(ISTEP,
+        IF (MYID_NODES == MUMPS_275(ISTEP,
      *     PROCNODE_STEPS,NSLAVES)) THEN
            IPOS = PTRIST(ISTEP)
-           NPIV = IW(IPOS+3+XSIZE)
+           NPIV = IW(IPOS+3+KEEP(IXSZ))
            POSINRHSCOMP(ISTEP) = IPOSINRHSCOMP
            IF (WHAT .NE. 0) THEN
               IF ( ISTEP.EQ.SK38 .OR. ISTEP.EQ.SK20 ) THEN
                   IPOS = PTRIST(ISTEP)
-                  LIELL = IW(IPOS+3+XSIZE)
+                  LIELL = IW(IPOS+3+KEEP(IXSZ))
                   NPIV = LIELL
-                  IPOS= PTRIST(ISTEP)+5+XSIZE
+                  IPOS= PTRIST(ISTEP)+5+KEEP(IXSZ)
               ELSE
-                  IPOS = PTRIST(ISTEP) + 2+ XSIZE
+                  IPOS = PTRIST(ISTEP) + 2+ KEEP(IXSZ)
                   LIELL = IW(IPOS-2)+IW(IPOS+1)
                   IPOS= IPOS+1
                   NPIV = IW(IPOS)
                   IPOS= IPOS+1
-                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +XSIZE)
+                  IPOS= IPOS+1+IW( PTRIST(ISTEP) + 5 +KEEP(IXSZ))
               ENDIF
               IF (MTYPE.eq.1 .OR. KEEP(50).NE.0) THEN
                    J1=IPOS+1
@@ -2630,7 +2761,7 @@ C
       INTEGER PTRICB( KEEP(28) ) 
       INTEGER IW( LIW ), IWCB( LIWCB )
       INTEGER ISTEP_TO_INIV2(KEEP(71)), 
-     *        TAB_POS_IN_PERE(SLAVEF+2,MAX(1,KEEP(56)))
+     *        TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
       INTEGER POSINRHSCOMP(KEEP(28)), LRHSCOMP 
       LOGICAL BUILD_POSINRHSCOMP
       DOUBLE PRECISION RHSCOMP( LRHSCOMP, NRHS )
@@ -2642,11 +2773,11 @@ C
       INTEGER POSIWCB,POSWCB,PLEFTWCB
       INTEGER INODE
       INTEGER RHSCOMPFREEPOS
-      INTEGER I, K
+      INTEGER I, K, J
       INTEGER III, NBROOT,NBLEAF,LEAF
       LOGICAL BLOQ
-      EXTERNAL DMUMPS_275
-      INTEGER DMUMPS_275
+      EXTERNAL MUMPS_275
+      INTEGER MUMPS_275
       DOUBLE PRECISION ZERO
       PARAMETER( ZERO = 0.0D0 )
       POSIWCB = LIWCB
@@ -2657,7 +2788,7 @@ C
         NSTK_S(I)   = NE_STEPS(I)
       ENDDO
       PTRICB = 0
-      CALL DMUMPS_362(N, LEAF, NBROOT, MYROOT, MYID,
+      CALL MUMPS_362(N, LEAF, NBROOT, MYROOT, MYID,
      *     SLAVEF, NA, LNA, KEEP,KEEP8, STEP,
      *     PROCNODE_STEPS, IPOOL, LPOOL)
       NBFIN = SLAVEF
@@ -2673,7 +2804,7 @@ C
       IF (SLAVEF .EQ. 1) THEN
          CALL DMUMPS_574
      &        ( IPOOL(1), LPOOL, III, LEAF, INODE,
-     &          KEEP(208), MYID )
+     &          KEEP(208) )
         GOTO 60
       ENDIF
       BLOQ = ( ( III .EQ. LEAF )
@@ -2688,16 +2819,17 @@ C
      *     PLEFTWCB, POSIWCB,
      *     PTRICB, INFO, KEEP,KEEP8, STEP,
      *     PROCNODE_STEPS,
-     *     RHS, LRHS)
+     *     RHS, LRHS
+     $     )
       IF ( INFO( 1 ) .LT. 0 .OR. NBFIN .EQ. 0 ) GOTO 260
       IF (.not. FLAG) THEN
          IF (III .NE. LEAF) THEN
             CALL DMUMPS_574
      &           (IPOOL(1), LPOOL, III, LEAF, INODE,
-     &           KEEP(208), MYID )
+     &           KEEP(208) )
             GOTO 60
-         ENDIF                  ! POOL not empty
-      ENDIF                     !   .not.(FLAG) = not_msg_received
+         ENDIF                  
+      ENDIF                     
       GOTO 50
  60   CONTINUE
       CALL DMUMPS_302( INODE, BUFR, LBUFR, LBUFR_BYTES,
@@ -2712,7 +2844,7 @@ C
      *        RHSCOMP, LRHSCOMP, POSINRHSCOMP,
      *        RHSCOMPFREEPOS, BUILD_POSINRHSCOMP,
      *        ISTEP_TO_INIV2, TAB_POS_IN_PERE
-     *      )
+     $     )
       IF ( INFO( 1 ) .LT. 0 .OR. NBFIN .EQ. 0 ) GOTO 260
       GOTO 50
   260 CONTINUE
@@ -2721,18 +2853,19 @@ C
       RETURN
       END SUBROUTINE DMUMPS_248
       RECURSIVE SUBROUTINE DMUMPS_323
-     *         ( BUFR, LBUFR, LBUFR_BYTES,
-     *           MSGTAG, MSGSOU, MYID, SLAVEF, COMM,
-     *           N, NRHS, IPOOL, LPOOL, III, LEAF,
-     *           NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST,
-     *           PTRFAC, IWCB, LIWCB,
-     *           WCB, LWCB, POSWCB,
-     *           PLEFTWCB, POSIWCB,
-     *           PTRICB,
-     *           INFO, KEEP,KEEP8, STEP, PROCNODE_STEPS, 
-     *           RHS, LRHS)
+     *     ( BUFR, LBUFR, LBUFR_BYTES,
+     *     MSGTAG, MSGSOU, MYID, SLAVEF, COMM,
+     *     N, NRHS, IPOOL, LPOOL, III, LEAF,
+     *     NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST,
+     *     PTRFAC, IWCB, LIWCB,
+     *     WCB, LWCB, POSWCB,
+     *     PLEFTWCB, POSIWCB,
+     *     PTRICB,
+     *     INFO, KEEP,KEEP8, STEP, PROCNODE_STEPS, 
+     *     RHS, LRHS 
+     $     )
       USE DMUMPS_OOC 
-      USE DMUMPS_BUFFER 
+      USE DMUMPS_COMM_BUFFER 
       IMPLICIT NONE
       INTEGER LBUFR, LBUFR_BYTES
       INTEGER MSGTAG, MSGSOU, MYID, SLAVEF, COMM
@@ -2756,77 +2889,79 @@ C
       INTEGER IERR, K, JJ
       INTEGER FINODE, FPERE, LONG, NCB, POSITION, NCV, NPIV
       INTEGER PTRX, PTRY, APOS, PDEST, I
+      INTEGER LIWFAC, TailleEcrite, PANEL_SIZE, TYPEF
+      LOGICAL DUMMY
       LOGICAL FLAG
-      EXTERNAL DMUMPS_275
-      INTEGER  DMUMPS_275
+      EXTERNAL MUMPS_275
+      INTEGER  MUMPS_275
       DOUBLE PRECISION ALPHA, ONE
       PARAMETER( ONE = 1.0D0, ALPHA = -1.0D0 )
       INCLUDE 'mumps_headers.h'
       IF ( MSGTAG .EQ. RACINE_SOLVE ) THEN
-          NBFIN = NBFIN - 1
-          IF ( NBFIN .eq. 0 ) GOTO 270
+         NBFIN = NBFIN - 1
+         IF ( NBFIN .eq. 0 ) GOTO 270
       ELSE  IF (MSGTAG .EQ. ContVec ) THEN
-          POSITION = 0
-          CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *         FINODE, 1, MPI_INTEGER, COMM, IERR )
-          CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *         FPERE, 1, MPI_INTEGER, COMM, IERR )
-          CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *         NCB, 1, MPI_INTEGER, COMM, IERR )
-          CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *         LONG, 1, MPI_INTEGER, COMM, IERR )
+         POSITION = 0
+         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *        FINODE, 1, MPI_INTEGER, COMM, IERR )
+         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *        FPERE, 1, MPI_INTEGER, COMM, IERR )
+         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *        NCB, 1, MPI_INTEGER, COMM, IERR )
+         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *        LONG, 1, MPI_INTEGER, COMM, IERR )
           IF ( NCB .eq. 0 ) THEN
              PTRICB(STEP(FINODE)) = -1
              NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
              IF ( NSTK_S(STEP(FPERE)) .EQ. 0 ) THEN
-               IPOOL( LEAF ) = FPERE
-               LEAF = LEAF + 1
-               IF ( LEAF > LPOOL ) THEN
-                 WRITE(*,*) 'Internal error 41r2 : Pool is too small.'
-                 CALL DMUMPS_ABORT()
-               END IF
+                   IPOOL( LEAF ) = FPERE
+                LEAF = LEAF + 1
+                IF ( LEAF > LPOOL ) THEN
+                   WRITE(*,*) 'Internal error 41r2 : Pool is too small.'
+                   CALL MUMPS_ABORT()
+                END IF
              END IF
           ELSE
-          IF ( PTRICB(STEP(FINODE)) .EQ. 0 ) THEN
-             PTRICB(STEP(FINODE)) = NCB + 1
+             IF ( PTRICB(STEP(FINODE)) .EQ. 0 ) THEN
+                PTRICB(STEP(FINODE)) = NCB + 1
+             END IF
+             IF ( ( POSIWCB - LONG ) .LT. 0 ) THEN
+                INFO( 1 ) = -14
+                INFO( 2 ) = LONG
+                GOTO 260
+             END IF
+             IF ( POSWCB - PLEFTWCB + 1 .LT. LONG * NRHS) THEN
+                INFO( 1 ) = -11
+                INFO( 2 ) = PLEFTWCB - POSWCB - 1 + LONG * NRHS
+                GOTO 260
+             END IF
+             IF (LONG .GT. 0) THEN
+                CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *               IWCB( 1 ),
+     *               LONG, MPI_INTEGER, COMM, IERR )
+                DO K = 1, NRHS
+                   CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *                  WCB( PLEFTWCB ),
+     *                  LONG, MPI_DOUBLE_PRECISION, COMM, IERR )
+                   DO I = 1, LONG
+                      RHS(IWCB(I),K) = RHS(IWCB(I),K) +WCB(PLEFTWCB+I-1)
+                   ENDDO
+                END DO
+                PTRICB(STEP(FINODE)) = PTRICB(STEP(FINODE)) - LONG
+             ENDIF
+             IF ( PTRICB(STEP(FINODE)) == 1 ) THEN
+                NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
+             END IF
+             IF ( NSTK_S(STEP(FPERE)) .EQ. 0 ) THEN
+                   IPOOL( LEAF ) = FPERE
+                LEAF = LEAF + 1
+                IF ( LEAF > LPOOL ) THEN
+                   WRITE(*,*) 'Internal error 41r2 : Pool is too small.'
+                   CALL MUMPS_ABORT()
+                END IF
+             ENDIF
           END IF
-          IF ( ( POSIWCB - LONG ) .LT. 0 ) THEN
-            INFO( 1 ) = -14
-            INFO( 2 ) = LONG
-            GOTO 260
-          END IF
-          IF ( POSWCB - PLEFTWCB + 1 .LT. LONG * NRHS) THEN
-            INFO( 1 ) = -11
-            INFO( 2 ) = PLEFTWCB - POSWCB - 1 + LONG * NRHS
-            GOTO 260
-          END IF
-          IF (LONG .GT. 0) THEN
-            CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *          IWCB( 1 ),
-     *          LONG, MPI_INTEGER, COMM, IERR )
-           DO K = 1, NRHS
-            CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *               WCB( PLEFTWCB ),
-     *               LONG, MPI_DOUBLE_PRECISION, COMM, IERR )
-            DO I = 1, LONG
-              RHS(IWCB(I),K) = RHS(IWCB(I),K) + WCB(PLEFTWCB+I-1)
-            ENDDO
-           END DO
-           PTRICB(STEP(FINODE)) = PTRICB(STEP(FINODE)) - LONG
-          ENDIF
-          IF ( PTRICB(STEP(FINODE)) == 1 ) THEN
-               NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
-          END IF
-          IF ( NSTK_S(STEP(FPERE)) .EQ. 0 ) THEN
-            IPOOL( LEAF ) = FPERE
-            LEAF = LEAF + 1
-            IF ( LEAF > LPOOL ) THEN
-              WRITE(*,*) 'Internal error 41r2 : Pool is too small.'
-              CALL DMUMPS_ABORT()
-            END IF
-          ENDIF
-        END IF
-        ELSEIF ( MSGTAG .EQ. MASTER2SLAVE ) THEN
+       ELSEIF ( MSGTAG .EQ. Master2Slave ) THEN
           POSITION = 0
           CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *         FINODE, 1, MPI_INTEGER, COMM, IERR )
@@ -2840,63 +2975,55 @@ C
           PTRX = PLEFTWCB + NCV * NRHS
           PLEFTWCB = PLEFTWCB + (NPIV + NCV) * NRHS
           IF ( POSWCB - PLEFTWCB + 1 .LT. 0 ) THEN
-            INFO(1) = -11
-            INFO(2) = -POSWCB + PLEFTWCB -1
-            GO TO 260
+             INFO(1) = -11
+             INFO(2) = -POSWCB + PLEFTWCB -1
+             GO TO 260
           END IF
           DO K=1, NRHS
-            CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *         WCB( PTRY + (K-1) * NCV ), NCV,
-     *         MPI_DOUBLE_PRECISION, COMM, IERR )
+             CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *            WCB( PTRY + (K-1) * NCV ), NCV,
+     *            MPI_DOUBLE_PRECISION, COMM, IERR )
           ENDDO
           IF ( NPIV .GT. 0 ) THEN
-            DO K=1, NRHS
-              CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
-     *          WCB( PTRX + (K-1)*NPIV ), NPIV,
-     *          MPI_DOUBLE_PRECISION, COMM, IERR )
-            END DO
+             DO K=1, NRHS
+                CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
+     *               WCB( PTRX + (K-1)*NPIV ), NPIV,
+     *               MPI_DOUBLE_PRECISION, COMM, IERR )
+             END DO
           END IF
           IF (KEEP(201).NE.0) THEN
-           IF(.NOT.DMUMPS_SOLVE_IS_INODE_IN_MEM(FINODE,PTRFAC,
-     $         KEEP(28),A,LA,IERR))THEN
+             CALL DMUMPS_643(
+     &            FINODE,PTRFAC,KEEP,A,LA,STEP,
+     $            KEEP8,N,DUMMY,IERR)
              IF(IERR.LT.0)THEN
                 INFO(1)=IERR
                 INFO(2)=0
                 GOTO 260
              ENDIF
-             CALL DMUMPS_578(FINODE,PTRFAC,
-     $            KEEP,KEEP8,A,IERR)
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
-             ENDIF
-             CALL DMUMPS_577(
-     $            A(PTRFAC(IW( PTRIST( STEP(FINODE)) + 3 +XSIZE))),
-     $            FINODE,IERR
-     $   )
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
-             ENDIF
-           ELSE
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
-             ENDIF
-           ENDIF
           ENDIF
-          APOS = PTRFAC(IW( PTRIST( STEP(FINODE)) + 3 + XSIZE ))
-          IF ( NRHS == 1 ) THEN
-            CALL DGEMV( 'T', NPIV, NCV, ALPHA, A(APOS), NPIV,
-     *                WCB( PTRX ), 1, ONE,
-     *                WCB( PTRY ), 1 )
-          ELSE
-            CALL DGEMM( 'T', 'N', NCV, NRHS, NPIV, ALPHA, A(APOS), NPIV,
-     *                WCB( PTRX), NPIV, ONE,
-     *                WCB( PTRY), NCV )
+          APOS = PTRFAC(STEP(FINODE))
+          IF (KEEP(201).EQ.1) THEN
+             IF ( NRHS == 1 ) THEN
+                CALL DGEMV( 'N', NCV, NPIV, ALPHA, A(APOS), NCV,
+     *               WCB( PTRX ), 1, ONE,
+     *               WCB( PTRY ), 1 )
+             ELSE
+                CALL DGEMM( 'N', 'N', NCV, NRHS, NPIV, ALPHA,
+     *               A(APOS), NCV,
+     *               WCB( PTRX), NPIV, ONE,
+     *               WCB( PTRY), NCV )
+             ENDIF
+          ELSE                  
+             IF ( NRHS == 1 ) THEN
+                CALL DGEMV( 'T', NPIV, NCV, ALPHA, A(APOS), NPIV,
+     *               WCB( PTRX ), 1, ONE,
+     *               WCB( PTRY ), 1 )
+             ELSE
+                CALL DGEMM( 'T', 'N', NCV, NRHS, NPIV, ALPHA,
+     *               A(APOS), NPIV,
+     *               WCB( PTRX), NPIV, ONE,
+     *               WCB( PTRY), NCV )
+             ENDIF
           ENDIF
           IF (KEEP(201).NE.0) THEN
              CALL DMUMPS_598(FINODE,PTRFAC,
@@ -2908,40 +3035,40 @@ C
              ENDIF
           ENDIF
           PLEFTWCB = PLEFTWCB - NPIV * NRHS
-          PDEST = DMUMPS_275( STEP(FPERE),
-     *            PROCNODE_STEPS, SLAVEF )
+          PDEST = MUMPS_275( STEP(FPERE),
+     *         PROCNODE_STEPS, SLAVEF )
           IF ( PDEST .EQ. MYID ) THEN
-            IF ( PTRICB(STEP(FINODE)) .EQ. 0 ) THEN
-              NCB = IW( PTRIST(STEP(FINODE)) + 2 + XSIZE )
-              PTRICB(STEP(FINODE)) = NCB + 1
-            END IF
-            DO I = 1, NCV
-              JJ=IW(PTRIST(STEP(FINODE))+3+I+ XSIZE )
-              DO K=1, NRHS
-                RHS(JJ,K)= RHS(JJ,K) + WCB(PTRY+I-1+(K-1)*NCV)
-              ENDDO
-            END DO
-            PTRICB(STEP(FINODE)) =
-     *      PTRICB(STEP(FINODE)) - NCV
-            IF ( PTRICB( STEP( FINODE ) ) == 1 ) THEN
-                 NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
-            END IF
-            IF ( NSTK_S(STEP(FPERE)) .EQ. 0 ) THEN
-              IPOOL( LEAF ) = FPERE
-              LEAF = LEAF + 1
-              IF ( LEAF > LPOOL ) THEN
-                WRITE(*,*) 'INTERNAL Error 41r: Pool is too small.'
-                CALL DMUMPS_ABORT()
-              END IF
-            ENDIF
+             IF ( PTRICB(STEP(FINODE)) .EQ. 0 ) THEN
+                NCB = IW( PTRIST(STEP(FINODE)) + 2 + KEEP(IXSZ) )
+                PTRICB(STEP(FINODE)) = NCB + 1
+             END IF
+             DO I = 1, NCV
+                JJ=IW(PTRIST(STEP(FINODE))+3+I+ KEEP(IXSZ) )
+                DO K=1, NRHS
+                   RHS(JJ,K)= RHS(JJ,K) + WCB(PTRY+I-1+(K-1)*NCV)
+                ENDDO
+             END DO
+             PTRICB(STEP(FINODE)) =
+     *            PTRICB(STEP(FINODE)) - NCV
+             IF ( PTRICB( STEP( FINODE ) ) == 1 ) THEN
+                NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
+             END IF
+             IF ( NSTK_S(STEP(FPERE)) .EQ. 0 ) THEN
+                   IPOOL( LEAF ) = FPERE
+                LEAF = LEAF + 1
+                IF ( LEAF > LPOOL ) THEN
+                   WRITE(*,*) 'INTERNAL Error 41r: Pool is too small.'
+                   CALL MUMPS_ABORT()
+                END IF
+             ENDIF
           ELSE
- 210       CONTINUE
-           CALL DMUMPS_78( NRHS, FINODE, FPERE,
-     *       IW(PTRIST(STEP( FINODE )) + 2 + XSIZE ), NCV, NCV,
-     *       IW(PTRIST(STEP(FINODE))+4+ XSIZE ),
-     *       WCB( PTRY ), PDEST, ContVec, COMM, IERR )
-            IF ( IERR .EQ. -1 ) THEN
-              CALL DMUMPS_303( .FALSE., FLAG,
+ 210         CONTINUE
+             CALL DMUMPS_78( NRHS, FINODE, FPERE,
+     *            IW(PTRIST(STEP( FINODE )) + 2 + KEEP(IXSZ) ), NCV,NCV,
+     *            IW(PTRIST(STEP(FINODE))+4+ KEEP(IXSZ) ),
+     *            WCB( PTRY ), PDEST, ContVec, COMM, IERR )
+             IF ( IERR .EQ. -1 ) THEN
+                CALL DMUMPS_303( .FALSE., FLAG,
      *               BUFR, LBUFR, LBUFR_BYTES,
      *               MYID, SLAVEF, COMM,
      *               N, NRHS, IPOOL, LPOOL, III, LEAF,
@@ -2950,59 +3077,61 @@ C
      *               WCB, LWCB, POSWCB, PLEFTWCB, POSIWCB,
      *               PTRICB, INFO, KEEP,KEEP8, STEP,
      *               PROCNODE_STEPS, 
-     *               RHS, LRHS)
-              IF ( INFO( 1 )  .LT. 0 )  GOTO 270
-              GOTO 210
-            ELSE IF ( IERR .EQ. -2 ) THEN
-               INFO( 1 ) = -17
-               INFO( 2 ) = ( NCV + 4 ) * KEEP( 34 ) +
-     *              NCV * KEEP( 35 )
-               GOTO 260
-            ELSE IF ( IERR .EQ. -3 ) THEN
-               INFO( 1 ) = -20
-               INFO( 2 ) = ( NCV + 4 ) * KEEP( 34 ) +
-     *              NCV * KEEP( 35 )
-            END IF
+     *               RHS, LRHS
+     $               )
+                IF ( INFO( 1 )  .LT. 0 )  GOTO 270
+                GOTO 210
+             ELSE IF ( IERR .EQ. -2 ) THEN
+                INFO( 1 ) = -17
+                INFO( 2 ) = ( NCV + 4 ) * KEEP( 34 ) +
+     *               NCV * KEEP( 35 )
+                GOTO 260
+             ELSE IF ( IERR .EQ. -3 ) THEN
+                INFO( 1 ) = -20
+                INFO( 2 ) = ( NCV + 4 ) * KEEP( 34 ) +
+     *               NCV * KEEP( 35 )
+             END IF
           END IF
           PLEFTWCB = PLEFTWCB - NCV * NRHS
-        ELSEIF ( MSGTAG .EQ. TERREUR ) THEN
+       ELSEIF ( MSGTAG .EQ. TERREUR ) THEN
           INFO(1) = -001
           INFO(2) = MSGSOU
           GOTO 270
-        ELSE IF ( (MSGTAG.EQ.UPDATE_LOAD).OR.
-     *      (MSGTAG.EQ.TAG_DUMMY) ) THEN
+       ELSE IF ( (MSGTAG.EQ.UPDATE_LOAD).OR.
+     *         (MSGTAG.EQ.TAG_DUMMY) ) THEN
           GO TO 270
-        ELSE
+       ELSE
           INFO(1)=-100
           INFO(2)=MSGTAG
           GO TO 260
-        ENDIF
-        GO TO 270
- 260    CONTINUE
-        CALL DMUMPS_44( MYID, SLAVEF, COMM )
- 270    CONTINUE
-        RETURN
-        END SUBROUTINE DMUMPS_323
+       ENDIF
+       GO TO 270
+ 260   CONTINUE
+       CALL DMUMPS_44( MYID, SLAVEF, COMM )
+ 270   CONTINUE
+       RETURN
+       END SUBROUTINE DMUMPS_323
       SUBROUTINE DMUMPS_302( INODE,
-     *           BUFR, LBUFR, LBUFR_BYTES,
-     *           MSGTAG, MSGSOU, MYID, SLAVEF, COMM,
-     *           N, IPOOL, LPOOL, III, LEAF,
-     *           NBFIN, NSTK_S,
-     *           IWCB, LIWCB,
-     *           WCB, LWCB, A, LA, IW, LIW,
-     *           RHS, LRHS, NRHS, POSWCB,
-     *           PLEFTWCB, POSIWCB,
-     *           PTRICB, PTRIST, PTRFAC, PROCNODE_STEPS,
-     *           FILS, STEP, FRERE, DAD,
-     *           MYROOT,
-     *           INFO, KEEP,KEEP8, RHS_ROOT, MTYPE,
-     *           RHSCOMP, LRHSCOMP, POSINRHSCOMP,
-     *           RHSCOMPFREEPOS, BUILD_POSINRHSCOMP,
-     *           
-     *           ISTEP_TO_INIV2, TAB_POS_IN_PERE
-     *           )
+     *     BUFR, LBUFR, LBUFR_BYTES,
+     *     MSGTAG, MSGSOU, MYID, SLAVEF, COMM,
+     *     N, IPOOL, LPOOL, III, LEAF,
+     *     NBFIN, NSTK_S,
+     *     IWCB, LIWCB,
+     *     WCB, LWCB, A, LA, IW, LIW,
+     *     RHS, LRHS, NRHS, POSWCB,
+     *     PLEFTWCB, POSIWCB,
+     *     PTRICB, PTRIST, PTRFAC, PROCNODE_STEPS,
+     *     FILS, STEP, FRERE, DAD,
+     *     MYROOT,
+     *     INFO, KEEP,KEEP8, RHS_ROOT, MTYPE,
+     *     RHSCOMP, LRHSCOMP, POSINRHSCOMP,
+     *     RHSCOMPFREEPOS, BUILD_POSINRHSCOMP,
+     *     
+     *     ISTEP_TO_INIV2, TAB_POS_IN_PERE
+     *     
+     $            )
       USE DMUMPS_OOC
-      USE DMUMPS_BUFFER
+      USE DMUMPS_COMM_BUFFER
       IMPLICIT NONE
       INTEGER MTYPE
       INTEGER INODE, LBUFR, LBUFR_BYTES
@@ -3022,380 +3151,553 @@ C
       INTEGER PROCNODE_STEPS(KEEP(28))
       INTEGER FILS( N ), STEP( N ), FRERE(KEEP(28)), DAD(KEEP(28))
       INTEGER ISTEP_TO_INIV2(KEEP(71)), 
-     *        TAB_POS_IN_PERE(SLAVEF+2,MAX(1,KEEP(56)))
+     *     TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
       INTEGER POSINRHSCOMP(KEEP(28)), LRHSCOMP, RHSCOMPFREEPOS
       DOUBLE PRECISION RHSCOMP(LRHSCOMP, NRHS)
       LOGICAL BUILD_POSINRHSCOMP
-      EXTERNAL DGEMV, DTRSV, DGEMM, DTRSM, DMUMPS_275
-      INTEGER DMUMPS_275
+      EXTERNAL DGEMV, DTRSV, DGEMM, DTRSM, MUMPS_275
+      INTEGER MUMPS_275
       DOUBLE PRECISION ALPHA,ONE,ZERO
       PARAMETER(ONE=1.0D0, ALPHA=-1.0D0, ZERO=0.0D0)
       INTEGER I, J, K, IPOS, NSLAVES, J1, J2, J3, FPERE, NPIV, NCB,
-     *        IERR,
-     *        APOS, APOS1, IF, IFR, IPOSCB, APOSCB, LIELL, IN, JJ,
-     *        NELIM, PLEFT, PCB_COURANT, PPIV_COURANT
-       INTEGER IPOSINRHSCOMP
-      INTEGER Effective_CB_SIZE, NUPDATE, ISLAVE, PDEST, FirstIndex
+     *     IERR,
+     *     APOS, APOS1, IF, IFR, IPOSCB, APOSCB, LIELL, IN, JJ,
+     *     NELIM, PLEFT, PCB_COURANT, PPIV_COURANT
+      INTEGER IPOSINRHSCOMP
+      INTEGER Effective_CB_Size, NUPDATE, ISLAVE, PDEST, FirstIndex
       LOGICAL FLAG
       INCLUDE 'mumps_headers.h'
-      INTEGER APOS2,POSWCB1,POSWCB2
+      INTEGER APOS2, APOSOFF, POSWCB1,POSWCB2, JJ1, JJ2
+      INTEGER TempNROW, TempNCOL, TailleEcrite, PANEL_SIZE, LIWFAC, 
+     &     APOSDEB, JFIN, NBJ, NUPDATE_PANEL,
+     &     PPIV_PANEL, PCB_PANEL, NBK, TYPEF
+      INTEGER LD_WCBPIV         
+      INTEGER LD_WCBCB          
+      INTEGER LDAJ, LDAJ_FIRST_PANEL
+      INTEGER TMP_NBPANELS,
+     *     I_PIVRPTR, I_PIVR, IPANEL
+      INTEGER INODE_STATE
+      LOGICAL MUST_BE_PERMUTED
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_tags.h'
       INTEGER DUMMY( 1 )
       IF ( INODE .eq. KEEP(38 ) .OR. INODE .eq.KEEP( 20 ) ) THEN
-        LIELL = IW( PTRIST( STEP(INODE)) + 3 + XSIZE)
-        NPIV  = LIELL
-        NELIM = 0
-        NSLAVES = 0
-        IPOS = PTRIST( STEP(INODE)) + 5 + XSIZE
+         LIELL = IW( PTRIST( STEP(INODE)) + 3 + KEEP(IXSZ))
+         NPIV  = LIELL
+         NELIM = 0
+         NSLAVES = 0
+         IPOS = PTRIST( STEP(INODE)) + 5 + KEEP(IXSZ)
       ELSE
-        IPOS = PTRIST(STEP(INODE)) + 2 + XSIZE
+        IPOS = PTRIST(STEP(INODE)) + 2 + KEEP(IXSZ)
         LIELL = IW(IPOS-2)+IW(IPOS+1)
         NELIM = IW(IPOS-1)
-        NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + XSIZE )
+        NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + KEEP(IXSZ) )
         IPOS = IPOS + 1
         NPIV = IW(IPOS)
         IPOS = IPOS + 1
         IF (KEEP(201).NE.0) THEN
-         IF(.NOT.DMUMPS_SOLVE_IS_INODE_IN_MEM(INODE,PTRFAC,
-     $       KEEP(28),A,LA,IERR))THEN
+           CALL DMUMPS_643(
+     &          INODE,PTRFAC,KEEP,A,LA,STEP,
+     $          KEEP8,N,MUST_BE_PERMUTED,IERR)
            IF(IERR.LT.0)THEN
               INFO(1)=IERR
               INFO(2)=0
               GOTO 260
            ENDIF
-           CALL DMUMPS_578(INODE,PTRFAC,
-     $          KEEP,KEEP8,A,IERR)
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
+           IF (KEEP(201).EQ.1) THEN
+              IF 
+     &             ( IW(
+     &             PTRIST(STEP(INODE))+IW(PTRIST(STEP(INODE))+XXI)-1
+     &             )
+     &             .EQ.-7777) THEN
+              MUST_BE_PERMUTED = .FALSE.
            ENDIF
-           CALL DMUMPS_577(A(PTRFAC(IW(IPOS))),INODE,IERR
-     $   )
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
-           ENDIF
-         ELSE
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
-           ENDIF
-         ENDIF                    ! END INODE not in memory
-        ENDIF                     ! END OOC_RUN
-        APOS = PTRFAC(IW(IPOS))
-        NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + XSIZE)
-        IPOS = IPOS + 1 + NSLAVES
+        ENDIF
+      ENDIF                     
+      APOS = PTRFAC(IW(IPOS))
+      IF (KEEP(201).EQ.1) THEN  
+          IF (MTYPE.EQ.1) THEN
+            IF ((MTYPE.EQ.1).AND.NSLAVES.NE.0) THEN
+              TempNROW= NPIV+NELIM
+              TempNCOL= NPIV
+              LDAJ_FIRST_PANEL=TempNROW
+            ELSE
+              TempNROW= LIELL
+              TempNCOL= NPIV
+              LDAJ_FIRST_PANEL=TempNROW
+            ENDIF
+            TYPEF=TYPEF_L
+          ELSE 
+            TempNCOL= LIELL
+            TempNROW= NPIV
+            LDAJ_FIRST_PANEL=TempNCOL
+            TYPEF= TYPEF_U
+          ENDIF
+        IF (INODE.eq.KEEP(38).OR.INODE.eq.KEEP(20)) THEN
+           WRITE(6,*) ' FWD Special case of ROOT to be checked '
+           LIWFAC =  IW(PTRIST(STEP(INODE))+XXI)
+           TYPEF= TYPEF_L       
+           CALL DMUMPS_690( INODE, TYPEF,
+     &          IW(PTRIST(STEP(INODE))), LIWFAC, TempNROW,
+     &          PANEL_SIZE, TailleEcrite)
+           PANEL_SIZE = TailleEcrite
+        ELSE
+           LIWFAC =  IW(PTRIST(STEP(INODE))+XXI)
+           CALL DMUMPS_690( INODE, TYPEF,
+     &          IW(PTRIST(STEP(INODE))), LIWFAC, LDAJ_FIRST_PANEL,
+     &          PANEL_SIZE, TailleEcrite)
+        ENDIF
+        IF (PANEL_SIZE.LT.0) THEN
+           WRITE(6,*) ' Internal error in fwd solve PANEL_SIZE=',
+     &          PANEL_SIZE
+           CALL MUMPS_ABORT()
+        ENDIF
+      ENDIF                     
+      NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + KEEP(IXSZ))
+      IPOS = IPOS + 1 + NSLAVES
       END IF
       IF ( MTYPE .EQ. 1 .OR. KEEP(50) .NE. 0 ) THEN
-        J1 = IPOS + 1
-        J2 = IPOS + LIELL
-        J3 = IPOS + NPIV
+         J1 = IPOS + 1
+         J2 = IPOS + LIELL
+         J3 = IPOS + NPIV
       ELSE
-        J1 = IPOS + LIELL + 1
-        J2 = IPOS + 2 * LIELL
-        J3 = IPOS + LIELL + NPIV
+         J1 = IPOS + LIELL + 1
+         J2 = IPOS + 2 * LIELL
+         J3 = IPOS + LIELL + NPIV
       END IF
       NCB = LIELL-NPIV
       IF ( INODE .eq. KEEP( 38 ) .OR. INODE .eq. KEEP(20) ) THEN
-        IFR = 0
-        DO JJ = J1, J3
-          J = IW( JJ )
-          IFR = IFR + 1
-          DO K=1,NRHS
-            RHS_ROOT(IFR+NPIV*(K-1)) = RHS(J,K) 
-          END DO
-        END DO
-        IF ( NPIV .LT. LIELL ) THEN
-          WRITE(*,*) ' Internal error in SOLVE_NODE for Root node'
-          CALL DMUMPS_ABORT()
-        END IF
-        MYROOT = MYROOT - 1
-        IF ( MYROOT .EQ. 0 ) THEN
+         IFR = 0
+         DO JJ = J1, J3
+            J = IW( JJ )
+            IFR = IFR + 1
+            DO K=1,NRHS
+               RHS_ROOT(IFR+NPIV*(K-1)) = RHS(J,K) 
+            END DO
+         END DO
+         IF ( NPIV .LT. LIELL ) THEN
+            WRITE(*,*) ' Internal error in SOLVE_NODE for Root node'
+            CALL MUMPS_ABORT()
+         END IF
+         MYROOT = MYROOT - 1
+         IF ( MYROOT .EQ. 0 ) THEN
             NBFIN = NBFIN - 1
             IF (SLAVEF .GT. 1) THEN
-              DUMMY (1) = 1
-              CALL DMUMPS_242(DUMMY, 1, MPI_INTEGER, MYID,
-     *             COMM, RACINE_SOLVE, SLAVEF)
+               DUMMY (1) = 1
+               CALL DMUMPS_242(DUMMY, 1, MPI_INTEGER, MYID,
+     *              COMM, RACINE_SOLVE, SLAVEF)
             ENDIF
-        END IF
-        GO TO 270
+         END IF
+         GO TO 270
       END IF
       PLEFT    = PLEFTWCB
       PPIV_COURANT = PLEFTWCB
-      PCB_COURANT = PLEFT + NPIV*NRHS
       PLEFTWCB = PLEFTWCB + LIELL * NRHS
       IF ( POSWCB - PLEFTWCB + 1 .LT. 0 ) THEN
-        INFO(1) = -11
-        INFO(2) = PLEFTWCB - POSWCB - 1
-        GO TO 260
+         INFO(1) = -11
+         INFO(2) = PLEFTWCB - POSWCB - 1
+         GO TO 260
       END IF
-      IFR = PPIV_COURANT - 1
-      DO 130 JJ = J1, J3
-        J = IW(JJ)
-        IFR = IFR + 1
-        DO K=1, NRHS
-          WCB(IFR+(K-1)*NPIV) = RHS(J,K) 
-        END DO
-  130 CONTINUE
-      IFR = PCB_COURANT - 1
-      IF (NPIV .LT. LIELL) THEN
-        DO 140 JJ = J3 + 1, J2
-          J = IW(JJ)
-          IFR = IFR + 1
-          DO K=1, NRHS
-            WCB(IFR+(K-1)*NCB) = RHS(J,K)
-            RHS(J,K)=ZERO
-          ENDDO
-  140   CONTINUE
-      ENDIF
+      IF (KEEP(201).EQ.1) THEN  
+         LD_WCBPIV = LIELL
+         LD_WCBCB  = LIELL
+         PCB_COURANT = PPIV_COURANT + NPIV
+         DO K=1, NRHS
+            IFR = PPIV_COURANT + (K-1)*LIELL - 1
+            DO JJ = J1, J3
+               J = IW(JJ)
+               IFR = IFR + 1
+               WCB(IFR) = RHS(J,K) 
+            ENDDO
+            IF (NCB.GT.0) THEN
+               DO JJ = J3+1, J2
+                  J = IW(JJ)
+                  IFR = IFR + 1
+                  WCB(IFR) = RHS(J,K) 
+                  RHS (J,K) = ZERO
+               ENDDO
+            ENDIF
+         END DO
+      ELSE                      
+         LD_WCBPIV = NPIV
+         LD_WCBCB  = NCB
+         PCB_COURANT = PPIV_COURANT + NPIV*NRHS
+         IFR = PPIV_COURANT - 1
+         DO 130 JJ = J1, J3
+            J = IW(JJ)
+            IFR = IFR + 1
+            DO K=1, NRHS
+               WCB(IFR+(K-1)*NPIV) = RHS(J,K) 
+            END DO
+ 130     CONTINUE
+         IFR = PCB_COURANT - 1
+         IF (NPIV .LT. LIELL) THEN
+            DO 140 JJ = J3 + 1, J2
+               J = IW(JJ)
+               IFR = IFR + 1
+               DO K=1, NRHS
+                  WCB(IFR+(K-1)*NCB) = RHS(J,K)
+                  RHS(J,K)=ZERO
+               ENDDO
+ 140        CONTINUE
+         ENDIF
+      ENDIF                     
       IF ( NPIV .NE. 0 ) THEN
-        IF ( KEEP(50).NE.0) THEN
-          IF ( NRHS == 1 ) THEN
-            CALL DTRSV( 'U', 'T', 'U', NPIV, A(APOS), NPIV,
+         IF (KEEP(201).EQ.1) THEN 
+        APOSDEB = APOS
+        J = 1
+        IPANEL = 0
+  10    CONTINUE
+          IPANEL = IPANEL + 1
+          JFIN    = min(J+PANEL_SIZE-1, NPIV)
+          IF (IW(IPOS+ LIELL + JFIN) < 0) THEN
+            JFIN=JFIN+1
+          ENDIF
+          NBJ     = JFIN-J+1
+          LDAJ    = LDAJ_FIRST_PANEL-J+1 
+          IF ( (KEEP(50).NE.1).AND. MUST_BE_PERMUTED ) THEN
+           CALL DMUMPS_667(TYPEF, TMP_NBPANELS,
+     *            I_PIVRPTR, I_PIVR, IPOS+1+2*LIELL, IW, LIW)
+               IF (NPIV.EQ.(IW(I_PIVRPTR+IPANEL-1)-1)) THEN
+                  MUST_BE_PERMUTED=.FALSE. 
+               ELSE
+                  CALL DMUMPS_698(
+     *                 IW( I_PIVR+ IW(I_PIVRPTR+IPANEL-1)-
+     *                 IW(I_PIVRPTR)), 
+     *                 NPIV-IW(I_PIVRPTR+IPANEL-1)+1, 
+     *                 IW(I_PIVRPTR+IPANEL-1)-1, 
+     *                          
+     *                 A(APOSDEB),
+     *                 LDAJ, NBJ, J-1 ) 
+               ENDIF
+            ENDIF 
+            NUPDATE_PANEL = LDAJ - NBJ
+            PPIV_PANEL = PPIV_COURANT+J-1
+            PCB_PANEL  = PPIV_PANEL+NBJ
+            APOS1 = APOSDEB+NBJ
+            IF  (MTYPE.EQ.1) THEN
+               IF ( NRHS == 1 ) THEN
+                  CALL DTRSV( 'L', 'N', 'U', NBJ, A(APOSDEB), LDAJ, 
+     *                 WCB(PPIV_PANEL), 1 )
+                  IF (NUPDATE_PANEL.GT.0) THEN
+                     CALL DGEMV('N', NUPDATE_PANEL,NBJ,ALPHA, A(APOS1),
+     *                    LDAJ,  WCB(PPIV_PANEL), 1, ONE,
+     *                    WCB(PCB_PANEL), 1)
+                  ENDIF
+               ELSE
+                  CALL DTRSM( 'L','L','N','U', NBJ, NRHS, ONE,
+     *                 A(APOSDEB), LDAJ, WCB(PPIV_PANEL),
+     *                 LIELL )
+                  IF (NUPDATE_PANEL.GT.0) THEN
+                     CALL DGEMM('N', 'N', NUPDATE_PANEL, NRHS, NBJ, 
+     $                    ALPHA,
+     *                    A(APOS1), LDAJ, WCB(PPIV_PANEL), LIELL, ONE,
+     *                    WCB(PCB_PANEL), LIELL)
+                  ENDIF
+               ENDIF
+            ELSE
+               IF (NRHS == 1) THEN
+                  CALL DTRSV( 'L', 'N', 'N', NBJ, A(APOSDEB), LDAJ,
+     *                 WCB(PPIV_PANEL), 1 )
+                  IF (NUPDATE_PANEL.GT.0) THEN
+                     CALL DGEMV('N',NUPDATE_PANEL, NBJ, ALPHA, A(APOS1),
+     *                    LDAJ, WCB(PPIV_PANEL), 1,
+     *                    ONE, WCB(PCB_PANEL), 1 )
+                  ENDIF
+               ELSE
+                  CALL DTRSM('L','L','N','N',NBJ, NRHS, ONE,
+     *                 A(APOSDEB), LDAJ, WCB(PPIV_PANEL),
+     *                 LIELL)
+                  IF (NUPDATE_PANEL.GT.0) THEN
+                     CALL DGEMM('N', 'N', NUPDATE_PANEL, NRHS, NBJ, 
+     $                    ALPHA,
+     *                    A(APOS1), LDAJ, WCB(PPIV_PANEL), LIELL, ONE,
+     *             WCB(PCB_PANEL), LIELL)
+                  ENDIF
+               ENDIF
+            ENDIF
+            APOSDEB = APOSDEB+LDAJ*NBJ
+            J=JFIN+1
+            IF ( J .LE. NPIV ) GOTO 10
+         ELSE                   
+            IF (KEEP(50).NE.0) THEN
+               IF ( NRHS == 1 ) THEN
+                  CALL DTRSV( 'U', 'T', 'U', NPIV, A(APOS), NPIV,
      *                   WCB(PPIV_COURANT), 1 )
-          ELSE
-            CALL DTRSM( 'L','U','T','U', NPIV, NRHS, ONE,
+               ELSE
+                  CALL DTRSM( 'L','U','T','U', NPIV, NRHS, ONE,
      *                   A(APOS), NPIV, WCB(PPIV_COURANT),
      *                   NPIV )
-          ENDIF
-        ELSE
-          IF ( MTYPE .eq. 1 ) THEN
-            IF ( NRHS == 1)  THEN
-              CALL DTRSV( 'U', 'T', 'U', NPIV, A(APOS), LIELL, 
-     *        WCB(PPIV_COURANT), 1 )
+               ENDIF
             ELSE
-              CALL DTRSM( 'L','U','T','U', NPIV, NRHS, ONE,
-     *                   A(APOS), LIELL, WCB(PPIV_COURANT),
-     *                   NPIV )
-            ENDIF
-          ELSE
-            IF (NRHS == 1) THEN
-               CALL DTRSV( 'L', 'N', 'N', NPIV, A(APOS), LIELL,
-     *         WCB(PPIV_COURANT), 1 )
-            ELSE
-              CALL DTRSM('L','L','N','N',NPIV, NRHS, ONE,
-     *                   A(APOS), LIELL, WCB(PPIV_COURANT),
-     *                   NPIV)
-            ENDIF
-          END IF
-        END IF
-      END IF
+               IF ( MTYPE .eq. 1 ) THEN
+                  IF ( NRHS == 1)  THEN
+                     CALL DTRSV( 'U', 'T', 'U', NPIV, A(APOS), LIELL, 
+     *                    WCB(PPIV_COURANT), 1 )
+                  ELSE
+                     CALL DTRSM( 'L','U','T','U', NPIV, NRHS, ONE,
+     *                    A(APOS), LIELL, WCB(PPIV_COURANT),
+     *                    NPIV )
+                  ENDIF
+               ELSE
+                  IF (NRHS == 1) THEN
+                     CALL DTRSV( 'L', 'N', 'N', NPIV, A(APOS), LIELL,
+     *                    WCB(PPIV_COURANT), 1 )
+                  ELSE
+                     CALL DTRSM('L','L','N','N',NPIV, NRHS, ONE,
+     *                    A(APOS), LIELL, WCB(PPIV_COURANT),
+     *                    NPIV)
+                  ENDIF
+               END IF
+            END IF              
+         END IF                 
+      END IF                    
       NCB   = LIELL - NPIV
       IF ( MTYPE .EQ. 1 ) THEN
-        IF ( KEEP(50) .eq. 0 ) THEN
-          APOS1 = APOS  + NPIV * LIELL
-        ELSE
-          APOS1 = APOS + NPIV * NPIV
-        END IF
-        IF ( NSLAVES .EQ. 0 .OR. NPIV .eq. 0 ) THEN
-          NUPDATE = NCB
-        ELSE
-          NUPDATE = NELIM
-        END IF
+         IF ( KEEP(50) .eq. 0 ) THEN
+            APOS1 = APOS  + NPIV * LIELL
+         ELSE
+            APOS1 = APOS + NPIV * NPIV
+         END IF
+         IF ( NSLAVES .EQ. 0 .OR. NPIV .eq. 0 ) THEN
+            NUPDATE = NCB
+         ELSE
+            NUPDATE = NELIM
+         END IF
       ELSE
-        APOS1 = APOS + NPIV
-        NUPDATE = NCB
+         APOS1 = APOS + NPIV
+         NUPDATE = NCB
       END IF
-      IF ( NPIV .NE. 0 .AND. NUPDATE.NE.0 ) THEN
-        IF ( MTYPE .eq. 1 ) THEN
-          IF ( NRHS == 1 ) THEN
-                CALL DGEMV('T', NPIV, NUPDATE, ALPHA, A(APOS1),
+      IF (KEEP(201).NE.1) THEN  
+         IF ( NPIV .NE. 0 .AND. NUPDATE.NE.0 ) THEN
+            IF ( MTYPE .eq. 1 ) THEN
+               IF ( NRHS == 1 ) THEN
+                  CALL DGEMV('T', NPIV, NUPDATE, ALPHA, A(APOS1),
      *            NPIV,  WCB(PPIV_COURANT), 1, ONE,
      *            WCB(PCB_COURANT), 1)
-          ELSE
-             CALL DGEMM('T', 'N', NUPDATE, NRHS, NPIV, ALPHA,
+               ELSE
+                  CALL DGEMM('T', 'N', NUPDATE, NRHS, NPIV, ALPHA,
      *            A(APOS1), NPIV, WCB(PPIV_COURANT), NPIV, ONE,
      *            WCB(PCB_COURANT), NCB)
-          END IF
-        ELSE
-          IF ( NRHS == 1 ) THEN
-                CALL DGEMV('N',NUPDATE, NPIV, ALPHA, A(APOS1),
-     *            LIELL, WCB(PPIV_COURANT), 1,
-     *            ONE, WCB(PCB_COURANT), 1 )
-          ELSE
-             CALL DGEMM('N', 'N', NUPDATE, NRHS, NPIV, ALPHA,
-     *            A(APOS1), LIELL, WCB(PPIV_COURANT), NPIV, ONE,
-     *            WCB(PCB_COURANT), NCB)
-          END IF
-        END IF
-      END IF
-      IFR = PPIV_COURANT - 1
+               END IF
+            ELSE                
+               IF ( NRHS == 1 ) THEN
+                  CALL DGEMV('N',NUPDATE, NPIV, ALPHA, A(APOS1),
+     *                 LIELL, WCB(PPIV_COURANT), 1,
+     *                 ONE, WCB(PCB_COURANT), 1 )
+               ELSE
+                  CALL DGEMM('N', 'N', NUPDATE, NRHS, NPIV, ALPHA,
+     *                 A(APOS1), LIELL, WCB(PPIV_COURANT), NPIV, ONE,
+     *                 WCB(PCB_COURANT), NCB)
+               END IF
+            END IF
+         END IF
+      END IF                    
       IF (BUILD_POSINRHSCOMP) THEN
          POSINRHSCOMP(STEP(INODE)) =  RHSCOMPFREEPOS
          RHSCOMPFREEPOS            = RHSCOMPFREEPOS + NPIV
       ENDIF
       IPOSINRHSCOMP =  POSINRHSCOMP(STEP(INODE))
       IF ( KEEP(50) .eq. 0 ) THEN
-        DO K=1,NRHS
-           IFR =  PPIV_COURANT + (K-1)*NPIV
-           RHSCOMP(IPOSINRHSCOMP:IPOSINRHSCOMP+NPIV-1, K) =
-     &            WCB(IFR:IFR+NPIV-1)
-        ENDDO
+         DO K=1,NRHS
+            IFR =  PPIV_COURANT + (K-1)*LD_WCBPIV
+            RHSCOMP(IPOSINRHSCOMP:IPOSINRHSCOMP+NPIV-1, K) =
+     &           WCB(IFR:IFR+NPIV-1)
+         ENDDO
       ELSE
-        APOS1 = APOS
-        JJ = J1
-        DO 
-           IF(JJ .GT. J3) EXIT
-           IFR = IFR + 1
-           IF(IW(JJ+LIELL) .GT. 0) THEN
-              DO K=1, NRHS
-                 RHSCOMP(IPOSINRHSCOMP+JJ-J1 , K ) = 
-     &              WCB( IFR+(K-1)*NPIV ) * A( APOS1 )
-              END DO
-              APOS1 = APOS1 + NPIV + 1
-              JJ = JJ+1
-           ELSE
-              APOS2 = APOS1+NPIV+1
-              DO K=1, NRHS
-                 POSWCB1 = IFR+(K-1)*NPIV
-                 POSWCB2 = POSWCB1+1
-                 RHSCOMP(IPOSINRHSCOMP+JJ-J1,K) = WCB(POSWCB1)*A(APOS1)
-     *                + WCB(POSWCB2)*A(APOS1+1)
-                 RHSCOMP(IPOSINRHSCOMP+JJ-J1+1,K) = 
-     *                 WCB(POSWCB1)*A(APOS1+1)
-     *                + WCB(POSWCB2)*A(APOS2)
-              END DO
-              APOS1 = APOS2 + NPIV + 1
-              JJ = JJ+2
-              IFR = IFR+1
-           ENDIF
-        ENDDO
+         IFR = PPIV_COURANT - 1
+         IF (KEEP(201).EQ.1) THEN 
+            LDAJ = TempNROW  
+         ELSE                
+            LDAJ = NPIV 
+         ENDIF
+         APOS1 = APOS
+         JJ    = J1
+         IF (KEEP(201).EQ.1) THEN
+            NBK   = 0           
+         ENDIF
+         DO 
+            IF(JJ .GT. J3) EXIT
+            IFR = IFR + 1
+            IF(IW(JJ+LIELL) .GT. 0) THEN
+               DO K=1, NRHS
+                  RHSCOMP(IPOSINRHSCOMP+JJ-J1 , K ) = 
+     &                 WCB( IFR+(K-1)*LD_WCBPIV ) * A( APOS1 )
+               END DO
+            IF (KEEP(201).EQ.1) THEN
+              NBK = NBK+1
+              IF (NBK.EQ.PANEL_SIZE) THEN
+                NBK = 0
+                LDAJ = LDAJ - PANEL_SIZE
+              ENDIF
+            ENDIF
+            APOS1 = APOS1 + LDAJ + 1
+            JJ = JJ+1
+         ELSE
+            IF (KEEP(201).EQ.1) THEN
+              NBK = NBK+1
+            ENDIF
+            APOS2 = APOS1+LDAJ+1
+            IF (KEEP(201).EQ.1) THEN
+              APOSOFF = APOS1+LDAJ
+            ELSE
+              APOSOFF=APOS1+1
+            ENDIF
+               DO K=1, NRHS
+                  POSWCB1 = IFR+(K-1)*LD_WCBPIV
+                  POSWCB2 = POSWCB1+1
+                  RHSCOMP(IPOSINRHSCOMP+JJ-J1,K) = WCB(POSWCB1)*A(APOS1)
+     *                 + WCB(POSWCB2)*A(APOSOFF)
+                  RHSCOMP(IPOSINRHSCOMP+JJ-J1+1,K) = 
+     *                 WCB(POSWCB1)*A(APOSOFF)
+     *                 + WCB(POSWCB2)*A(APOS2)
+               END DO
+               IF (KEEP(201).EQ.1) THEN
+                  NBK = NBK+1
+                  IF (NBK.GE.PANEL_SIZE) THEN
+                     LDAJ = LDAJ - NBK
+                     NBK = 0
+                  ENDIF
+               ENDIF
+               APOS1 = APOS2 + LDAJ + 1
+               JJ = JJ+2
+               IFR = IFR+1
+            ENDIF
+         ENDDO
       END IF
       IF (KEEP(201).NE.0) THEN
-        CALL DMUMPS_598(INODE,PTRFAC,KEEP(28),
+         CALL DMUMPS_598(INODE,PTRFAC,KEEP(28),
      $        A,LA,.TRUE.,IERR)
-        IF(IERR.LT.0)THEN
-           INFO(1)=IERR
-           INFO(2)=0
-           GOTO 260
-        ENDIF
+         IF(IERR.LT.0)THEN
+            INFO(1)=IERR
+            INFO(2)=0
+            GOTO 260
+         ENDIF
       END IF
       FPERE = DAD(STEP(INODE))
       IF ( FPERE .EQ. 0 ) THEN
-          MYROOT = MYROOT - 1
-          PLEFTWCB = PLEFTWCB - LIELL *NRHS
-          IF ( MYROOT .EQ. 0 ) THEN
+         MYROOT = MYROOT - 1
+         PLEFTWCB = PLEFTWCB - LIELL *NRHS
+         IF ( MYROOT .EQ. 0 ) THEN
             NBFIN = NBFIN - 1
             IF (SLAVEF .GT. 1) THEN
-              DUMMY (1) = 1
-              CALL DMUMPS_242(DUMMY, 1, MPI_INTEGER, MYID,
+               DUMMY (1) = 1
+               CALL DMUMPS_242(DUMMY, 1, MPI_INTEGER, MYID,
      *             COMM, RACINE_SOLVE, SLAVEF)
             ENDIF
-          END IF
-          GO TO 270
+         END IF
+         GO TO 270
       ENDIF
       IF ( NUPDATE .NE. 0 .OR. NCB.eq.0 ) THEN
-        IF (DMUMPS_275(STEP(FPERE),PROCNODE_STEPS,
-     *      SLAVEF) .EQ. MYID) THEN
-         IF ( NCB .ne. 0 ) THEN
-          PTRICB(STEP(INODE)) = NCB + 1
-          DO 190 I = 1, NUPDATE
-            DO K=1, NRHS
-             RHS( IW(J3 + I), K ) = RHS( IW(J3 + I), K )
-     *       + WCB(PCB_COURANT + I-1 +(K-1)*NCB)
-            ENDDO
-  190     CONTINUE
-          PTRICB(STEP( INODE )) = PTRICB(STEP( INODE )) - NUPDATE
-          IF ( PTRICB(STEP(INODE)) == 1 ) THEN
-            NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
-            IF (NSTK_S(STEP(FPERE)) .EQ. 0) THEN
-              IPOOL( LEAF ) = FPERE
-              LEAF = LEAF + 1
+         IF (MUMPS_275(STEP(FPERE),PROCNODE_STEPS,
+     *        SLAVEF) .EQ. MYID) THEN
+            IF ( NCB .ne. 0 ) THEN
+               PTRICB(STEP(INODE)) = NCB + 1
+               DO 190 I = 1, NUPDATE
+                  DO K=1, NRHS
+                     RHS( IW(J3 + I), K ) = RHS( IW(J3 + I), K )
+     *                    + WCB(PCB_COURANT + I-1 +(K-1)*LD_WCBCB)
+                  ENDDO
+ 190           CONTINUE
+               PTRICB(STEP( INODE )) = PTRICB(STEP( INODE )) - NUPDATE
+               IF ( PTRICB(STEP(INODE)) == 1 ) THEN
+                  NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
+                  IF (NSTK_S(STEP(FPERE)) .EQ. 0) THEN
+                        IPOOL( LEAF ) = FPERE
+                     LEAF = LEAF + 1
+                  ENDIF
+               END IF
+            ELSE
+               PTRICB(STEP( INODE )) = -1
+               NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
+               IF (NSTK_S(STEP(FPERE)) .EQ. 0) THEN 
+                     IPOOL( LEAF ) = FPERE 
+                  LEAF = LEAF + 1
+               ENDIF            
             ENDIF
-          END IF
          ELSE
-          PTRICB(STEP( INODE )) = -1
-          NSTK_S(STEP(FPERE)) = NSTK_S(STEP(FPERE)) - 1
-          IF (NSTK_S(STEP(FPERE)) .EQ. 0) THEN
-            IPOOL( LEAF ) = FPERE
-            LEAF = LEAF + 1
-          ENDIF
+ 210        CONTINUE
+            CALL DMUMPS_78( NRHS, INODE, FPERE, NCB, LD_WCBCB,
+     *           NUPDATE,
+     *           IW( J3 + 1 ), WCB( PCB_COURANT ),
+     *           MUMPS_275(STEP(FPERE),
+     *           PROCNODE_STEPS,SLAVEF),
+     *           ContVec,
+     *           COMM, IERR )
+            IF ( IERR .EQ. -1 ) THEN
+               CALL DMUMPS_303( .FALSE., FLAG,
+     *              BUFR, LBUFR, LBUFR_BYTES,
+     *              MYID, SLAVEF, COMM,
+     *              N, NRHS, IPOOL, LPOOL, III, LEAF,
+     *              NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST, PTRFAC,
+     *              IWCB, LIWCB,
+     *              WCB, LWCB, POSWCB, PLEFTWCB, POSIWCB,
+     *              PTRICB, INFO, KEEP,KEEP8, STEP,
+     *              PROCNODE_STEPS, 
+     *              RHS, LRHS 
+     $              )
+               IF ( INFO( 1 )  .LT. 0 )  GOTO 270
+               GOTO 210
+            ELSE IF ( IERR .EQ. -2 ) THEN
+               INFO( 1 ) = -17
+               INFO( 2 ) = NUPDATE * KEEP( 35 ) +
+     *              ( NUPDATE + 3 ) * KEEP( 34 )
+               GOTO 260
+            ELSE IF ( IERR .EQ. -3 ) THEN
+               INFO( 1 ) = -20
+               INFO( 2 ) = NUPDATE * KEEP( 35 ) +
+     *              ( NUPDATE + 3 ) * KEEP( 34 )
+               GOTO 260
+            END IF
          ENDIF
-        ELSE
- 210      CONTINUE
-          CALL DMUMPS_78( NRHS, INODE, FPERE, NCB, NCB,
-     *                          NUPDATE,
-     *                          IW( J3 + 1 ), WCB( PCB_COURANT ),
-     *                          DMUMPS_275(STEP(FPERE),
-     *                          PROCNODE_STEPS,SLAVEF),
-     *                          ContVec,
-     *                          COMM, IERR )
-          IF ( IERR .EQ. -1 ) THEN
-            CALL DMUMPS_303( .FALSE., FLAG,
-     *             BUFR, LBUFR, LBUFR_BYTES,
-     *             MYID, SLAVEF, COMM,
-     *             N, NRHS, IPOOL, LPOOL, III, LEAF,
-     *             NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST, PTRFAC,
-     *             IWCB, LIWCB,
-     *             WCB, LWCB, POSWCB, PLEFTWCB, POSIWCB,
-     *             PTRICB, INFO, KEEP,KEEP8, STEP,
-     *             PROCNODE_STEPS, 
-     *             RHS, LRHS)
-            IF ( INFO( 1 )  .LT. 0 )  GOTO 270
-            GOTO 210
-          ELSE IF ( IERR .EQ. -2 ) THEN
-             INFO( 1 ) = -17
-             INFO( 2 ) = NUPDATE * KEEP( 35 ) +
-     *            ( NUPDATE + 3 ) * KEEP( 34 )
-             GOTO 260
-          ELSE IF ( IERR .EQ. -3 ) THEN
-             INFO( 1 ) = -20
-             INFO( 2 ) = NUPDATE * KEEP( 35 ) +
-     *            ( NUPDATE + 3 ) * KEEP( 34 )
-             GOTO 260
-          END IF
-        ENDIF
       END IF
       IF ( NSLAVES .NE. 0 .AND. MTYPE .eq. 1
      *     .and. NPIV .NE. 0 ) THEN
-        DO ISLAVE = 1, NSLAVES
-          PDEST = IW( PTRIST(STEP(INODE)) + 5 + ISLAVE +XSIZE)
-          CALL DMUMPS_49( 
-     &                KEEP,KEEP8, INODE, STEP, N, SLAVEF,
-     &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
-     &                ISLAVE, NCB - NELIM, 
-     &                NSLAVES, 
-     &                Effective_CB_Size, FirstIndex )
- 222      CALL DMUMPS_72( NRHS,
-     *    INODE, FPERE,
-     *    Effective_CB_Size, NCB, NPIV,
-     *    WCB( PCB_COURANT + NELIM + FirstIndex - 1 ),
-     *    WCB( PPIV_COURANT ),
-     *    PDEST, COMM, IERR )
-          IF ( IERR .EQ. -1 ) THEN
-            CALL DMUMPS_303( .FALSE., FLAG,
-     *               BUFR, LBUFR, LBUFR_BYTES,
-     *               MYID, SLAVEF, COMM,
-     *               N, NRHS, IPOOL, LPOOL, III, LEAF,
-     *               NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST,PTRFAC,
-     *               IWCB, LIWCB,
-     *               WCB, LWCB, POSWCB, PLEFTWCB, POSIWCB,
-     *               PTRICB, INFO, KEEP,KEEP8, STEP,
-     *               PROCNODE_STEPS, 
-     *               RHS, LRHS)
-            IF ( INFO( 1 )  .LT. 0 )  GOTO 270
-            GOTO 222
-          ELSE IF ( IERR .EQ. -2 ) THEN
-            INFO( 1 ) = -17
-            INFO( 2 ) = (NPIV+Effective_CB_Size)*NRHS*KEEP(35) +
-     *      ( Effective_CB_Size + 4 ) * KEEP( 34 )
-            GOTO 260
-          ELSE IF ( IERR .EQ. -3 ) THEN
-            INFO( 1 ) = -20
-            INFO( 2 ) = (NPIV+Effective_CB_Size)*NRHS*KEEP(35) +
-     *      ( Effective_CB_Size + 4 ) * KEEP( 34 )
-            GOTO 260
-          END IF
-        END DO
+         DO ISLAVE = 1, NSLAVES
+            PDEST = IW( PTRIST(STEP(INODE)) + 5 + ISLAVE +KEEP(IXSZ))
+            CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
+     &           KEEP,KEEP8, INODE, STEP, N, SLAVEF,
+     &           ISTEP_TO_INIV2, TAB_POS_IN_PERE,
+     &           ISLAVE, NCB - NELIM, 
+     &           NSLAVES, 
+     &           Effective_CB_Size, FirstIndex )
+ 222        CALL DMUMPS_72( NRHS,
+     *           INODE, FPERE,
+     *           Effective_CB_Size, LD_WCBCB, LD_WCBPIV, NPIV,
+     *           WCB( PCB_COURANT + NELIM + FirstIndex - 1 ),
+     *           WCB( PPIV_COURANT ),
+     *           PDEST, COMM, IERR )
+            IF ( IERR .EQ. -1 ) THEN
+               CALL DMUMPS_303( .FALSE., FLAG,
+     *              BUFR, LBUFR, LBUFR_BYTES,
+     *              MYID, SLAVEF, COMM,
+     *              N, NRHS, IPOOL, LPOOL, III, LEAF,
+     *              NBFIN, NSTK_S, IW, LIW, A, LA, PTRIST,PTRFAC,
+     *              IWCB, LIWCB,
+     *              WCB, LWCB, POSWCB, PLEFTWCB, POSIWCB,
+     *              PTRICB, INFO, KEEP,KEEP8, STEP,
+     *              PROCNODE_STEPS, 
+     *              RHS, LRHS 
+     $              )
+               IF ( INFO( 1 )  .LT. 0 )  GOTO 270
+               GOTO 222
+            ELSE IF ( IERR .EQ. -2 ) THEN
+               INFO( 1 ) = -17
+               INFO( 2 ) = (NPIV+Effective_CB_Size)*NRHS*KEEP(35) +
+     *              ( Effective_CB_Size + 4 ) * KEEP( 34 )
+               GOTO 260
+            ELSE IF ( IERR .EQ. -3 ) THEN
+               INFO( 1 ) = -20
+               INFO( 2 ) = (NPIV+Effective_CB_Size)*NRHS*KEEP(35) +
+     *              ( Effective_CB_Size + 4 ) * KEEP( 34 )
+               GOTO 260
+            END IF
+         END DO
       END IF
       PLEFTWCB = PLEFTWCB - LIELL*NRHS
-  270 CONTINUE
+ 270  CONTINUE
       RETURN
-  260 CONTINUE
+ 260  CONTINUE
       CALL DMUMPS_44( MYID, SLAVEF, COMM )
       RETURN
       END SUBROUTINE DMUMPS_302
@@ -3408,7 +3710,8 @@ C
      *           WCB, LWCB, POSWCB,
      *           PLEFTWCB, POSIWCB,
      *           PTRICB, INFO, KEEP,KEEP8, STEP, PROCNODE_STEPS,
-     *           RHS, LRHS)
+     *           RHS, LRHS
+     $            )
       IMPLICIT NONE
       LOGICAL BLOQ
       INTEGER LBUFR, LBUFR_BYTES
@@ -3430,7 +3733,7 @@ C
       DOUBLE PRECISION RHS(LRHS, NRHS)
       LOGICAL FLAG
       INCLUDE 'mpif.h'
-      INCLUDE 'mumps_tags.h'
+      INCLUDE 'mumps_tags.h'                                                                              
       INTEGER IERR, STATUS( MPI_STATUS_SIZE )
       INTEGER MSGSOU, MSGTAG, MSGLEN
       FLAG = .FALSE.
@@ -3462,7 +3765,8 @@ C
      *          PLEFTWCB, POSIWCB,
      *          PTRICB, INFO, KEEP,KEEP8, STEP,
      *          PROCNODE_STEPS, 
-     *          RHS, LRHS)
+     *          RHS, LRHS 
+     $          )
          END IF
       END IF
       RETURN
@@ -3477,19 +3781,21 @@ C
      *    SLAVEF, COMM,MYID, BUFR, LBUFR, LBUFR_BYTES,
      *    KEEP,KEEP8, RHS_ROOT, MTYPE, 
      *
-     *    ISTEP_TO_INIV2, TAB_POS_IN_PERE
+     *    ISTEP_TO_INIV2, TAB_POS_IN_PERE, PANEL_POS, LPANEL_POS
      *    )
       USE DMUMPS_OOC
-      USE DMUMPS_BUFFER
+      USE DMUMPS_COMM_BUFFER
       IMPLICIT NONE
       INTEGER MTYPE
       INTEGER N,LA,LIW,LIWW,LWC,LPOOL,LNA
       INTEGER SLAVEF,MYLEAF,COMM,MYID
+      INTEGER LPANEL_POS
       INTEGER KEEP( 500 )
       INTEGER*8 KEEP8(150)
       INTEGER PROCNODE_STEPS(KEEP(28))
       INTEGER NA(LNA),NE_STEPS(KEEP(28))
       INTEGER IPOOL(LPOOL)
+      INTEGER PANEL_POS(LPANEL_POS)
       INTEGER INFO(40)
       INTEGER PTRIST(KEEP(28)),PTRFAC(KEEP(28)),
      *        PTRICB(KEEP(28)),PTRACB(KEEP(28))
@@ -3501,12 +3807,12 @@ C
       INTEGER LBUFR, LBUFR_BYTES
       INTEGER BUFR(LBUFR)
       INTEGER ISTEP_TO_INIV2(KEEP(71)), 
-     *        TAB_POS_IN_PERE(SLAVEF+2,MAX(1,KEEP(56)))
+     *        TAB_POS_IN_PERE(SLAVEF+2,max(1,KEEP(56)))
       INTEGER LRHSCOMP, POSINRHSCOMP(KEEP(28))
       DOUBLE PRECISION RHSCOMP(LRHSCOMP,NRHS)
       DOUBLE PRECISION RHS_ROOT( * )
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_tags.h'
       INTEGER STATUS( MPI_STATUS_SIZE ), IERR
@@ -3528,16 +3834,25 @@ C
       INTEGER PLEFTW, LDA, PTWCB
       INTEGER Offset, EffectiveSize, ISLAVE, FirstIndex
       LOGICAL LTLEVEL2, IN_SUBTREE
+      INTEGER TYPENODE
       INCLUDE 'mumps_headers.h'
       INTEGER TMPNODE
       LOGICAL BLOCK_SEQUENCE
+      INTEGER TMP_NBPANELS, I_PIVRPTR, I_PIVR
+      LOGICAL MUST_BE_PERMUTED
       LOGICAL SKIP
       LOGICAL DEJA_SEND( 0:SLAVEF-1 )
-      LOGICAL DMUMPS_283, DMUMPS_170
-      INTEGER DMUMPS_330
+      INTEGER APOSDEB, LDAJ, NBJ, LIWFAC, TailleEcrite,
+     &        APOSTEMP, NBJLAST, NPIV_LAST, PANEL_SIZE,
+     &        PTWCB_PANEL, NCB_PANEL, TYPEF
+      INTEGER BEG_PANEL
+      LOGICAL TWOBYTWO
+      INTEGER NPANELS, IPANEL
+      LOGICAL MUMPS_283, MUMPS_170
+      INTEGER MUMPS_330
       EXTERNAL DGEMV, DTRSV, DTRSM, DGEMM,
-     *         DMUMPS_283, DMUMPS_330, 
-     *         DMUMPS_170
+     *         MUMPS_283, MUMPS_330, 
+     *         MUMPS_170
       PLEFTW = 1
       POSIWCB = LIWW
       POSWCB = LWC
@@ -3546,19 +3861,20 @@ C
       NBROOT = NA(2)
       DO I = NBROOT, 1, -1
         INODE = NA(NBLEAF+I+2)
-        IF (DMUMPS_275(STEP(INODE),PROCNODE_STEPS,
+        IF (MUMPS_275(STEP(INODE),PROCNODE_STEPS,
      *      SLAVEF) .EQ. MYID) THEN
           NROOT = NROOT + 1
           IPOOL(NROOT) = INODE
         ENDIF
       END DO
       III = 1
-      IIPOOL = NROOT + 1
+      IIPOOL = NROOT + 1                 
+      BLOCK_SEQUENCE = .FALSE.
       IF (MYLEAF .EQ. -1) THEN
         MYLEAF = 0
         DO I=1, NBLEAF
           INODE=NA(I+2)
-          IF (DMUMPS_275(STEP(INODE),PROCNODE_STEPS,
+          IF (MUMPS_275(STEP(INODE),PROCNODE_STEPS,
      *         SLAVEF) .EQ. MYID) THEN
             MYLEAF = MYLEAF + 1
           ENDIF
@@ -3574,8 +3890,7 @@ C
           GOTO 340
         ENDIF
       ENDIF
-      BLOCK_SEQUENCE = .FALSE.
-   50 CONTINUE
+ 50   CONTINUE
       BLOQ = ( (  III .EQ. IIPOOL  )
      $     )
       CALL DMUMPS_41( BLOQ, FLAG, BUFR, LBUFR,
@@ -3583,7 +3898,8 @@ C
      *     N, IWCB, LIWW, POSIWCB,
      *     W, LWC, POSWCB,
      *     IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *     IPOOL, LPOOL, STEP,  FRERE, FILS, PROCNODE_STEPS,
+     *     IPOOL, LPOOL, PANEL_POS, LPANEL_POS,
+     *     STEP,  FRERE, FILS, PROCNODE_STEPS,
      *     PLEFTW, KEEP,KEEP8,
      *     PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
      *     RHS, LRHS, NRHS, MTYPE, 
@@ -3596,118 +3912,118 @@ C
           IIPOOL = IIPOOL - 1
           GO TO 60
         ENDIF
-      END IF                    !   .not.(FLAG)
+      END IF                    
       IF ( NBFINF .eq. 0 ) GOTO 340
       GOTO 50
    60 CONTINUE
       IF ( INODE .EQ. KEEP( 38 ) .OR. INODE .EQ. KEEP( 20 ) ) THEN
-        IPOS = PTRIST(STEP(INODE))+XSIZE
-        LIELL = IW(IPOS+3)
-        NPIV  = LIELL
-        IPOS =  PTRIST(STEP(INODE)) + 5 + XSIZE
-        IF ( MTYPE .EQ. 1 .AND. KEEP(50) .EQ. 0) THEN
-          J1   = IPOS + LIELL + 1
-          J2   = IPOS + LIELL + NPIV
-        ELSE
-          J1   = IPOS + 1
-          J2   = IPOS + NPIV
-        END IF
-        IFR  = 0
-        DO JJ = J1, J2
-          J  = IW( JJ )
-          IFR = IFR + 1
-          DO K=1,NRHS
-            RHS(J,K) = RHS_ROOT(IFR+NPIV*(K-1))
-          ENDDO
-        END DO 
-        IN = INODE
-  270   IN = FILS(IN)
-        IF (IN .GT. 0) GOTO 270
-        IF (IN .EQ. 0) THEN
-          MYLEAFE = MYLEAFE - 1
-          IF (MYLEAFE .EQ. 0) THEN
-            CALL DMUMPS_242( DUMMY, 1, MPI_INTEGER, MYID, COMM,
-     *                       FEUILLE, SLAVEF )
-            NBFINF = NBFINF - 1
-            IF (NBFINF .EQ. 0) GOTO 340
-          ENDIF
-          GOTO 50
-        ENDIF
-        IF   = -IN
-        LONG = NPIV
-        NBFILS = NE_STEPS(STEP(INODE))
-        DEBUT = .TRUE.
-        DO I = 0, SLAVEF - 1
-          DEJA_SEND( I ) = .FALSE.
-        END DO
-        POOL_FIRST_POS=IIPOOL
-        DO I = 1, NBFILS
-          IF (DMUMPS_275(STEP(IF),PROCNODE_STEPS,SLAVEF)
-     *       .EQ. MYID) THEN
-             IPOOL(IIPOOL) = IF
-             IIPOOL = IIPOOL + 1
-          ELSE
-            PROCDEST = DMUMPS_275(STEP(IF),PROCNODE_STEPS,
-     *                 SLAVEF)
-            IF (.NOT. DEJA_SEND( PROCDEST ))  THEN
- 600          CALL DMUMPS_78( NRHS, IF, 0, 0,
-     *           LONG, LONG, IW( J1 ),
-     *           RHS_ROOT( 1 ), PROCDEST,
-     *           NOEUD, COMM, IERR )
-              IF ( IERR .EQ. -1 ) THEN
-                CALL DMUMPS_41(
-     *          .FALSE., FLAG,
-     *          BUFR, LBUFR, LBUFR_BYTES,
-     *          MYID, SLAVEF, COMM,
-     *          N, IWCB, LIWW, POSIWCB,
-     *          W, LWC, POSWCB,
-     *          IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *          IPOOL, LPOOL, STEP, FRERE, FILS, PROCNODE_STEPS,
-     *          PLEFTW, KEEP,KEEP8,
-     *          PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
-     *          RHS, LRHS, NRHS, MTYPE,
-     *          RHSCOMP, LRHSCOMP, POSINRHSCOMP
-     *           )
-                IF ( INFO( 1 ) .LT. 0 ) GOTO 340
-                GOTO 600
-              ELSE IF ( IERR .EQ. -2 ) THEN
-                INFO( 1 ) = -17
-                INFO( 2 ) = LONG * KEEP(35) +
-     *                      ( LONG + 2 ) * KEEP(34)
-                GOTO 330
-              ELSE IF ( IERR .EQ. -3 ) THEN
-                INFO( 1 ) = -20
-                INFO( 2 ) = LONG * KEEP(35) +
-     *                      ( LONG + 2 ) * KEEP(34)
-                GOTO 330
-              END IF
-              DEJA_SEND( PROCDEST ) = .TRUE.
-            END IF
-            IF ( IERR .NE. 0 ) CALL DMUMPS_ABORT()
-          ENDIF
-          IF = FRERE(STEP(IF))
-#if defined(Mila_Print)
-#endif
-        ENDDO
-        IF (IIPOOL.NE.POOL_FIRST_POS) THEN
-            DO I=1,(IIPOOL-POOL_FIRST_POS)/2
-               TMP=IPOOL(POOL_FIRST_POS+I-1)
-               IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
-               IPOOL(IIPOOL-I)=TMP
-            ENDDO
+         IPOS = PTRIST(STEP(INODE))+KEEP(IXSZ)
+         LIELL = IW(IPOS+3)
+         NPIV  = LIELL
+         IPOS =  PTRIST(STEP(INODE)) + 5 + KEEP(IXSZ)
+         IF ( MTYPE .EQ. 1 .AND. KEEP(50) .EQ. 0) THEN
+            J1   = IPOS + LIELL + 1
+            J2   = IPOS + LIELL + NPIV
+         ELSE
+            J1   = IPOS + 1
+            J2   = IPOS + NPIV
+         END IF
+         IFR  = 0
+         DO JJ = J1, J2
+            J  = IW( JJ )
+            IFR = IFR + 1
+            DO K=1,NRHS
+               RHS(J,K) = RHS_ROOT(IFR+NPIV*(K-1))
+            END DO
+         END DO 
+         IN = INODE
+ 270     IN = FILS(IN)
+         IF (IN .GT. 0) GOTO 270
+         IF (IN .EQ. 0) THEN
+            MYLEAFE = MYLEAFE - 1
+            IF (MYLEAFE .EQ. 0) THEN
+               CALL DMUMPS_242( DUMMY, 1, MPI_INTEGER, MYID, COMM,
+     *              FEUILLE, SLAVEF )
+               NBFINF = NBFINF - 1
+               IF (NBFINF .EQ. 0) GOTO 340
+            ENDIF
+            GOTO 50
          ENDIF
-        GOTO 50
+         IF   = -IN
+         LONG = NPIV
+         NBFILS = NE_STEPS(STEP(INODE))
+         DEBUT = .TRUE.
+         DO I = 0, SLAVEF - 1
+            DEJA_SEND( I ) = .FALSE.
+         END DO
+         POOL_FIRST_POS=IIPOOL
+         DO I = 1, NBFILS
+            IF (MUMPS_275(STEP(IF),PROCNODE_STEPS,SLAVEF)
+     *           .EQ. MYID) THEN
+                  IPOOL(IIPOOL) = IF
+                  IIPOOL = IIPOOL + 1
+            ELSE
+               PROCDEST = MUMPS_275(STEP(IF),PROCNODE_STEPS,
+     *              SLAVEF)
+               IF (.NOT. DEJA_SEND( PROCDEST ))  THEN
+ 600              CALL DMUMPS_78( NRHS, IF, 0, 0,
+     *                 LONG, LONG, IW( J1 ),
+     *                 RHS_ROOT( 1 ), PROCDEST,
+     *                 NOEUD, COMM, IERR )
+                  IF ( IERR .EQ. -1 ) THEN
+                     CALL DMUMPS_41(
+     *                    .FALSE., FLAG,
+     *                    BUFR, LBUFR, LBUFR_BYTES,
+     *                    MYID, SLAVEF, COMM,
+     *                    N, IWCB, LIWW, POSIWCB,
+     *                    W, LWC, POSWCB,
+     *                    IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
+     *                    IPOOL, LPOOL, PANEL_POS, LPANEL_POS,
+     *                    STEP, FRERE, FILS, PROCNODE_STEPS,
+     *                    PLEFTW, KEEP,KEEP8,
+     *                    PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
+     *                    RHS, LRHS, NRHS, MTYPE,
+     *                    RHSCOMP, LRHSCOMP, POSINRHSCOMP
+     *                    )
+                     IF ( INFO( 1 ) .LT. 0 ) GOTO 340
+                     GOTO 600
+                  ELSE IF ( IERR .EQ. -2 ) THEN
+                     INFO( 1 ) = -17
+                     INFO( 2 ) = LONG * KEEP(35) +
+     *                    ( LONG + 2 ) * KEEP(34)
+                     GOTO 330
+                  ELSE IF ( IERR .EQ. -3 ) THEN
+                     INFO( 1 ) = -20
+                     INFO( 2 ) = LONG * KEEP(35) +
+     *                    ( LONG + 2 ) * KEEP(34)
+                     GOTO 330
+                  END IF
+                  DEJA_SEND( PROCDEST ) = .TRUE.
+               END IF
+               IF ( IERR .NE. 0 ) CALL MUMPS_ABORT()
+            ENDIF
+            IF = FRERE(STEP(IF))
+         ENDDO
+            IF (IIPOOL.NE.POOL_FIRST_POS) THEN
+               DO I=1,(IIPOOL-POOL_FIRST_POS)/2
+                  TMP=IPOOL(POOL_FIRST_POS+I-1)
+                  IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
+                  IPOOL(IIPOOL-I)=TMP
+               ENDDO
+            ENDIF
+         GOTO 50
       END IF
-      IN_SUBTREE = DMUMPS_170( 
+      IN_SUBTREE = MUMPS_170( 
      *          STEP (INODE), 
      *          PROCNODE_STEPS, SLAVEF ) 
+      TYPENODE = MUMPS_330(STEP(INODE),PROCNODE_STEPS,
+     *         SLAVEF)
       LTLEVEL2= ( 
-     *   (DMUMPS_330(STEP(INODE),PROCNODE_STEPS,
-     *         SLAVEF).eq.2 ) .AND.
+     *   (TYPENODE .eq.2 ) .AND.
      *   (MTYPE.NE.1)   )
-      NPIV = IW(PTRIST(STEP(INODE))+2+XSIZE+1)
+      NPIV = IW(PTRIST(STEP(INODE))+2+KEEP(IXSZ)+1)
       IF ((NPIV.NE.0).AND.(LTLEVEL2)) THEN
-            IPOS  = PTRIST(STEP(INODE)) + 2 + XSIZE
+            IPOS  = PTRIST(STEP(INODE)) + 2 + KEEP(IXSZ)
             LIELL = IW(IPOS-2)+IW(IPOS+1)
             NELIM = IW(IPOS-1)
             IPOS  = IPOS + 1
@@ -3715,10 +4031,10 @@ C
             NCB   = LIELL - NPIV - NELIM
             IPOS  = IPOS + 2
             NSLAVES = IW( IPOS )
-            Offset = 0  !!       = NPIV + NELIM
+            Offset = 0  
             IPOS = IPOS + NSLAVES   
             IW(PTRIST(STEP(INODE))+XXS)= C_FINI+NSLAVES
-           IF ( POSIWCB - NCB - 2 .LT. 0 .or.
+           IF ( POSIWCB - 2 .LT. 0 .or.
      *          POSWCB - NCB*NRHS .LT. PLEFTW - 1 ) THEN
              CALL DMUMPS_95( NRHS, N, KEEP(28), IWCB, LIWW, W, LWC,
      *          POSWCB, POSIWCB, PTRICB, PTRACB)
@@ -3727,13 +4043,13 @@ C
                INFO( 2 ) = NCB * NRHS - POSWCB - PLEFTW + 1
                GOTO 330
              END IF
-             IF ( POSIWCB - NCB - 2 .LT. 0 ) THEN
+             IF ( POSIWCB - 2 .LT. 0 ) THEN
                INFO( 1 ) = -14
-               INFO( 2 ) = NCB + 2 - POSIWCB
+               INFO( 2 ) = 2 - POSIWCB
                GO TO 330
              END IF
            END IF
-           POSIWCB = POSIWCB - NCB - 2
+           POSIWCB = POSIWCB - 2
            POSWCB  = POSWCB - NCB*NRHS
            PTRICB(STEP( INODE )) = POSIWCB + 1
            PTRACB(STEP( INODE )) = POSWCB  + 1
@@ -3744,12 +4060,9 @@ C
            ELSE
               POSINDICES = IPOS + 1
            END IF
-           IWCB( PTRICB(STEP( INODE )) + 2 :
-     *      PTRICB(STEP( INODE )) + 1 + NCB )
-     *        = IW( POSINDICES + NPIV + NELIM : POSINDICES + LIELL - 1 )
            IF ( NCB.EQ.0 ) THEN
              write(6,*) ' Internal Error type 2 node with no CB '
-             CALL DMUMPS_ABORT()
+             CALL MUMPS_ABORT()
            ENDIF
            IF ( MTYPE .EQ. 1 .AND. KEEP(50).EQ.0 ) THEN
                J1 = IPOS + LIELL + NPIV + NELIM +1
@@ -3767,33 +4080,34 @@ C
                ENDDO
            ENDDO
            DO ISLAVE = 1, NSLAVES
-              CALL DMUMPS_49( 
+              CALL MUMPS_BLOC2_GET_SLAVE_INFO( 
      &                KEEP,KEEP8, INODE, STEP, N, SLAVEF,
      &                ISTEP_TO_INIV2, TAB_POS_IN_PERE,
      &                ISLAVE, NCB, 
      &                NSLAVES, 
      &                EffectiveSize,
      &                FirstIndex )
- 500         DEST = IW( PTRIST(STEP(INODE))+5+ISLAVE+XSIZE)
+ 500         DEST = IW( PTRIST(STEP(INODE))+5+ISLAVE+KEEP(IXSZ))
              CALL DMUMPS_63(NRHS, INODE,
      *             W(Offset+PTRACB(STEP(INODE))), EffectiveSize, 
      *             NCB, DEST,
      *             BACKSLV_MASTER2SLAVE,
      *             COMM, IERR )
               IF ( IERR .EQ. -1 ) THEN
-                CALL DMUMPS_41(
-     *          .FALSE., FLAG,
-     *          BUFR, LBUFR, LBUFR_BYTES,
-     *          MYID, SLAVEF, COMM,
-     *          N, IWCB, LIWW, POSIWCB,
-     *          W, LWC, POSWCB,
-     *          IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *          IPOOL, LPOOL, STEP, FRERE, FILS,
-     *          PROCNODE_STEPS, PLEFTW, KEEP,KEEP8,
-     *          PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
-     *          RHS, LRHS, NRHS, MTYPE,
-     *          RHSCOMP, LRHSCOMP, POSINRHSCOMP
-     *     )
+                 CALL DMUMPS_41(
+     *                .FALSE., FLAG,
+     *                BUFR, LBUFR, LBUFR_BYTES,
+     *                MYID, SLAVEF, COMM,
+     *                N, IWCB, LIWW, POSIWCB,
+     *                W, LWC, POSWCB,
+     *                IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
+     *                IPOOL, LPOOL, PANEL_POS, LPANEL_POS,
+     *                STEP, FRERE, FILS,
+     *                PROCNODE_STEPS, PLEFTW, KEEP,KEEP8,
+     *                PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
+     *                RHS, LRHS, NRHS, MTYPE,
+     *                RHSCOMP, LRHSCOMP, POSINRHSCOMP
+     *                )
                 IF ( INFO( 1 ) .LT. 0 ) GOTO 340
                 GOTO 500
               ELSE IF ( IERR .EQ. -2 ) THEN
@@ -3813,45 +4127,47 @@ C
            CALL DMUMPS_151(NRHS,N, KEEP(28), IWCB, LIWW, W, LWC,
      *             POSWCB,POSIWCB,PTRICB,PTRACB)
            GOTO 50
-      ENDIF   ! of LTLEVEL2
-      IPOS = PTRIST(STEP(INODE)) + 2 + XSIZE
+      ENDIF   
+      IPOS = PTRIST(STEP(INODE)) + 2 + KEEP(IXSZ)
       LIELL = IW(IPOS-2)+IW(IPOS+1)
       NELIM = IW(IPOS-1)
       IPOS = IPOS + 1
       NPIV = IW(IPOS)
       IPOS = IPOS + 1
       IF (KEEP(201).NE.0) THEN
-       IF(.NOT.DMUMPS_SOLVE_IS_INODE_IN_MEM(INODE,
-     $     PTRFAC,KEEP(28),A,LA,IERR))THEN
+         CALL DMUMPS_643(
+     &        INODE,PTRFAC,KEEP,A,LA,STEP,
+     $        KEEP8,N,MUST_BE_PERMUTED,IERR)
          IF(IERR.LT.0)THEN
             INFO(1)=IERR
             INFO(2)=0
             GOTO 330
          ENDIF
-         CALL DMUMPS_578(INODE,PTRFAC,
-     $        KEEP,KEEP8,A,IERR)
-         IF(IERR.LT.0)THEN
-            INFO(1)=IERR
-            INFO(2)=0
-            GOTO 330
+         IF (KEEP(201).EQ.1) THEN
+              IF 
+     &         ( IW(
+     &      PTRIST(STEP(INODE))+IW(PTRIST(STEP(INODE))+XXI)-1
+     &         )
+     &           .EQ.-7777) THEN
+                 MUST_BE_PERMUTED = .FALSE.
+              ENDIF
          ENDIF
-         CALL DMUMPS_577(A(PTRFAC(IW(IPOS))),INODE,IERR
-     $   )
-         IF(IERR.LT.0)THEN
-            INFO(1)=IERR
-            INFO(2)=0
-            GOTO 330
-         ENDIF
-       ELSE
-         IF(IERR.LT.0)THEN
-            INFO(1)=IERR
-            INFO(2)=0
-            GOTO 330
-         ENDIF
-       ENDIF
-      ENDIF                     ! For OOC runs
+      ENDIF                     
       APOS = PTRFAC(IW(IPOS))
-      NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + XSIZE )
+      IF (KEEP(201).EQ.1) THEN 
+           LIWFAC =  IW(PTRIST(STEP(INODE))+XXI)
+           IF (MTYPE.NE.1) THEN
+            TYPEF = TYPEF_L
+           ELSE
+            TYPEF = TYPEF_U
+           ENDIF
+           CALL DMUMPS_690( INODE, TYPEF,
+     &          IW(PTRIST(STEP(INODE))), LIWFAC, LIELL,
+     &          PANEL_SIZE, TailleEcrite)
+#if defined(check)
+#endif
+      ENDIF  
+      NSLAVES = IW( PTRIST(STEP(INODE)) + 5 + KEEP(IXSZ) )
       IPOS = IPOS + 1 + NSLAVES
       LONG = 0
       IF ( MTYPE .EQ. 1 .OR. KEEP(50) .NE. 0 ) THEN
@@ -3873,7 +4189,7 @@ C
           END IF
         END IF
       ELSE
-        IF ( POSIWCB - LIELL - 2 .LT. 0 .or.
+        IF ( POSIWCB - 2 .LT. 0 .or.
      *     POSWCB - LIELL*NRHS .LT. PLEFTW - 1 ) THEN
           CALL DMUMPS_95( NRHS, N, KEEP(28), IWCB, LIWW, W, LWC,
      *          POSWCB, POSIWCB, PTRICB, PTRACB)
@@ -3882,13 +4198,13 @@ C
             INFO( 2 ) = LIELL * NRHS - POSWCB - PLEFTW + 1
             GOTO 330
           END IF
-          IF ( POSIWCB - LIELL - 2 .LT. 0 ) THEN
+          IF ( POSIWCB - 2 .LT. 0 ) THEN
             INFO( 1 ) = -14
-            INFO( 2 ) = LIELL + 2 - POSIWCB
+            INFO( 2 ) = 2 - POSIWCB
             GO TO 330
           END IF
         END IF
-        POSIWCB = POSIWCB - LIELL - 2
+        POSIWCB = POSIWCB - 2
         POSWCB  = POSWCB - LIELL*NRHS
         PTRICB(STEP( INODE )) = POSIWCB + 1
         PTRACB(STEP( INODE )) = POSWCB  + 1
@@ -3899,9 +4215,6 @@ C
         ELSE
            POSINDICES = IPOS + 1
         END IF
-        IWCB( PTRICB(STEP( INODE )) + 2 :
-     *   PTRICB(STEP( INODE )) + 1 + LIELL )
-     *     = IW( POSINDICES : POSINDICES + LIELL - 1 )
         PTWCB = PTRACB(STEP( INODE )) 
       ENDIF
       IPOSINRHSCOMP =  POSINRHSCOMP(STEP(INODE))
@@ -3928,6 +4241,94 @@ C
         ENDDO
         NCB = LIELL - NPIV
         IF (NPIV .EQ. 0) GOTO 160
+      ENDIF
+      IF (KEEP(201).EQ.1) THEN 
+       J = NPIV / PANEL_SIZE 
+       TWOBYTWO = KEEP(50).EQ.2 .AND.
+     * ((TYPENODE.EQ.1.AND.KEEP(103).GT.0) .OR.
+     *  (TYPENODE.EQ.2.AND.KEEP(105).GT.0))
+       IF (TWOBYTWO) THEN 
+         CALL DMUMPS_641(PANEL_SIZE, PANEL_POS, LPANEL_POS,
+     *        IW(IPOS+1+LIELL), NPIV, NPANELS)
+       ELSE
+         IF (NPIV.EQ.J*PANEL_SIZE) THEN
+           NPIV_LAST = NPIV
+           NBJLAST   = PANEL_SIZE
+           NPANELS   = J
+         ELSE
+           NPIV_LAST = (J+1)* PANEL_SIZE
+           NBJLAST   = NPIV-J*PANEL_SIZE
+           NPANELS   = J+1
+         ENDIF
+       ENDIF
+       APOSDEB = APOS + TailleEcrite 
+       JJ=NPIV_LAST
+       DO IPANEL = NPANELS, 1, -1
+            IF (TWOBYTWO) THEN
+              NBJ = PANEL_POS(IPANEL+1)-PANEL_POS(IPANEL)
+              BEG_PANEL = PANEL_POS(IPANEL)
+            ELSE
+              IF (JJ.EQ.NPIV_LAST) THEN
+                NBJ = NBJLAST
+              ELSE
+                NBJ = PANEL_SIZE
+              ENDIF
+              BEG_PANEL = JJ- PANEL_SIZE+1
+            ENDIF
+            LDAJ    = LIELL-BEG_PANEL+1 
+            APOSDEB = APOSDEB - NBJ*LDAJ 
+            PTWCB_PANEL = PTWCB + BEG_PANEL - 1
+            NCB_PANEL   = LDAJ - NBJ
+            IF (KEEP(50).NE.1 .AND. MUST_BE_PERMUTED) THEN
+              CALL DMUMPS_667(TYPEF, TMP_NBPANELS,
+     *        I_PIVRPTR, I_PIVR, IPOS + 1 + 2 * LIELL, IW, LIW)
+              IF (NPIV.EQ.(IW(I_PIVRPTR)-1)) THEN
+                MUST_BE_PERMUTED=.FALSE. 
+              ELSE
+               CALL DMUMPS_698(
+     *         IW(I_PIVR + IW(I_PIVRPTR+IPANEL-1)-IW(I_PIVRPTR)),
+     *         NPIV-IW(I_PIVRPTR+IPANEL-1)+1,
+     *         IW(I_PIVRPTR+IPANEL-1)-1,
+     *         A(APOSDEB),
+     *         LDAJ, NBJ, BEG_PANEL-1)
+              ENDIF
+            ENDIF
+            IF ( NRHS == 1 ) THEN
+              IF (NCB_PANEL.NE.0) THEN
+                CALL DGEMV( 'T', NCB_PANEL, NBJ, ALPHA, 
+     *                A( APOSDEB + NBJ ), LDAJ,
+     *                W( NBJ + PTWCB_PANEL ),
+     *                1, ONE,
+     *                W(PTWCB_PANEL), 1 )
+              ENDIF
+              IF (MTYPE.NE.1) THEN
+               CALL DTRSV('L','T','U', NBJ, A(APOSDEB), LDAJ,
+     *              W(PTWCB_PANEL), 1)
+              ELSE
+               CALL DTRSV('L','T','N', NBJ, A(APOSDEB), LDAJ,
+     *              W(PTWCB_PANEL), 1)
+              ENDIF
+            ELSE
+              IF (NCB_PANEL.NE.0) THEN
+                 CALL DGEMM( 'T', 'N', NBJ, NRHS, NCB_PANEL, ALPHA,
+     *              A(APOSDEB +NBJ), LDAJ, W(NBJ+PTWCB_PANEL),LIELL,
+     *              ONE, W(PTWCB_PANEL),LIELL)
+              ENDIF
+              IF (MTYPE.NE.1) THEN
+               CALL DTRSM('L','L','T','U',NBJ, NRHS, ONE, 
+     *           A(APOSDEB), 
+     *           LDAJ, W(PTWCB_PANEL), LIELL)
+              ELSE
+               CALL DTRSM('L','L','T','N',NBJ, NRHS, ONE, 
+     *           A(APOSDEB), 
+     *           LDAJ, W(PTWCB_PANEL), LIELL)
+              ENDIF
+            ENDIF
+            JJ=BEG_PANEL-1
+       ENDDO 
+      ENDIF 
+      IF (KEEP(201).EQ.0.OR.KEEP(201).EQ.2)THEN 
+       IF ( LIELL .GT. NPIV ) THEN
         IF ( MTYPE .eq. 1 ) THEN
           IST = APOS + NPIV
           IF (NRHS == 1) THEN
@@ -3956,9 +4357,9 @@ C
      *                A(IST), NPIV, W(NPIV+PTWCB),LIELL,
      *                ONE, W(PTWCB),LIELL)
             END IF
-        END IF ! MTYPE == 1
-      ENDIF  ! LIELL > NPIV
-      IF ( MTYPE .eq. 1 ) THEN
+        END IF 
+       ENDIF  
+       IF ( MTYPE .eq. 1 ) THEN
         IF ( NRHS == 1 ) THEN
           CALL DTRSV('L', 'T', 'N', NPIV, A(APOS), LIELL,
      *              W(PTWCB), 1)
@@ -3966,7 +4367,7 @@ C
           CALL DTRSM('L','L','T','N', NPIV, NRHS, ONE, A(APOS),
      *              LIELL, W(PTWCB), LIELL)
         ENDIF
-      ELSE
+       ELSE
         IF ( KEEP(50) .EQ. 0 ) THEN
           IF ( NRHS == 1 ) THEN
             CALL DTRSV('U','N','U', NPIV, A(APOS), LIELL,
@@ -3984,7 +4385,8 @@ C
      *           NPIV, W(PTWCB), LIELL)
           END IF
         END IF
-      END IF
+       END IF 
+      ENDIF 
       IF ( MTYPE .EQ. 1 .AND. KEEP(50).EQ.0) THEN
         J1 = IPOS + LIELL + 1
       ELSE
@@ -4022,30 +4424,30 @@ C
       IF = -IN
       NBFILS = NE_STEPS(STEP(INODE))
       IF (IN_SUBTREE) THEN
-        DO I = 1, NBFILS
-          IPOOL((IIPOOL-I+1)+NBFILS-I) = IF
-          IIPOOL = IIPOOL + 1
-          IF = FRERE(STEP(IF))
-        ENDDO
+         DO I = 1, NBFILS
+               IPOOL((IIPOOL-I+1)+NBFILS-I) = IF
+               IIPOOL = IIPOOL + 1
+            IF = FRERE(STEP(IF))
+         ENDDO
       ELSE
         DEBUT = .TRUE.
-        DO i = 0, SLAVEF - 1
-          DEJA_SEND( i ) = .FALSE.
+        DO I = 0, SLAVEF - 1
+          DEJA_SEND( I ) = .FALSE.
         END DO
         POOL_FIRST_POS=IIPOOL
         DO 190 I = 1, NBFILS
-          IF (DMUMPS_275(STEP(IF),PROCNODE_STEPS,
+          IF (MUMPS_275(STEP(IF),PROCNODE_STEPS,
      *      SLAVEF) .EQ. MYID) THEN
-            IPOOL(IIPOOL) = IF
-            IIPOOL = IIPOOL + 1
+                IPOOL(IIPOOL) = IF
+                IIPOOL = IIPOOL + 1
             IF = FRERE(STEP(IF))
           ELSE
-            PROCDEST = DMUMPS_275(STEP(IF),PROCNODE_STEPS,SLAVEF)
+            PROCDEST = MUMPS_275(STEP(IF),PROCNODE_STEPS,SLAVEF)
             IF (.not. DEJA_SEND( PROCDEST ))  THEN
  400          CONTINUE
               CALL DMUMPS_78( NRHS, IF, 0, 0, LIELL,
      *         LIELL,
-     *         IWCB( PTRICB(STEP( INODE )) + 2),
+     *         IW( POSINDICES ), 
      *         W   ( PTRACB(STEP( INODE ))), PROCDEST,
      *         NOEUD, COMM, IERR )
               IF ( IERR .EQ. -1 ) THEN
@@ -4056,12 +4458,13 @@ C
      *          N, IWCB, LIWW, POSIWCB,
      *          W, LWC, POSWCB,
      *          IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *          IPOOL, LPOOL, STEP, FRERE, FILS, PROCNODE_STEPS,
+     *          IPOOL, LPOOL, PANEL_POS, LPANEL_POS,
+     *          STEP, FRERE, FILS, PROCNODE_STEPS,
      *          PLEFTW, KEEP,KEEP8,
      *          PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
      *          RHS, LRHS, NRHS, MTYPE, 
      *          RHSCOMP, LRHSCOMP, POSINRHSCOMP
-     *     )
+     *                )
                 IF ( INFO( 1 ) .LT. 0 ) GOTO 340
                 GOTO 400
               ELSE IF ( IERR .EQ. -2 ) THEN
@@ -4078,11 +4481,11 @@ C
             IF = FRERE(STEP(IF))
           ENDIF
   190   CONTINUE
-         DO I=1,(IIPOOL-POOL_FIRST_POS)/2
-            TMP=IPOOL(POOL_FIRST_POS+I-1)
-            IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
-            IPOOL(IIPOOL-I)=TMP
-         ENDDO
+           DO I=1,(IIPOOL-POOL_FIRST_POS)/2
+              TMP=IPOOL(POOL_FIRST_POS+I-1)
+              IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
+              IPOOL(IIPOOL-I)=TMP
+           ENDDO 
         IWCB(PTRICB(STEP(INODE))+1) = IWCB(PTRICB(STEP(INODE))+1)-1
         CALL DMUMPS_151(NRHS,N, KEEP(28), IWCB, LIWW, 
      *     W, LWC,
@@ -4104,12 +4507,13 @@ C
      *     N, IWCB, LIWW, POSIWCB,
      *     W, LWC, POSWCB,
      *     IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *     IPOOL, LPOOL, STEP, FRERE, FILS, PROCNODE_STEPS,
+     *     IPOOL, LPOOL, PANEL_POS, LPANEL_POS,
+     *     STEP, FRERE, FILS, PROCNODE_STEPS,
      *     PLEFTW, KEEP,KEEP8,
      *     PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, RHS,
      *     LRHS, NRHS, MTYPE,
      *     RHSCOMP, LRHSCOMP, POSINRHSCOMP
-     *        )
+     *     )
       IMPLICIT NONE
       LOGICAL BLOQ, FLAG
       INTEGER LBUFR, LBUFR_BYTES
@@ -4122,6 +4526,8 @@ C
       INTEGER POSIWCB, POSWCB
       INTEGER IIPOOL, LPOOL
       INTEGER IPOOL( LPOOL )
+      INTEGER LPANEL_POS
+      INTEGER PANEL_POS( LPANEL_POS )
       INTEGER NBFINF, INFO(40)
       INTEGER PLEFTW, KEEP( 500)
       INTEGER*8 KEEP8(150)
@@ -4165,13 +4571,13 @@ C
      *                N, IWCB, LIWW, POSIWCB,
      *                W, LWC, POSWCB,
      *                IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *                IPOOL, LPOOL, STEP,
+     *                IPOOL, LPOOL, PANEL_POS, LPANEL_POS, STEP,
      *                FRERE, FILS, PROCNODE_STEPS, PLEFTW,
      *                KEEP,KEEP8,
      *                PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
      *                RHS, LRHS, NRHS, MTYPE, 
      *                RHSCOMP, LRHSCOMP, POSINRHSCOMP 
-     *         )
+     *          )
          END IF
       END IF
       RETURN
@@ -4183,14 +4589,14 @@ C
      *                N, IWCB, LIWW, POSIWCB,
      *                W, LWC, POSWCB,
      *                IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *                IPOOL, LPOOL, STEP,
+     *                IPOOL, LPOOL, PANEL_POS, LPANEL_POS, STEP,
      *                FRERE, FILS, PROCNODE_STEPS, PLEFTW, KEEP,KEEP8,
      *                PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
      *                RHS, LRHS, NRHS, MTYPE, 
      *                RHSCOMP, LRHSCOMP, POSINRHSCOMP 
      *           )
       USE DMUMPS_OOC
-      USE DMUMPS_BUFFER
+      USE DMUMPS_COMM_BUFFER
       IMPLICIT NONE
       INTEGER MSGTAG, MSGSOU
       INTEGER LBUFR, LBUFR_BYTES
@@ -4201,8 +4607,9 @@ C
       INTEGER LWC
       DOUBLE PRECISION W( LWC )
       INTEGER POSIWCB, POSWCB
-      INTEGER IIPOOL, LPOOL
+      INTEGER IIPOOL, LPOOL, LPANEL_POS
       INTEGER IPOOL( LPOOL )
+      INTEGER PANEL_POS( LPANEL_POS )
       INTEGER NBFINF, INFO(40)
       INTEGER PLEFTW, KEEP( 500)
       INTEGER*8 KEEP8(150)
@@ -4217,23 +4624,30 @@ C
       INTEGER MYLEAFE, MTYPE
       INTEGER LRHSCOMP, POSINRHSCOMP(KEEP(28))
       DOUBLE PRECISION RHSCOMP(LRHSCOMP,NRHS)
+      INTEGER TMP_NBPANELS, I_PIVRPTR, I_PIVR
+      LOGICAL MUST_BE_PERMUTED
       INCLUDE 'mpif.h'
       INCLUDE 'mumps_tags.h'
       INTEGER POSITION, IF, INODE, IERR, LONG, DUMMY(1)
       INTEGER P_UPDATE, P_SOL_MAS, LIELL, K
-      INTEGER NPIV, NPIV_CHECK, NROW_L, APOS, IPOS, NROW_RECU
+      INTEGER NPIV, NROW_L, APOS, IPOS, NROW_RECU
       INTEGER I, JJ, IN, PROCDEST, J1, J2, IFR, IST, LDA
       INTEGER NSLAVES, NELIM, J, POSINDICES, INODEPOS,
      &        IPOSINRHSCOMP
       LOGICAL FLAG
-      LOGICAL OOCON
       DOUBLE PRECISION ZERO, ALPHA, ONE
       PARAMETER( ZERO = 0.0D0, ALPHA = -1.0D0, ONE = 1.0D0)
       INCLUDE 'mumps_headers.h'
-       INTEGER POOL_FIRST_POS, TMP
+      INTEGER POOL_FIRST_POS, TMP
       LOGICAL DEJA_SEND( 0:SLAVEF-1 )
-      INTEGER DMUMPS_275
-      EXTERNAL DMUMPS_275, DTRSV, DTRSM, DGEMV, DGEMM
+      INTEGER MUMPS_275
+      EXTERNAL MUMPS_275, DTRSV, DTRSM, DGEMV, DGEMM
+      INTEGER APOSDEB, LDAJ, NBJ, LIWFAC, TailleEcrite,
+     &        APOSTEMP, NBJLAST, NPIV_LAST, PANEL_SIZE,
+     &        PTWCB_PANEL, NCB_PANEL, TYPEF
+      LOGICAL TWOBYTWO
+      INTEGER BEG_PANEL
+      INTEGER IPANEL, NPANELS
       IF (MSGTAG .EQ. FEUILLE) THEN
           NBFINF = NBFINF - 1
       ELSE IF (MSGTAG .EQ. NOEUD) THEN
@@ -4252,11 +4666,13 @@ C
             IF ((POSIWCB - LONG - 2 ) .LT. 0) THEN
               INFO(1)=-14
               INFO(2)=-POSIWCB + LONG + 2
+              WRITE(6,*) MYID,' Internal error in bwd solve COMPSO'
               GOTO 260
             END IF
             IF ( POSWCB - PLEFTW + 1 .LT. LONG ) THEN
               INFO(1) = -11
               INFO(2) = LONG + PLEFTW - POSWCB - 1
+              WRITE(6,*) MYID,' Internal error in bwd solve COMPSO'
               GOTO 260
             END IF
           ENDIF
@@ -4278,65 +4694,54 @@ C
             POSWCB = POSWCB + LONG
           ENDIF
           POOL_FIRST_POS = IIPOOL
-          IPOOL( IIPOOL ) = INODE
-          IIPOOL = IIPOOL + 1
+             IPOOL( IIPOOL ) = INODE
+             IIPOOL = IIPOOL + 1
           IF = FRERE( STEP(INODE) )
           DO WHILE ( IF .GT. 0 )
-            IF ( DMUMPS_275(STEP(IF),PROCNODE_STEPS,
-     *           SLAVEF) .eq. MYID ) THEN
-              IPOOL( IIPOOL ) = IF
-              IIPOOL = IIPOOL + 1
-            END IF
-            IF = FRERE( STEP( IF ) )
+             IF ( MUMPS_275(STEP(IF),PROCNODE_STEPS,
+     *            SLAVEF) .eq. MYID ) THEN
+                   IPOOL( IIPOOL ) = IF
+                   IIPOOL = IIPOOL + 1
+             END IF
+             IF = FRERE( STEP( IF ) )
           END DO
-        DO I=1,(IIPOOL-POOL_FIRST_POS)/2
-           TMP=IPOOL(POOL_FIRST_POS+I-1)
-           IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
-           IPOOL(IIPOOL-I)=TMP
-        ENDDO
+             DO I=1,(IIPOOL-POOL_FIRST_POS)/2
+                TMP=IPOOL(POOL_FIRST_POS+I-1)
+                IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
+                IPOOL(IIPOOL-I)=TMP
+             ENDDO      
       ELSE IF ( MSGTAG .EQ. BACKSLV_MASTER2SLAVE ) THEN
         POSITION = 0
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *                   INODE, 1, MPI_INTEGER, COMM, IERR )
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *                   NROW_RECU, 1, MPI_INTEGER, COMM, IERR )
-        IPOS   = PTRIST( STEP(INODE) ) + XSIZE
+        IPOS   = PTRIST( STEP(INODE) ) + KEEP(IXSZ)
         NPIV   = - IW( IPOS     )
         NROW_L =   IW( IPOS + 1 )
         IF (KEEP(201).NE.0) THEN
-         IF(.NOT.DMUMPS_SOLVE_IS_INODE_IN_MEM(INODE,
-     $       PTRFAC,KEEP(28),A,LA,IERR))THEN
+           CALL DMUMPS_643(
+     &     INODE,PTRFAC,KEEP,A,LA,STEP,
+     $     KEEP8,N,MUST_BE_PERMUTED,IERR)           
            IF(IERR.LT.0)THEN
               INFO(1)=IERR
               INFO(2)=0
               GOTO 260
            ENDIF
-           CALL DMUMPS_578(INODE,PTRFAC,
-     $          KEEP,KEEP8,A,IERR)
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
+           IF (KEEP(201).EQ.1) THEN
+              IF 
+     &         ( IW(
+     &      PTRIST(STEP(INODE))+IW(PTRIST(STEP(INODE))+XXI)-1
+     &         )
+     &           .EQ.-7777) THEN
+                 MUST_BE_PERMUTED = .FALSE.
+              ENDIF
            ENDIF
-           CALL DMUMPS_577(A(PTRFAC(IW( IPOS + 3 ))),INODE,IERR
-     $   )
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
-           ENDIF
-         ELSE
-           IF(IERR.LT.0)THEN
-              INFO(1)=IERR
-              INFO(2)=0
-              GOTO 260
-           ENDIF
-         ENDIF
-        ENDIF                     ! For OOC run
+        ENDIF                     
         APOS   =   PTRFAC(IW( IPOS + 3 ))
         IF ( NROW_L .NE. NROW_RECU ) THEN
           WRITE(*,*) 'Error1 in 41S : NROW L/RECU=',NROW_L, NROW_RECU
-          CALL DMUMPS_ABORT()
+          CALL MUMPS_ABORT()
         END IF
         LONG = NROW_L + NPIV
         IF ( POSWCB - LONG*NRHS .LT. PLEFTW - 1 ) THEN
@@ -4346,6 +4751,7 @@ C
            IF ( POSWCB - LONG*NRHS .LT. PLEFTW - 1 ) THEN
              INFO(1) = -11
              INFO(2) = LONG * NRHS- POSWCB
+             WRITE(6,*) MYID,' Internal error in bwd solve COMPSO'
              GOTO 260
            END IF
         END IF
@@ -4358,15 +4764,27 @@ C
      *                   MPI_DOUBLE_PRECISION,
      *                   COMM, IERR )
         ENDDO
-        IF ( NRHS == 1 ) THEN
-          CALL DGEMV( 'N', NPIV, NROW_L, ALPHA, A( APOS ), NPIV,
+        IF (KEEP(201).EQ.1) THEN 
+          IF ( NRHS == 1 ) THEN
+           CALL DGEMV( 'T', NROW_L, NPIV, ALPHA, A( APOS ), NROW_L,
      *              W( P_SOL_MAS ), 1, ZERO,
      *              W( P_UPDATE ), 1 )
+          ELSE
+           CALL DGEMM( 'T', 'N', NPIV, NRHS, NROW_L, ALPHA, A(APOS),
+     *           NROW_L, W( P_SOL_MAS ), NROW_L, ZERO, W( P_UPDATE ),
+     *           NPIV )
+          ENDIF
         ELSE
-          CALL DGEMM( 'N', 'N', NPIV, NRHS, NROW_L, ALPHA, A(APOS),
-     *                NPIV, W( P_SOL_MAS ), NROW_L, ZERO, W( P_UPDATE ),
-     *                NPIV )
-        END IF
+          IF ( NRHS == 1 ) THEN
+           CALL DGEMV( 'N', NPIV, NROW_L, ALPHA, A( APOS ), NPIV,
+     *              W( P_SOL_MAS ), 1, ZERO,
+     *              W( P_UPDATE ), 1 )
+          ELSE
+           CALL DGEMM( 'N', 'N', NPIV, NRHS, NROW_L, ALPHA, A(APOS),
+     *            NPIV, W( P_SOL_MAS ), NROW_L, ZERO, W( P_UPDATE ),
+     *            NPIV )
+          END IF
+        ENDIF 
         IF (KEEP(201).NE.0) THEN
          CALL DMUMPS_598(INODE,PTRFAC,KEEP(28),
      $          A,LA,.TRUE.,IERR)
@@ -4391,12 +4809,12 @@ C
      *     N, IWCB, LIWW, POSIWCB,
      *     W, LWC, POSWCB,
      *     IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *     IPOOL, LPOOL, STEP,
+     *     IPOOL, LPOOL, PANEL_POS, LPANEL_POS, STEP,
      *     FRERE, FILS, PROCNODE_STEPS, PLEFTW, KEEP,KEEP8,
      *     PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE,
      *     RHS, LRHS, NRHS, MTYPE,
      *     RHSCOMP, LRHSCOMP, POSINRHSCOMP
-     * )
+     *          )
           IF ( INFO( 1 ) .LT. 0 ) GOTO 270
           GOTO 100
         ELSE IF ( IERR .EQ. -2 ) THEN
@@ -4413,7 +4831,7 @@ C
         POSITION = 0
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *                   INODE, 1, MPI_INTEGER, COMM, IERR )
-        IPOS  = PTRIST(STEP(INODE)) + 2 + XSIZE
+        IPOS  = PTRIST(STEP(INODE)) + 2 + KEEP(IXSZ)
         LIELL = IW(IPOS-2)+IW(IPOS+1)
         CALL MPI_UNPACK( BUFR, LBUFR_BYTES, POSITION,
      *                   NPIV, 1, MPI_INTEGER, COMM, IERR )
@@ -4423,7 +4841,12 @@ C
           IPOS = IPOS + 1
           NSLAVES = IW( IPOS + 1 )
           IPOS = IPOS + 1 + NSLAVES
-          OOCON  = (KEEP(201).NE.0)  ! OOC case
+          INODEPOS = PTRIST(STEP(INODE)) + KEEP(IXSZ) + 4
+          IF ( KEEP(50) .eq. 0 ) THEN
+           LDA = LIELL
+          ELSE
+           LDA = NPIV
+          ENDIF
           IF ( MTYPE .EQ. 1 .OR. KEEP(50) .NE. 0 ) THEN
              J1 = IPOS + 1
              J2 = IPOS + NPIV
@@ -4437,46 +4860,51 @@ C
      *                   COMM, IERR )
          IPOSINRHSCOMP =  POSINRHSCOMP(STEP(INODE))
          I = 1
-         DO JJ = J1,J2   ! NPIV terms
+         DO JJ = J1,J2   
             RHSCOMP(IPOSINRHSCOMP+JJ-J1,K) = 
      &      RHSCOMP(IPOSINRHSCOMP+JJ-J1,K) + W2(I)
             I = I+1
          ENDDO
-        ENDDO  ! Loop on NRHS
+        ENDDO  
         IW(PTRIST(STEP(INODE))+XXS) = 
      *      IW(PTRIST(STEP(INODE))+XXS) - 1
         IF ( IW(PTRIST(STEP(INODE))+XXS).EQ.C_FINI ) THEN
-          IF (OOCON) THEN
-           INODEPOS = PTRIST(STEP(INODE)) + XSIZE + 4
-           IF(.NOT.DMUMPS_SOLVE_IS_INODE_IN_MEM(INODE,
-     $         PTRFAC,KEEP(28),A,LA,IERR))THEN
+          IF (KEEP(201).NE.0) THEN
+             CALL DMUMPS_643(
+     &            INODE,PTRFAC,KEEP,A,LA,STEP,
+     $            KEEP8,N,MUST_BE_PERMUTED,IERR)
              IF(IERR.LT.0)THEN
                 INFO(1)=IERR
                 INFO(2)=0
                 GOTO 260
              ENDIF
-             CALL DMUMPS_578(INODE,PTRFAC,
-     $            KEEP,KEEP8,A,IERR)
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
+             IF (KEEP(201).EQ.1) THEN
+              IF 
+     &         ( IW(
+     &      PTRIST(STEP(INODE))+IW(PTRIST(STEP(INODE))+XXI)-1
+     &         )
+     &           .EQ.-7777) THEN
+                 MUST_BE_PERMUTED = .FALSE.
+              ENDIF
              ENDIF
-             CALL DMUMPS_577(A(PTRFAC(IW( INODEPOS ))),INODE,IERR
-     $       )
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
-             ENDIF
-           ELSE
-             IF(IERR.LT.0)THEN
-                INFO(1)=IERR
-                INFO(2)=0
-                GOTO 260
-             ENDIF
+          ENDIF  
+          APOS = PTRFAC(IW(INODEPOS))
+          IF (KEEP(201).EQ.1) THEN 
+           LIWFAC =  IW(PTRIST(STEP(INODE))+XXI)
+           IF (MTYPE.NE.1) THEN
+            TYPEF = TYPEF_L
+            NROW_L   = NPIV+NELIM  
+            CALL DMUMPS_690( INODE, TYPEF,
+     &          IW(PTRIST(STEP(INODE))), LIWFAC, NROW_L,
+     &          PANEL_SIZE, TailleEcrite)
            ENDIF
-           IF ( POSIWCB - LIELL - 2 .LT. 0 .or.
+           IF (PANEL_SIZE.LT.0) THEN
+            WRITE(6,*) ' Internal error in bwd solve PANEL_SIZE=',
+     &      PANEL_SIZE
+            CALL MUMPS_ABORT()
+           ENDIF
+          ENDIF 
+           IF ( POSIWCB - 2 .LT. 0 .or.
      *         POSWCB - LIELL*NRHS .LT. PLEFTW - 1 ) THEN
             CALL DMUMPS_95( NRHS, N, KEEP(28), IWCB, 
      *          LIWW, W, LWC,
@@ -4486,28 +4914,24 @@ C
               INFO( 2 ) = LIELL * NRHS - POSWCB - PLEFTW + 1
               GOTO 260
             END IF
-            IF ( POSIWCB - LIELL - 2 .LT. 0 ) THEN
+            IF ( POSIWCB - 2 .LT. 0 ) THEN
               INFO( 1 ) = -14
-              INFO( 2 ) = LIELL + 2 - POSIWCB
+              INFO( 2 ) = 2 - POSIWCB
               GO TO 260
             END IF
            END IF
-          ENDIF    ! if OOCON
-           POSIWCB = POSIWCB - LIELL - 2
+           POSIWCB = POSIWCB - 2
            POSWCB  = POSWCB - LIELL*NRHS
            PTRICB(STEP( INODE )) = POSIWCB + 1
            PTRACB(STEP( INODE )) = POSWCB  + 1
            IWCB( PTRICB(STEP( INODE ))     ) = LIELL
            IWCB( PTRICB(STEP( INODE )) + 1 ) = 1  
-           IPOS = PTRIST(STEP(INODE)) + XSIZE + 5 + NSLAVES
+           IPOS = PTRIST(STEP(INODE)) + KEEP(IXSZ) + 5 + NSLAVES
            IF ( MTYPE.EQ.1 .AND. KEEP(50).EQ.0 ) THEN
              POSINDICES = IPOS + LIELL + 1
            ELSE
              POSINDICES = IPOS + 1
            END IF
-           IWCB( PTRICB(STEP( INODE )) + 2 :
-     *      PTRICB(STEP( INODE )) + 1 + LIELL )
-     *       = IW( POSINDICES : POSINDICES + LIELL - 1 )
            IPOSINRHSCOMP =  POSINRHSCOMP(STEP(INODE))
            IFR = PTRACB(STEP( INODE ))
            DO K=1, NRHS
@@ -4524,16 +4948,84 @@ C
              J1 = IPOS + NPIV + 1
              J2 = IPOS + LIELL
            END IF
-           DO JJ = J1, J2   ! LIELL - NPIV terms
+           DO JJ = J1, J2   
               J = IW(JJ)
               IFR = IFR + 1
               DO K=1, NRHS
                 W(IFR+(K-1)*LIELL) = RHS(J,K)
               ENDDO
            ENDDO
-           IF (NELIM .GT.0) THEN
-            INODEPOS = PTRIST(STEP(INODE)) + 4 + XSIZE
-            APOS = PTRFAC(IW(INODEPOS))
+       IF ( KEEP(201).EQ.1 .AND.
+     *    (( NELIM .GT. 0 ).OR. (MTYPE.NE.1 )))  THEN
+          J = NPIV / PANEL_SIZE  
+          TWOBYTWO = KEEP(50).EQ.2 .AND. KEEP(105).GT.0
+          IF (TWOBYTWO) THEN
+            CALL DMUMPS_641(PANEL_SIZE, PANEL_POS,
+     &           LPANEL_POS, IW(IPOS+1+LIELL), NPIV, NPANELS)
+          ELSE
+            IF (NPIV.EQ.J*PANEL_SIZE) THEN
+             NPIV_LAST = NPIV
+             NBJLAST   = PANEL_SIZE
+             NPANELS   = J
+           ELSE
+             NPIV_LAST = (J+1)* PANEL_SIZE
+             NBJLAST   = NPIV-J*PANEL_SIZE
+             NPANELS   = J+1
+           ENDIF
+          ENDIF
+          APOSDEB = APOS + TailleEcrite 
+          JJ=NPIV_LAST
+          DO IPANEL=NPANELS,1,-1
+            IF (TWOBYTWO) THEN
+              NBJ = PANEL_POS(IPANEL+1)-PANEL_POS(IPANEL)
+              BEG_PANEL = PANEL_POS(IPANEL)
+            ELSE
+              IF (JJ.EQ.NPIV_LAST) THEN
+                NBJ = NBJLAST
+              ELSE
+                NBJ = PANEL_SIZE
+              ENDIF
+              BEG_PANEL = JJ- PANEL_SIZE+1
+            ENDIF
+            LDAJ    = NROW_L-BEG_PANEL+1 
+            APOSDEB = APOSDEB - NBJ*LDAJ 
+            PTWCB_PANEL =  PTRACB(STEP(INODE)) + BEG_PANEL - 1
+            NCB_PANEL   = LDAJ - NBJ
+            IF (KEEP(50).NE.1 .AND.MUST_BE_PERMUTED) THEN
+              CALL DMUMPS_667(TYPEF, TMP_NBPANELS,
+     *        I_PIVRPTR, I_PIVR, IPOS + 1 + 2 * LIELL, IW, LIW)
+              CALL DMUMPS_698(
+     *        IW(I_PIVR + IW(I_PIVRPTR+IPANEL-1)-IW(I_PIVRPTR)),
+     *        NPIV-IW(I_PIVRPTR+IPANEL-1)+1,
+     *        IW(I_PIVRPTR+IPANEL-1)-1,
+     *        A(APOSDEB),
+     *        LDAJ, NBJ, BEG_PANEL-1)
+            ENDIF
+            IF ( NRHS == 1 ) THEN
+              IF (NCB_PANEL.NE.0) THEN
+                CALL DGEMV( 'T', NCB_PANEL, NBJ, ALPHA, 
+     *                A( APOSDEB + NBJ ), LDAJ,
+     *                W( NBJ + PTWCB_PANEL ),
+     *                1, ONE,
+     *                W(PTWCB_PANEL), 1 )
+              ENDIF
+              CALL DTRSV('L','T','U', NBJ, A(APOSDEB), LDAJ,
+     *              W(PTWCB_PANEL), 1)
+            ELSE
+              IF (NCB_PANEL.NE.0) THEN
+                CALL DGEMM( 'T', 'N', NBJ, NRHS, NCB_PANEL, ALPHA,
+     *              A(APOSDEB +NBJ), LDAJ, W(NBJ+PTWCB_PANEL),LIELL,
+     *              ONE, W(PTWCB_PANEL),LIELL)
+              ENDIF
+              CALL DTRSM('L','L','T','U',NBJ, NRHS, ONE, 
+     *           A(APOSDEB), 
+     *           LDAJ, W(PTWCB_PANEL), LIELL)
+            ENDIF
+            JJ=BEG_PANEL-1
+          ENDDO 
+        GOTO 1234  
+       ENDIF 
+          IF (NELIM .GT.0) THEN
             IF ( KEEP(50) .eq. 0 ) THEN
                 IST = APOS + NPIV * LIELL
             ELSE
@@ -4550,21 +5042,7 @@ C
      *                A(IST), NPIV, W(NPIV+PTRACB(STEP(INODE))),LIELL,
      *                ONE, W(PTRACB(STEP(INODE))),LIELL)
              END IF
-           ENDIF ! update due to nelim var
-          IPOS  = PTRIST(STEP(INODE)) + 2 + XSIZE
-          LIELL = IW(IPOS-2)+IW(IPOS+1)
-          NPIV_CHECK = IW( IPOS + 1 )
-          IF ( NPIV .NE. NPIV_CHECK ) THEN
-            WRITE(*,*) 'Error 2 in usedbympima41s.F'
-            CALL DMUMPS_ABORT()
-          END IF
-          APOS  = PTRFAC(IW( IPOS +2 ))
-          NSLAVES = IW (IPOS+3)
-          IF ( KEEP(50) .eq. 0 ) THEN
-           LDA = LIELL
-          ELSE
-           LDA = NPIV
-          ENDIF
+          ENDIF 
           IF ( NRHS == 1 ) THEN
               CALL DTRSV( 'U', 'N', 'U', NPIV, A(APOS), LDA,
      *                  W(PTRACB(STEP(INODE))),1)
@@ -4573,7 +5051,8 @@ C
      *                   A(APOS), LDA,
      *                   W(PTRACB(STEP(INODE))),LIELL)
           END IF
-          IF (OOCON) THEN
+ 1234     CONTINUE   
+          IF (KEEP(201).NE.0) THEN
            CALL DMUMPS_598(INODE,PTRFAC,KEEP(28),
      $          A,LA,.TRUE.,IERR)
            IF(IERR.LT.0)THEN
@@ -4582,7 +5061,7 @@ C
               GOTO 260
            ENDIF
           ENDIF
-          IPOS =   PTRIST(STEP(INODE)) +  XSIZE + 6 + NSLAVES   ! pointer to first index in the list
+          IPOS =   PTRIST(STEP(INODE)) +  KEEP(IXSZ) + 6 + NSLAVES   
           DO I = 1, NPIV
             JJ = IW( IPOS + I - 1 )
             DO K=1,NRHS
@@ -4605,24 +5084,24 @@ C
      *          IWCB, LIWW, W, LWC,
      *          POSWCB, POSIWCB, PTRICB, PTRACB)
             GOTO 270
-          ENDIF  ! IN is a leave node
+          ENDIF  
           DO I = 0, SLAVEF - 1
             DEJA_SEND( I ) = .FALSE.
           END DO
           IN = -IN
  300      CONTINUE
            POOL_FIRST_POS  = IIPOOL
-            IF (DMUMPS_275(STEP(IN),PROCNODE_STEPS,
+            IF (MUMPS_275(STEP(IN),PROCNODE_STEPS,
      *          SLAVEF) .EQ. MYID) THEN
-              IPOOL(IIPOOL ) = IN
-              IIPOOL = IIPOOL + 1
+                  IPOOL(IIPOOL ) = IN
+                  IIPOOL = IIPOOL + 1
             ELSE
-              PROCDEST = DMUMPS_275( STEP(IN), PROCNODE_STEPS,
+              PROCDEST = MUMPS_275( STEP(IN), PROCNODE_STEPS,
      *                   SLAVEF )
               IF ( .NOT. DEJA_SEND( PROCDEST ) ) THEN
  110            CALL DMUMPS_78( NRHS, IN, 0, 0,
      *          LIELL, LIELL,
-     *          IWCB( PTRICB(STEP(INODE))+2 ),
+     *          IW( POSINDICES ) ,
      *          W( PTRACB(STEP(INODE))),
      *          PROCDEST, NOEUD, COMM, IERR )
                 IF ( IERR .EQ. -1 ) THEN
@@ -4633,7 +5112,7 @@ C
      *            N, IWCB, LIWW, POSIWCB,
      *            W, LWC, POSWCB,
      *            IIPOOL, NBFINF, PTRICB, PTRACB, INFO,
-     *            IPOOL, LPOOL, STEP,
+     *            IPOOL, LPOOL, PANEL_POS, LPANEL_POS, STEP,
      *            FRERE, FILS, PROCNODE_STEPS, PLEFTW, KEEP,KEEP8,
      *            PTRIST, PTRFAC, IW, LIW, A, LA, W2, MYLEAFE, 
      *            RHS, LRHS, NRHS, MTYPE, 
@@ -4661,12 +5140,12 @@ C
            TMP=IPOOL(POOL_FIRST_POS+I-1)
            IPOOL(POOL_FIRST_POS+I-1)=IPOOL(IIPOOL-I)
            IPOOL(IIPOOL-I)=TMP
-          ENDDO
+          ENDDO 
           IWCB( PTRICB(STEP( INODE )) + 1 ) = 0
           CALL DMUMPS_151(NRHS, N, KEEP(28),
      *          IWCB, LIWW, W, LWC,
      *          POSWCB, POSIWCB, PTRICB, PTRACB)
-        END IF
+        END IF   
       ELSE IF (MSGTAG.EQ.TERREUR) THEN
           INFO(1) = -001
           INFO(2) = MSGSOU
@@ -4685,6 +5164,37 @@ C
  270  CONTINUE
       RETURN
       END SUBROUTINE DMUMPS_42
+      SUBROUTINE DMUMPS_641(PANEL_SIZE, PANEL_POS,
+     *                           LEN_PANEL_POS, INDICES, NPIV,
+     *                           NPANELS)
+      IMPLICIT NONE
+      INTEGER, intent (in) :: PANEL_SIZE, NPIV
+      INTEGER, intent (in) :: INDICES(NPIV)
+      INTEGER, intent (in) :: LEN_PANEL_POS
+      INTEGER, intent (out):: NPANELS
+      INTEGER, intent (out):: PANEL_POS(LEN_PANEL_POS)
+      INTEGER NPANELS_MAX, I, NBeff
+      NPANELS_MAX = (NPIV+PANEL_SIZE-1)/PANEL_SIZE
+      IF (LEN_PANEL_POS .LT. NPANELS_MAX + 1) THEN
+        WRITE(*,*) "Error in DMUMPS_641",
+     *              LEN_PANEL_POS,NPANELS_MAX
+        CALL MUMPS_ABORT()
+      ENDIF
+      I = 1
+      NPANELS = 0
+      IF (I .GT. NPIV) RETURN 
+ 10   CONTINUE
+      NPANELS = NPANELS + 1
+      PANEL_POS(NPANELS) = I
+      NBeff = min(PANEL_SIZE, NPIV-I+1)
+      IF ( INDICES(I+NBeff-1) < 0) THEN
+        NBeff=NBeff+1
+      ENDIF
+      I=I+NBeff
+      IF ( I .LE. NPIV ) GOTO 10
+      PANEL_POS(NPANELS+1)=NPIV+1
+      RETURN
+      END SUBROUTINE DMUMPS_641
       SUBROUTINE DMUMPS_286( NRHS, DESCA_PAR, DESCB_PAR,
      *  CNTXT_PAR,LOCAL_M,LOCAL_N,MBLOCK,NBLOCK,
      *  IPIV,LPIV,MASTER_ROOT,MYID,COMM,
@@ -4709,12 +5219,12 @@ C
       INTEGER allocok
       CALL BLACS_GRIDINFO( CNTXT_PAR, NPROW, NPCOL, MYROW, MYCOL )
       LOCAL_N_RHS = NUMROC(NRHS, NBLOCK, MYCOL, 0, NPCOL)
-      LOCAL_N_RHS = MAX(1,LOCAL_N_RHS)
+      LOCAL_N_RHS = max(1,LOCAL_N_RHS)
       ALLOCATE(RHS_PAR(LOCAL_M, LOCAL_N_RHS),stat=allocok)
       IF (allocok > 0 ) THEN
         WRITE(*,*) ' Problem during solve of the root.'
         WRITE(*,*) ' Reduce number of right hand sides.'
-        CALL DMUMPS_ABORT()
+        CALL MUMPS_ABORT()
       ENDIF
       CALL DMUMPS_290( MYID, SIZE_ROOT, NRHS, RHS_SEQ,
      *      LOCAL_M, LOCAL_N_RHS,
@@ -4734,7 +5244,7 @@ C
       END IF
       IF ( IERR .LT. 0 ) THEN
         WRITE(*,*) ' Problem during solve of the root'
-        CALL DMUMPS_ABORT()
+        CALL MUMPS_ABORT()
       END IF
       CALL DMUMPS_156( MYID, SIZE_ROOT, NRHS,
      *    RHS_SEQ, LOCAL_M, LOCAL_N_RHS,

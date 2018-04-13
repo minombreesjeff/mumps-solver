@@ -15,15 +15,15 @@ if(~isempty(errmsg))
      return;
 end
 
-prectype = 2;
+arithtype = 2;
 
 if(id.JOB == -2)     
      if(id.INST==-9999)
          disp('Uninitialized instance');
          return;
      end
-     if(id.TYPE ~= prectype)
-       disp('You are trying to call CMPLX/DBL version on a DBL/CMPLX instance');
+     if(id.TYPE ~= arithtype)
+       disp('You are trying to call z/d version on a d/z instance');
        return;
      end
      zmumpsmex(id.SYM,id.JOB,id.ICNTL,id.CNTL,id.PERM_IN,id.COLSCA,id.ROWSCA,id.RHS,id.VAR_SCHUR,id.INST,id.REDRHS);
@@ -47,7 +47,7 @@ if(id.JOB == -1)
      id.PIVNUL_LIST = pivnul_list;
      id.SYM_PERM = sym_perm;
      id.UNS_PERM = uns_perm;
-     id.TYPE = prectype;
+     id.TYPE = arithtype;
      id.ICNTL=icntl;
      id.CNTL=cntl;
      return;
@@ -58,8 +58,8 @@ if(id.INST==-9999)
          return;
 end
 
-if(id.TYPE ~= prectype)
-   disp('You are trying to call CMPLX/DBL version on a DBL/CMPLX instance');
+if(id.TYPE ~= arithtype)
+   disp('You are trying to call z/d version on a d/z instance');
    return;
 end
 

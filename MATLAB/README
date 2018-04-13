@@ -39,7 +39,10 @@ README
  INSTALLATION:
  You need
  1- 
- to have compiled MUMPS in sequential double precision.
+ to have compiled/linked a sequential version of MUMPS with both double
+ precision and double complex arithmetics ("make d" and "make z",
+ or "make all")
+
 
  2- 
  to edit make.inc.
@@ -70,7 +73,7 @@ README
  in sequential and double precision.
 
  It does not support :
-  - other versions (complex precision, parallel ...)
+  - other versions (complex arithmetic, parallel ...)
   - multiple right hand side
   - sparse right hand side 
   - elemental format
